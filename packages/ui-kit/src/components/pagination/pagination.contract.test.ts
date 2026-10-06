@@ -1,10 +1,11 @@
-// Conformance for all seven Pagination contracts (the root and its six
+// Conformance for all ten Pagination contracts (the root and its nine
 // parts) - one file because the interesting assertions are about how the
-// seven relate (family membership, composition refs), not about any one of
+// ten relate (family membership, composition refs), not about any one of
 // them in isolation. See card.contract.test.ts for the multi-level family
 // shape this follows: the root hosts PaginationContent, the content hosts
 // PaginationItem, and the item hosts PaginationLink, PaginationPrevious,
-// PaginationNext and PaginationEllipsis.
+// PaginationNext, their button twins PaginationButton,
+// PaginationPreviousButton and PaginationNextButton, and PaginationEllipsis.
 import Ajv2020 from 'ajv/dist/2020';
 import { describe, expect, it } from 'vitest';
 
@@ -34,7 +35,15 @@ const DIRECTORY = 'pagination';
 const LIST = 'pagination-content';
 const ITEM = 'pagination-item';
 const LIST_HOSTED = [ITEM] as const;
-const ITEM_HOSTED = ['pagination-link', 'pagination-previous', 'pagination-next', 'pagination-ellipsis'] as const;
+const ITEM_HOSTED = [
+  'pagination-link',
+  'pagination-previous',
+  'pagination-next',
+  'pagination-button',
+  'pagination-previous-button',
+  'pagination-next-button',
+  'pagination-ellipsis',
+] as const;
 const PART_STEMS = [LIST, ...LIST_HOSTED, ...ITEM_HOSTED] as const;
 const ALL_STEMS = [DIRECTORY, ...PART_STEMS] as const;
 
@@ -47,7 +56,7 @@ const ref = (stem: string) => componentRef(stem, contractMajor(DIRECTORY, stem))
 const ROOT_REF = ref(DIRECTORY);
 
 describe('pagination family: component type validity', () => {
-  it('all seven contracts validate against the component type', () => {
+  it('all ten contracts validate against the component type', () => {
     const ajv = new Ajv2020();
     addContractTypes(ajv);
     const validate = ajv.compile(componentType);
@@ -64,7 +73,7 @@ describe('pagination family: component type validity', () => {
 });
 
 describe('pagination family: membership resolves', () => {
-  it('the root names the family, calls itself root, and carries all six parts', () => {
+  it('the root names the family, calls itself root, and carries all nine parts', () => {
     const root = units[DIRECTORY].contract.family_membership;
     expect(root?.name).toBe('pagination');
     expect(root?.role).toBe('root');
@@ -103,13 +112,20 @@ describe('pagination family: what nests where', () => {
     expect(units[LIST].contract.accepts).toEqual({ content: 'specified', components: LIST_HOSTED.map(ref) });
   });
 
-  it('the item accepts a page link, the previous and next links or an ellipsis, and nothing else', () => {
+  it('the item accepts a page link or button, the previous and next links or buttons, or an ellipsis, and nothing else', () => {
     expect(units[ITEM].contract.accepts).toEqual({ content: 'specified', components: ITEM_HOSTED.map(ref) });
   });
 
-  it('the page link takes text, and the fixed-content parts take nothing', () => {
+  it('the page link and page button take text, and the fixed-content parts take nothing', () => {
     expect(units['pagination-link'].contract.accepts).toEqual({ content: 'specified', text: true });
-    for (const stem of ['pagination-previous', 'pagination-next', 'pagination-ellipsis']) {
+    expect(units['pagination-button'].contract.accepts).toEqual({ content: 'specified', text: true });
+    for (const stem of [
+      'pagination-previous',
+      'pagination-next',
+      'pagination-previous-button',
+      'pagination-next-button',
+      'pagination-ellipsis',
+    ]) {
       expect(units[stem].contract.accepts, stem).toEqual({ content: 'nothing' });
     }
   });
@@ -148,9 +164,11 @@ describe('pagination family: what the schema states in full', () => {
     for (const { stem, contract } of Object.values(units)) {
       expect(contract.prop_statements, stem).toBeUndefined();
     }
-    expect(units['pagination-link'].contract.props.properties.isActive).toMatchObject({ type: 'boolean' });
-    expect(units['pagination-link'].contract.props.properties.square).toMatchObject({ type: 'boolean' });
-    for (const stem of ['pagination-previous', 'pagination-next']) {
+    for (const stem of ['pagination-link', 'pagination-button']) {
+      expect(units[stem].contract.props.properties.isActive, stem).toMatchObject({ type: 'boolean' });
+      expect(units[stem].contract.props.properties.square, stem).toMatchObject({ type: 'boolean' });
+    }
+    for (const stem of ['pagination-previous', 'pagination-next', 'pagination-previous-button', 'pagination-next-button']) {
       expect(units[stem].contract.props.properties, stem).not.toHaveProperty('square');
       expect(units[stem].contract.props.properties.text, stem).toMatchObject({ type: 'string' });
     }
@@ -158,7 +176,7 @@ describe('pagination family: what the schema states in full', () => {
 });
 
 describe('pagination family in a GTS store', () => {
-  it('all seven components validate as an instance of the component type', () => {
+  it('all ten components validate as an instance of the component type', () => {
     const gts = unitStore(Object.values(units));
     for (const { stem, contract } of Object.values(units)) {
       const result = gts.validateInstance(contract.$id);
@@ -174,6 +192,9 @@ describe('pagination family in a GTS store', () => {
       'pagination-link': 'dom_a',
       'pagination-previous': 'dom_a',
       'pagination-next': 'dom_a',
+      'pagination-button': 'dom_button',
+      'pagination-previous-button': 'dom_button',
+      'pagination-next-button': 'dom_button',
       'pagination-ellipsis': 'dom_span',
     };
     for (const { stem, contract, elementSurface } of Object.values(units)) {
@@ -189,7 +210,7 @@ describe('pagination family in a GTS store', () => {
     expect(result.error).toContain('Schema not found');
   });
 
-  it('all seven components validate as an instance of the committed component type', () => {
+  it('all ten components validate as an instance of the committed component type', () => {
     for (const { stem, contract } of Object.values(units)) {
       const result = validateContractInstance(contract);
       expect(result.ok, `${stem}: ${result.error}`).toBe(true);

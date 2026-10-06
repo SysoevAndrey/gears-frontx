@@ -4,9 +4,9 @@
   "metamodel": "2.0.0",
   "component": "pagination-item",
   "forwards_to": "gts.frontx.uikit.element.dom_li.v1~",
-  "intent": "Hold one entry of a pagination row - a page link, the previous or next link, or the ellipsis.",
+  "intent": "Hold one entry of a pagination row - a page link or button, the previous or next link or button, or the ellipsis.",
   "typical_uses": [
-    "One entry of the page row, holding exactly one link or the ellipsis"
+    "One entry of the page row, holding exactly one link, one button or the ellipsis"
   ],
   "dont_use_when": [
     {
@@ -23,6 +23,9 @@
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_link.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next_button.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_ellipsis.v1"
     ]
   },

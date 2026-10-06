@@ -17,6 +17,13 @@
       }
     },
     {
+      "situation": "A page change that is a state update with no URL of its own",
+      "instead": {
+        "target": "PaginationButton",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1"
+      }
+    },
+    {
       "situation": "A link to the previous page",
       "instead": {
         "target": "PaginationPrevious",

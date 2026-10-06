@@ -17,6 +17,10 @@ dont_use_when:
       note: >-
         This kit ships no Link component, and no kit component is a
         substitute for one: navigation belongs to the app's own router.
+  - situation: A page change that is a state update with no URL of its own
+    instead:
+      target: PaginationButton
+      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1
   - situation: A link to the previous page
     instead:
       target: PaginationPrevious

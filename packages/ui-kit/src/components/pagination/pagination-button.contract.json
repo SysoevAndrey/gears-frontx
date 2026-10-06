@@ -1,0 +1,140 @@
+{
+  "$id": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1",
+  "gts_type": "gts.frontx.uikit._.component.v1~",
+  "metamodel": "2.0.0",
+  "component": "pagination-button",
+  "forwards_to": "gts.frontx.uikit.element.dom_button.v1~",
+  "intent": "Switch to one page of a paged result set through state, marking the page in view.",
+  "typical_uses": [
+    "A page number in the row of a pager driven by component state, with the current page marked by isActive"
+  ],
+  "dont_use_when": [
+    {
+      "situation": "A page that has its own URL",
+      "instead": {
+        "target": "PaginationLink",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_link.v1",
+        "note": "A real anchor keeps the page crawlable and openable in a new tab; use a button only when changing the page leaves the URL alone."
+      }
+    },
+    {
+      "situation": "A button to the previous page",
+      "instead": {
+        "target": "PaginationPreviousButton",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1"
+      }
+    },
+    {
+      "situation": "A button to the next page",
+      "instead": {
+        "target": "PaginationNextButton",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next_button.v1"
+      }
+    },
+    {
+      "situation": "An action that is not paging",
+      "instead": {
+        "target": "Button",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.button.v1"
+      }
+    }
+  ],
+  "accepts": {
+    "content": "specified",
+    "text": true
+  },
+  "mounted_in": [
+    {
+      "container": "PaginationItem",
+      "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_item.v1"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "always-a-native-button",
+      "text": "PaginationButton always renders a `button` with `type=\"button\"` unless the consumer passes another `type`, so it never submits a form by accident; every button attribute and handler, `onClick` and `disabled` included, is forwarded to it."
+    },
+    {
+      "id": "is-active-marks-the-current-page",
+      "text": "`isActive` sets `aria-current=\"page\"` and `data-active` on the button, and the active paint (pagination.module.css `.link[data-active]`: the --background fill under a --primary label) selects `data-active`; without it neither attribute is rendered."
+    },
+    {
+      "id": "square-is-a-fixed-footprint",
+      "text": "With `square` on, the button is a fixed var(--control-height-xs) square with no inline padding, and a label wider than that does not grow it; with `square` off it keeps the same height and takes inline padding of var(--space-2), growing with its label."
+    },
+    {
+      "id": "disabled-is-dimmed-and-inert",
+      "text": "A `disabled` button is dimmed to var(--opacity-disabled) and takes no pointer events (pagination.module.css `.link:disabled`), and, being a native disabled button, leaves the tab order."
+    }
+  ],
+  "anti_patterns": [
+    {
+      "dont": "Mark more than one button as isActive",
+      "do_instead": "Set isActive on the one button for the page in view; only one page is current"
+    },
+    {
+      "dont": "Use a button for a page that has its own URL",
+      "do_instead": "Use PaginationLink with the page's real href, so the page stays crawlable and can be opened in a new tab"
+    }
+  ],
+  "deprecations": {},
+  "attestations": {
+    "a11y": {
+      "outcome": "verified",
+      "by": "pagination.test.tsx asserts aria-current=\"page\" and data-active=\"true\" with isActive and neither without it, that the element is a button with type \"button\" and that a disabled one is not focusable"
+    },
+    "rtl": {
+      "outcome": "unknown"
+    }
+  },
+  "examples": {
+    "good": [
+      {
+        "title": "The current page in a state-driven pager",
+        "code": "<PaginationButton isActive onClick={() => setPage(2)}>2</PaginationButton>"
+      },
+      {
+        "title": "A page that is out of reach",
+        "code": "<PaginationButton disabled>9</PaginationButton>"
+      }
+    ],
+    "bad": [
+      {
+        "title": "A button for a page that has a URL",
+        "code": "<PaginationButton onClick={() => navigate('?page=3')}>3</PaginationButton>",
+        "why": "A button is not a link: it cannot be opened in a new tab or crawled. When the page has its own URL, give PaginationLink that href and intercept the click if the app routes on the client."
+      }
+    ]
+  },
+  "family_membership": {
+    "name": "pagination",
+    "role": "part"
+  },
+  "x-uikit": {
+    "partially_typed_props": {},
+    "variant_sources": [],
+    "cannot_extract": [
+      "default: prop \"type\" defaults to \"button\", but the contract states no property for it - the default is not stated"
+    ]
+  },
+  "props": {
+    "title": "UiKit PaginationButton",
+    "type": "object",
+    "properties": {
+      "className": {
+        "type": "string"
+      },
+      "isActive": {
+        "type": "boolean"
+      },
+      "square": {
+        "type": "boolean",
+        "default": true
+      }
+    },
+    "required": [],
+    "unevaluatedProperties": {
+      "x-uikit-classification": "unchecked"
+    }
+  }
+}

@@ -1,14 +1,46 @@
+import { useState } from 'react';
+
 import {
   Pagination,
+  PaginationButton,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
+  PaginationNextButton,
   PaginationPrevious,
+  PaginationPreviousButton,
 } from '@gears-frontx/ui-kit';
 
 import { Measure, Section } from '../shared';
+
+const PAGES = [1, 2, 3, 4, 5];
+
+// State-driven paging: the page lives in component state, so each item is a
+// button rather than a link, and the ends of the range disable Previous/Next.
+function ButtonPager() {
+  const [page, setPage] = useState(2);
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPreviousButton disabled={page === 1} onClick={() => setPage(page - 1)} />
+        </PaginationItem>
+        {PAGES.map((n) => (
+          <PaginationItem key={n}>
+            <PaginationButton isActive={n === page} onClick={() => setPage(n)}>
+              {n}
+            </PaginationButton>
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNextButton disabled={page === PAGES.length} onClick={() => setPage(page + 1)} />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
 
 export default function PaginationExample() {
   return (
@@ -53,6 +85,35 @@ export default function PaginationExample() {
             </PaginationContent>
           </Pagination>
         </Measure>
+      </Section>
+
+      <Section title="Button mode">
+        <ButtonPager />
+      </Section>
+
+      <Section title="Right-to-left chevrons">
+        <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious href="#" />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext href="#" />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPreviousButton />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNextButton />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       </Section>
 
       <Section title="Simple">

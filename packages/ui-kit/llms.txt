@@ -304,10 +304,12 @@ Rules for generated code:
   NavigationMenuContent/NavigationMenuLink); one shared popup/Viewport
   morphs to each active item's measured size.
 - [Pagination](dist/docs/pagination.md): page-number navigation from real
-  anchors, styled through Button's own variant classes (Pagination/
-  PaginationContent/PaginationItem/PaginationLink/PaginationPrevious/
-  PaginationNext/PaginationEllipsis); `PaginationLink`'s `isActive`
-  switches outline/ghost and sets `aria-current`.
+  anchors (Pagination/PaginationContent/PaginationItem/PaginationLink/
+  PaginationPrevious/PaginationNext/PaginationEllipsis); `isActive` paints
+  the current page and sets `aria-current`. For paging held in state, with
+  no URL per page, use the button twins PaginationButton/
+  PaginationPreviousButton/PaginationNextButton (`disabled` at the ends of
+  the range); the Previous/Next chevrons mirror in right-to-left.
 - [Popover](dist/docs/popover.md): portalled panel anchored to a trigger,
   opened by click by default (Popover/PopoverTrigger/PopoverContent/
   PopoverHeader/PopoverTitle/PopoverDescription); non-modal by default —
