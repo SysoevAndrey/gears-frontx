@@ -51,6 +51,10 @@
     {
       "id": "compact-marks-whichever-element-is-the-root",
       "text": "`compact` is reflected as `data-compact` on whichever element is currently the root - the bare svg, or the composed block's outer element - never on the inner indicator or glyph directly."
+    },
+    {
+      "id": "large-size-wins-over-compact",
+      "text": "`size=\"lg\"` is reflected as `data-size=\"lg\"` on whichever element is the root, like `compact`, and takes precedence over it when both are passed: the large glyph and indicator are declared after the compact ones. The `default` size sets no attribute."
     }
   ],
   "anti_patterns": [
@@ -151,6 +155,13 @@
       },
       "label": {
         "description": "Partially typed: ReactNode. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. label is a React node, not a string. `ReactNode` is a union, and the compiler emits one JSON type per property - a string, a number, a fragment or `false`/`null`/`undefined` (all of which count as absent, see the label-or-description-composes-the-block invariant) are all valid and only tsc can tell them apart. Its presence is what switches the component to the composed block, whose live region announces it."
+      },
+      "size": {
+        "type": "string",
+        "enum": [
+          "default",
+          "lg"
+        ]
       }
     },
     "required": [],

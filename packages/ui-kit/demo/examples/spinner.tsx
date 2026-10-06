@@ -20,6 +20,12 @@ export default function SpinnerExample() {
         </Row>
       </Section>
 
+      <Section title="Large">
+        <Row>
+          <Spinner size="lg" />
+        </Row>
+      </Section>
+
       <Section title="With label">
         <Row>
           <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -45,6 +51,8 @@ export default function SpinnerExample() {
             'compact block': '#spinner-compact > div',
             'compact indicator': '#spinner-compact > div > span:nth-of-type(1)',
             'compact glyph': '#spinner-compact svg',
+            'large indicator': '#spinner-large > div > span:nth-of-type(1)',
+            'large glyph': '#spinner-large svg',
           }}
         >
           <Row style={{ alignItems: 'flex-start', gap: 'var(--space-8)' }}>
@@ -53,6 +61,9 @@ export default function SpinnerExample() {
             </div>
             <div id="spinner-compact">
               <Spinner compact label="Loading" />
+            </div>
+            <div id="spinner-large">
+              <Spinner size="lg" label="Loading" />
             </div>
           </Row>
         </Measure>
