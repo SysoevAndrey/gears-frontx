@@ -43,9 +43,20 @@ export interface SpinnerProps extends ComponentProps<'svg'> {
    * @default false
    */
   compact?: boolean;
+  /**
+   * The glyph step. `lg` is the large one: 32 on a bare spinner, and in the
+   * composed block a 64 indicator around a 32 glyph (the same 2:1 the
+   * 36/18 and 28/14 steps draw). Wins over `compact` when both are passed,
+   * so a caller computing either from state never gets a half-and-half.
+   * Named `size` and kept to a literal union rather than lucide's
+   * number-or-string `size`, which this prop intercepts and never forwards.
+   * @default 'default'
+   */
+  size?: 'default' | 'lg';
 }
 
-export function Spinner({ className, label, description, compact, ...props }: SpinnerProps) {
+export function Spinner({ className, label, description, compact, size, ...props }: SpinnerProps) {
+  const dataSize = size === 'lg' ? size : undefined;
   // Both `false` and `null` are ReactNodes that render nothing, and
   // `label={busy && 'Saving'}` passes one whenever `busy` is false. They
   // must land on the bare shape, not produce an empty live region.
@@ -59,6 +70,7 @@ export function Spinner({ className, label, description, compact, ...props }: Sp
         className={cx(styles.spinner, className)}
         {...props}
         data-compact={compact || undefined}
+        data-size={dataSize}
       />
     );
   }
@@ -82,6 +94,7 @@ export function Spinner({ className, label, description, compact, ...props }: Sp
       aria-live={ariaLive}
       aria-atomic={ariaAtomic}
       data-compact={compact || undefined}
+      data-size={dataSize}
     >
       <span className={styles.indicator}>
         <LoaderCircleIcon

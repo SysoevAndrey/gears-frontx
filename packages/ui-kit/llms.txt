@@ -368,7 +368,8 @@ Rules for generated code:
   inside a button instead of nesting this. `label`/`description` compose
   it into a loading block (glyph in a 36 indicator box, text beneath),
   which becomes the live region while the glyph turns decorative;
-  `compact` takes that pair to 28/14.
+  `compact` takes that pair to 28/14 and `size="lg"` up to 64/32 (a bare
+  spinner goes to 32).
 - [StatusDot](dist/docs/status-dot.md): inline status - a 6px round dot
   plus an optional 12/16 label, both in the tone's colour; tone
   neutral|success|warning|danger|info, `live` for a 2s pulse; no box of

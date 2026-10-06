@@ -21,6 +21,17 @@
 }
 
 /*
+ * The large step, a bare spinner. 32 is a drawn value off the icon scale
+ * (12/16/20/24); dimensions are not guarded, and spinner.test.tsx pins it.
+ * Declared after the compact rule above at the same specificity, so `lg`
+ * wins when both are passed.
+ */
+.spinner[data-size='lg'] {
+  width: 2rem;
+  height: 2rem;
+}
+
+/*
  * The composed block: the glyph in an indicator box with its text beneath,
  * centred. Only rendered when a label or a description is given - a bare
  * spinner stays the icon and nothing else (see spinner.tsx).
@@ -62,6 +73,18 @@
 .block[data-compact] .indicator .spinner {
   width: 14px;
   height: 14px;
+}
+
+/* The large block keeps the drawn 2:1 between box and glyph: 64 around 32.
+ * Last, and one class deeper than the compact box, so it wins over it. */
+.block[data-size='lg'] .indicator {
+  width: 4rem;
+  height: 4rem;
+}
+
+.block[data-size='lg'] .indicator .spinner {
+  width: 2rem;
+  height: 2rem;
 }
 
 /*

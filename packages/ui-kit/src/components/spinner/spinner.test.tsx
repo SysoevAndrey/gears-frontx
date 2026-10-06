@@ -46,6 +46,19 @@ describe('Spinner', () => {
     expect(spinner?.className.baseVal).toContain('consumer');
   });
 
+  it('marks the large step on the bare svg without leaking size to the icon', () => {
+    render(<Spinner size="lg" data-testid="spinner" />);
+    const spinner = screen.getByTestId('spinner');
+    expect(spinner.getAttribute('data-size')).toBe('lg');
+    // lucide would turn a forwarded `size` into width/height attributes.
+    expect(spinner.getAttribute('width')).not.toBe('lg');
+  });
+
+  it('leaves the default step unmarked', () => {
+    render(<Spinner size="default" data-testid="spinner" />);
+    expect(screen.getByTestId('spinner').hasAttribute('data-size')).toBe(false);
+  });
+
   it('forwards native svg props such as id', () => {
     render(<Spinner id="save-spinner" data-testid="spinner" />);
     expect(screen.getByTestId('spinner')).toHaveProperty('id', 'save-spinner');
@@ -121,6 +134,30 @@ describe('Spinner with text', () => {
     expect(declared('.block[data-compact] .indicator', 'width')).toBe('1.75rem');
     expect(declared('.block[data-compact] .indicator .spinner', 'width')).toBe('14px');
     expect(declared('.spinner[data-compact]', 'width')).toBe('14px');
+  });
+
+  it('marks the large step on whichever element is the root', () => {
+    const { rerender } = render(<Spinner size="lg" label="Saving" />);
+    expect(screen.getByRole('status').getAttribute('data-size')).toBe('lg');
+    rerender(<Spinner size="lg" />);
+    expect(screen.getByRole('status').getAttribute('data-size')).toBe('lg');
+  });
+
+  it('draws the large step at 32, and 64 around it in the block', () => {
+    expect(declared(".spinner[data-size='lg']", 'width')).toBe('2rem');
+    expect(declared(".block[data-size='lg'] .indicator", 'width')).toBe('4rem');
+    expect(declared(".block[data-size='lg'] .indicator .spinner", 'width')).toBe('2rem');
+  });
+
+  it('declares the large step after compact, so it wins when both are passed', () => {
+    const order = (selector: string) => rules.findIndex((rule) => rule.selector === selector);
+    expect(order(".spinner[data-size='lg']")).toBeGreaterThan(order('.spinner[data-compact]'));
+    expect(order(".block[data-size='lg'] .indicator .spinner")).toBeGreaterThan(
+      order('.block[data-compact] .indicator .spinner'),
+    );
+    expect(order(".block[data-size='lg'] .indicator")).toBeGreaterThan(
+      order('.block[data-compact] .indicator'),
+    );
   });
 
   it('tracks the drawn label out over the monospace micro role', () => {

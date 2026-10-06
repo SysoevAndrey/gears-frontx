@@ -71,6 +71,13 @@ invariants:
       currently the root - the bare svg, or the composed block's outer
       element - never on the inner indicator or glyph directly.
 
+  - id: large-size-wins-over-compact
+    text: >-
+      `size="lg"` is reflected as `data-size="lg"` on whichever element is the
+      root, like `compact`, and takes precedence over it when both are passed:
+      the large glyph and indicator are declared after the compact ones. The
+      `default` size sets no attribute.
+
 anti_patterns:
   - dont: Render this inside Button by hand
     do_instead: Use Button's own `loading` prop - it keeps the button's width and accessible name and reports `aria-busy` while staying focusable

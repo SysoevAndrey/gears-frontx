@@ -4,7 +4,7 @@ A spinning loading indicator — lucide's `loader-circle` icon rotating
 continuously via CSS. No Base UI primitive and no variant axis.
 
 Two shapes. Bare, it is that icon and nothing else, at the kit's small icon
-step. Given a `label` or a `description`, it becomes the drawn loading
+step (or the large one, `size="lg"`). Given a `label` or a `description`, it becomes the drawn loading
 block: the glyph centred in a 36 indicator box with its text beneath it.
 
 ## When to use
@@ -29,6 +29,7 @@ block: the glyph centred in a 36 indicator box with its text beneath it.
 | `label` | `ReactNode` - the state, written under the indicator in the drawn monospace micro type; its presence is what composes the block | - |
 | `description` | `ReactNode` - a second line under the label: what is being waited on, or how long it usually takes | - |
 | `compact` | `boolean` - the drawn tighter block, a 28 indicator around a 14 glyph instead of 36 around 18; on a bare spinner it takes the glyph to that same 14 | `false` |
+| `size` | `default` \| `lg` - `lg` is the large step: a 32 glyph on a bare spinner, and in the block a 64 indicator around a 32 glyph (the same 2:1 the other steps draw). Wins over `compact` when both are passed | `default` |
 
 Every other prop is the indicator `<svg>`'s, `className` included, at both
 shapes - the layout block the kit adds around it is the kit's own, not a
@@ -70,6 +71,9 @@ import { Spinner } from '@gears-frontx/ui-kit';
 
 // Compact, for a panel that cannot give up 36px
 <Spinner compact label="Loading" />
+
+// Large, centred over a region that is loading as a whole
+<Spinner size="lg" />
 ```
 
 ## Anti-patterns
