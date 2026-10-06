@@ -30,6 +30,14 @@ invariants:
       "restricted"), on hover, and while a descendant carries
       aria-expanded="true"; a data-state tint wins over hover. Rows in
       TableHeader and TableFooter take none of these tints.
+  - id: row-rule-is-drawn-by-the-cells
+    text: >-
+      The 1px rule between rows is drawn under each header and body cell
+      rather than by the row, and is dropped under the last row of the
+      table, so it holds under both border models. A border a caller puts on
+      a `TableRow` is not the kit's rule: it is ignored once the table's
+      borders are separated (`stickyHeader`) and otherwise merges with the
+      cells' rule instead of replacing it.
   - id: collection-row-cues
     text: >-
       Only under Table's `variant="collection"`, a body row the caller
@@ -40,6 +48,10 @@ invariants:
 anti_patterns:
   - dont: Paint a selected row with a background through className or style
     do_instead: Pass data-state="selected" on the row inside TableBody
+  - dont: Draw or recolour the rule between rows with a border on TableRow
+    do_instead: >-
+      Style the cells (`className` on TableHead and TableCell); the kit draws
+      the rule under them, and a row border is ignored under `stickyHeader`
 
 deprecations: {}
 

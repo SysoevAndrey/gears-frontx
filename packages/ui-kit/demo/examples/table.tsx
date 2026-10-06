@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+
 import {
   Badge,
   Button,
@@ -15,13 +17,65 @@ import {
   TableRow,
 } from '@gears-frontx/ui-kit';
 
-import { Measure, Section } from '../shared';
+import { Measure, Row, Section } from '../shared';
 
 const INVOICES = [
   { id: 'INV001', status: 'Paid', amount: '$250.00' },
   { id: 'INV002', status: 'Pending', amount: '$150.00' },
   { id: 'INV003', status: 'Unpaid', amount: '$350.00' },
 ];
+
+const MANY_INVOICES = Array.from({ length: 14 }, (_, index) => ({
+  id: `INV${String(index + 1).padStart(3, '0')}`,
+  status: INVOICES[index % INVOICES.length]?.status ?? '',
+  amount: `$${(index + 1) * 25}.00`,
+}));
+
+// The header pins on Table's own scroll wrapper, so the wrapper needs a
+// height; containerRef then reaches that same element, here to drive its
+// scroll position.
+function StickyHeaderDemo() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  return (
+    <>
+      <Row>
+        <Button variant="outline" size="sm" onClick={() => containerRef.current?.scrollTo({ top: 0 })}>
+          Scroll to top
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight })}
+        >
+          Scroll to bottom
+        </Button>
+      </Row>
+      <Table
+        stickyHeader
+        containerRef={containerRef}
+        containerStyle={{ maxHeight: 240 }}
+        label="Invoices, sticky header"
+      >
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead style={{ textAlign: 'right' }}>Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {MANY_INVOICES.map((invoice) => (
+            <TableRow key={invoice.id}>
+              <TableCell>{invoice.id}</TableCell>
+              <TableCell>{invoice.status}</TableCell>
+              <TableCell style={{ textAlign: 'right' }}>{invoice.amount}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
 
 export default function TableExample() {
   return (
@@ -124,6 +178,12 @@ export default function TableExample() {
             </TableRow>
           </TableBody>
         </Table>
+      </Section>
+
+      {/* Hover any body row: the tint is --card-hover, which differs from both
+          the card this screen sits on and the page behind a bare table. */}
+      <Section title="Sticky header">
+        <StickyHeaderDemo />
       </Section>
 
       <Section title="Density">

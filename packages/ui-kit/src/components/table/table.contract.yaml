@@ -5,12 +5,13 @@
 # how a reader (or the conformance test) walks between them.
 #
 # Machine-extractable facts (prop list, the `variant` axis and its default,
-# `density`, `label` and the two container props, the forwarded surface) do
-# NOT belong here: the compiler takes those from table.tsx and rejects an
-# overlay that restates them. Table wraps no primitive: every part renders
-# its matching native element, so the schema states every kit prop in the
-# family fully except `containerStyle`, whose CSSProperties type has no JSON
-# type; that one prop is the only prop_statement in the family.
+# `density`, `label`, `stickyHeader` and the three container props, the
+# forwarded surface) do NOT belong here: the compiler takes those from
+# table.tsx and rejects an overlay that restates them. Table wraps no
+# primitive: every part renders its matching native element, so the schema
+# states every kit prop in the family fully except `containerStyle` and
+# `containerRef`, whose CSSProperties and Ref types have no JSON type; those
+# two are the only prop_statements in the family.
 component: table
 
 intent: Lay out tabular data as a styled native HTML table, rows that share the same columns.
@@ -50,9 +51,10 @@ invariants:
       Table renders a scrolling div around the <table>: it scrolls
       horizontally when the table is wider than it, and vertically once it
       is given a height. `label`, `containerClassName` (merged after the
-      wrapper's kit class) and `containerStyle` land on that wrapper. Every
-      other prop apart from `density` and `variant` - className, style,
-      aria attributes, event handlers - lands on the inner <table>.
+      wrapper's kit class), `containerStyle` and `containerRef` land on that
+      wrapper. Every other prop apart from `density`, `variant` and
+      `stickyHeader` - className, style, ref, aria attributes, event handlers
+      - lands on the inner <table>.
   - id: wrapper-is-always-a-focus-stop
     text: >-
       The wrapper always carries tabIndex 0, whether or not the table
@@ -69,6 +71,19 @@ invariants:
       lowers the header height and the cells' block padding and applies
       inside either variant; in the collection view the body rows keep
       their 4rem height.
+
+  - id: sticky-header-pins-without-the-collection-layout
+    text: >-
+      `stickyHeader` pins the header cells of ONE header row to the top of
+      the scroll wrapper on an opaque fill, with none of the collection
+      view's fixed layout, minimum width or row height, and works under
+      either variant. Every header cell takes `top: 0`, so a second header
+      row would slide under the first. The fill is the caller's
+      `--table-header-fill` when set, else `--card`; the collection view
+      keeps its own fill. It switches the table from collapsed to separated
+      borders so the rule under the header travels with it. Without a
+      bounded wrapper height (`containerClassName` or `containerStyle`)
+      there is nothing to scroll and the pinning has no visible effect.
 
 anti_patterns:
   - dont: Wrap Table in your own div and put role="region" and aria-label on that div
@@ -97,6 +112,12 @@ attestations:
     outcome: unknown
 
 prop_statements:
+  containerRef:
+    states: containerRef is a React ref to the scroll wrapper div, not to the <table>
+    because: >-
+      TableProps types it as React's `Ref<HTMLDivElement>`, a union of a ref
+      object and a callback, which has no single JSON type, so nothing is
+      asserted. `ref` itself still lands on the <table>.
   containerStyle:
     states: containerStyle is a plain React style object applied to the scroll wrapper, not to the <table>
     because: >-
@@ -108,8 +129,8 @@ unexposed_parts:
   - part: the scroll wrapper div
     reason: >-
       Table renders a div around its <table> with overflow auto and
-      tabIndex 0; it is not exported, and `label`, `containerClassName`
-      and `containerStyle` are the only props that reach it.
+      tabIndex 0; it is not exported, and `label`, `containerClassName`,
+      `containerStyle` and `containerRef` are the only props that reach it.
 
 examples:
   good:
@@ -135,6 +156,20 @@ examples:
               <TableCell>$250.00</TableCell>
             </TableRow>
           </TableFooter>
+        </Table>
+    - title: A pinned header over a height-capped scroll region
+      code: |
+        <Table stickyHeader containerStyle={{ maxHeight: 320 }} label="Invoices">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invoice</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>INV001</TableCell>
+            </TableRow>
+          </TableBody>
         </Table>
     - title: A compact collection view with a named scroll region
       code: |

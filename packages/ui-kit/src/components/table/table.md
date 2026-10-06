@@ -56,8 +56,12 @@ give the wrapper itself a `max-height` through `containerClassName` or
 `overflow-y` around `<Table>` instead: a sticky header sticks to its nearest
 scrolling ancestor, which is Table's own wrapper since it already scrolls
 horizontally. Your outer div would scroll while the wrapper, with no height
-of its own, never does, so the collection view's header would scroll away
-with the rows.
+of its own, never does, so a sticky header would scroll away with the rows.
+
+To measure the wrapper or drive its scroll position (scroll a row into view,
+read its `clientWidth`), pass `containerRef`: a ref object or a callback ref
+to the wrapper `div`. `ref` itself still lands on the `<table>`, like every
+other prop that is not a wrapper one.
 
 A focus stop should announce something: pass `label` to name the wrapper
 (`role="region"` + `aria-label` — a bare `div`'s `aria-label` is ignored
@@ -67,8 +71,8 @@ non-focusable element while the focusable wrapper stays nameless).
 Without `label` the wrapper is roleless and nameless as before. Prefer
 passing it whenever the surrounding page doesn't make the table's purpose
 obvious the moment focus lands. Beyond `label`, the wrapper takes
-`containerClassName` and `containerStyle`, merged after its kit class; it
-isn't a separate export.
+`containerClassName` and `containerStyle`, merged after its kit class, and
+`containerRef`; it isn't a separate export.
 
 ## Semantics and accessibility
 
@@ -107,7 +111,7 @@ Taken from the Studio Data Table frame:
 | Cell inline padding | 16px | `--space-4` |
 | Row height (one line of text) | 40px | falls out of the padding (16 + 12 + 12); `--control-height-lg` is also pinned as a floor on `.tableCell` so an empty or sub-line cell cannot collapse the row — `height` on a table cell is a floor, not a cap |
 | Row height (row holding a 32px control) | 56px | falls out of the same padding (32 + 12 + 12) |
-| Row rule | 1px | `--border-width` `--border` |
+| Row rule | 1px | `--border-width` `--border`, drawn under each cell (see "Sticky header") |
 
 The header is the one place the table leaves Inter: its column labels are
 mono by design, and that carries through to a header rendered as a button
@@ -174,8 +178,8 @@ other prop rather than driven by a kit-specific prop. Your own logic sets
 the attribute; the kit only paints it.
 
 A row is flat: transparent at rest, packed against its neighbours, with a
-single full-bleed 1px `--border` rule under it and no corner radius, ring,
-or fill of its own. Every state below is expressed as a full-bleed tint on
+single full-bleed 1px `--border` rule under it (drawn by its cells, see
+"Sticky header") and no corner radius, ring, or fill of its own. Every state below is expressed as a full-bleed tint on
 that shape — the drawn state language of the Studio Data Table:
 
 - `data-state="selected"` — a `--selection-subtle` tint, for a row the
@@ -186,10 +190,13 @@ that shape — the drawn state language of the Studio Data Table:
   viewer lacks access to.
 - Hover, and any row containing a descendant that is *currently*
   `aria-expanded="true"` (e.g. a row-level disclosure toggle, only while
-  open — a collapsed toggle does not match) — a `--muted` tint, one step
-  off both backdrops a table meets (`--surface` inside a card,
-  `--background` bare on the page). A `data-state` tint outranks hover, so
-  a selected row stays selected-colored under the pointer.
+  open — a collapsed toggle does not match) — a `--card-hover` tint, the
+  kit's hover step for a raised surface. It differs from both backdrops a
+  table meets (`--surface` inside a card, `--background` bare on the page) in
+  both themes; `--muted` would not, since the theme draws it equal to
+  `--background` in light and to every surface in dark. A `data-state` tint
+  outranks hover, so a selected row stays selected-colored under the
+  pointer.
 
 Because rows carry no fill at rest, the surface behind the table shows
 through them — put a `Table` on a `Card`, on `DataTable`'s own card, or on
@@ -199,6 +206,40 @@ The rule under the last row of the table is dropped: below it sits either
 the container's own bottom border or a footer bar's top border, and a
 second line there would double it. A `<tfoot>` after the body still gets
 its separator, since the body is then no longer the last section.
+
+## Sticky header
+
+`stickyHeader` pins the header cells to the top of the scroll wrapper, so the
+rows scroll beneath them on an opaque `--card` fill. It needs a bounded
+wrapper height to have anything to scroll within (`containerClassName` or
+`containerStyle`, as above). It is independent of `variant`: it brings none
+of the collection view's fixed layout, minimum width or row height, only the
+pinning, and works with `density` too.
+
+It is built for ONE header row: every header cell takes `top: 0`, so a
+second `TableRow` of `TableHead` cells would slide under the first rather than
+stack beneath it.
+
+To change the fill, set `--table-header-fill` on the table (through
+`className`) or on an ancestor. The kit reads it with `--card` as the
+fallback and declares it nowhere itself, so a plain class is enough: no
+selector has to outrank the kit's. It applies to `stickyHeader`; the
+`collection` variant keeps its own header fill.
+
+```css
+.invoices { --table-header-fill: var(--surface-elevated); }
+```
+
+It also switches the table from collapsed to separated borders (with no
+spacing). In the collapsed model a border belongs to the table's grid, not
+to the cell, so the rule under a pinned header would stay behind and scroll
+away with the rows; in the separated model it travels with the cell. That is
+why the 1px rule between rows is drawn under each header and body cell
+rather than by the row: a row's own border is ignored once the borders are
+separated, while under the collapsed model the cell rules merge into the
+same single line a row border drew. The look is unchanged either way. A
+border you put on a `TableRow` yourself is not the kit's rule, and is
+ignored by a `stickyHeader` table.
 
 ## Props (kit level)
 
@@ -211,6 +252,8 @@ its separator, since the body is then no longer the last section.
 | `variant` | `'default'` \| `'collection'` - collection is the fixed-layout view with a sticky 40 px header and 64 px rows | `'default'` |
 | `containerClassName` | `string` - className for the scroll wrapper; give it a `max-height` to scroll the rows under a sticky header | - |
 | `containerStyle` | `CSSProperties` - inline style for the same wrapper, e.g. `{ maxHeight: 320 }` | - |
+| `containerRef` | `Ref<HTMLDivElement>` - ref to the scroll wrapper, not the `<table>` (`ref` still lands on the table) | - |
+| `stickyHeader` | `boolean` - pins the header cells to the top of the scroll wrapper on an opaque fill; needs a bounded wrapper height, and is independent of `variant` | `false` |
 
 `TableHead`:
 
@@ -333,6 +376,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
     </TableRow>
   </TableBody>
 </Table>;
+```
+
+A pinned header that works without the collection view, with the scroll
+wrapper reachable through a ref:
+
+```tsx
+import { useRef } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@gears-frontx/ui-kit';
+
+function Invoices({ rows }: { rows: string[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  return (
+    <>
+      <button type="button" onClick={() => containerRef.current?.scrollTo({ top: 0 })}>
+        Back to top
+      </button>
+      <Table stickyHeader containerRef={containerRef} containerStyle={{ maxHeight: '20rem' }}>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((id) => (
+            <TableRow key={id}>
+              <TableCell>{id}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
 ```
 
 A row with a leading checkbox column, sized flush against the cell edge by

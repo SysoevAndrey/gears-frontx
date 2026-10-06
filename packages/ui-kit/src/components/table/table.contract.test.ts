@@ -160,26 +160,29 @@ describe('table family: what nests where', () => {
 });
 
 describe('table family: kit props and growth surfaces', () => {
-  it('carries kit props on the root and on TableHead only, every one fully typed but containerStyle', () => {
+  it('carries kit props on the root and on TableHead only, every one fully typed but containerStyle and containerRef', () => {
     // The parts other than TableHead declare nothing of their own: their
     // whole surface is the native element's, behind `forwards_to`.
     expect(Object.keys(units[DIRECTORY].contract.props.properties).sort()).toEqual([
       'containerClassName',
+      'containerRef',
       'containerStyle',
       'density',
       'label',
+      'stickyHeader',
       'variant',
     ]);
     expect(Object.keys(units['table-head'].contract.props.properties).sort()).toEqual(['resizable', 'resizeMinWidth']);
     for (const stem of PART_STEMS.filter((s) => s !== 'table-head')) {
       expect(Object.keys(units[stem].contract.props.properties), stem).toEqual([]);
     }
-    // containerStyle is React's CSSProperties, which has no JSON type, so
-    // the root states it in words; nothing else in the family needs to.
+    // containerStyle is React's CSSProperties and containerRef a Ref, neither
+    // of which has a JSON type, so the root states them in words; nothing
+    // else in the family needs to.
     for (const { stem, contract } of Object.values(units)) {
-      expect(Object.keys(contract['x-uikit'].partially_typed_props), stem).toEqual(stem === DIRECTORY ? ['containerStyle'] : []);
+      expect(Object.keys(contract['x-uikit'].partially_typed_props), stem).toEqual(stem === DIRECTORY ? ['containerRef', 'containerStyle'] : []);
     }
-    expect(Object.keys(units[DIRECTORY].contract.prop_statements ?? {})).toEqual(['containerStyle']);
+    expect(Object.keys(units[DIRECTORY].contract.prop_statements ?? {})).toEqual(['containerRef', 'containerStyle']);
     for (const stem of PART_STEMS) {
       expect(units[stem].contract.prop_statements, stem).toBeUndefined();
     }

@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
   useCallback,
   useEffect,
   useRef,
@@ -329,8 +330,9 @@ function TableColumnResizer({ minWidth }: TableColumnResizerProps) {
  * consumer's own around <Table>: a sticky header sticks to its NEAREST
  * scrolling ancestor, and since the wrapper already scrolls horizontally it
  * is that ancestor. An outer div would scroll while the wrapper, having no
- * height of its own, never did, and the collection header would scroll
- * away with the rows.
+ * height of its own, never did, and the sticky header would scroll away
+ * with the rows. `containerRef` reaches the same element for a caller that
+ * measures it or drives its scroll.
  *
  * That wrapper is `tabIndex={0}`, a deliberate addition over the source,
  * which has none. A horizontally-overflowing region with no scrollbar
@@ -392,6 +394,22 @@ export interface TableProps extends ComponentProps<'table'>, VariantProps<typeof
   containerClassName?: string;
   /** Inline style for the same scroll wrapper, e.g. `{ maxHeight: 320 }`. */
   containerStyle?: CSSProperties;
+  /**
+   * Ref to the scroll wrapper `div`, for a caller that measures it or drives
+   * its scroll position (`ref` itself lands on the `<table>`, as for every
+   * other prop). Both a ref object and a callback ref work.
+   */
+  containerRef?: Ref<HTMLDivElement>;
+  /**
+   * Pins the header cells to the top of the scroll wrapper on an opaque
+   * fill, so the rows scroll under them. Needs a bounded wrapper height
+   * (`containerClassName` / `containerStyle`) to have anything to scroll
+   * within. Independent of `variant`: it carries no layout, row height or
+   * minimum width, only the pinning, and switches the table to separated
+   * borders so the rule under the header stays with it.
+   * @default false
+   */
+  stickyHeader?: boolean;
 }
 
 export function Table({
@@ -401,10 +419,13 @@ export function Table({
   variant,
   containerClassName,
   containerStyle,
+  containerRef,
+  stickyHeader,
   ...props
 }: TableProps) {
   return (
     <div
+      ref={containerRef}
       className={cx(styles.tableContainer, containerClassName)}
       style={containerStyle}
       tabIndex={0}
@@ -414,7 +435,11 @@ export function Table({
       <table
         className={tableVariants({
           variant,
-          className: cx(density === 'compact' && styles.densityCompact, className),
+          className: cx(
+            density === 'compact' && styles.densityCompact,
+            stickyHeader && styles.stickyHeader,
+            className,
+          ),
         })}
         {...props}
       />

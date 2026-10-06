@@ -44,7 +44,7 @@
   "invariants": [
     {
       "id": "props-land-on-the-table-not-the-wrapper",
-      "text": "Table renders a scrolling div around the <table>: it scrolls horizontally when the table is wider than it, and vertically once it is given a height. `label`, `containerClassName` (merged after the wrapper's kit class) and `containerStyle` land on that wrapper. Every other prop apart from `density` and `variant` - className, style, aria attributes, event handlers - lands on the inner <table>."
+      "text": "Table renders a scrolling div around the <table>: it scrolls horizontally when the table is wider than it, and vertically once it is given a height. `label`, `containerClassName` (merged after the wrapper's kit class), `containerStyle` and `containerRef` land on that wrapper. Every other prop apart from `density`, `variant` and `stickyHeader` - className, style, ref, aria attributes, event handlers - lands on the inner <table>."
     },
     {
       "id": "wrapper-is-always-a-focus-stop",
@@ -53,6 +53,10 @@
     {
       "id": "density-and-variant-are-independent",
       "text": "`variant=\"collection\"` switches the table to a fixed layout on a 960px minimum width, gives the header cells a taller band on the card fill, sets body rows to a 4rem height and lets cell text wrap. `density=\"compact\"` lowers the header height and the cells' block padding and applies inside either variant; in the collection view the body rows keep their 4rem height."
+    },
+    {
+      "id": "sticky-header-pins-without-the-collection-layout",
+      "text": "`stickyHeader` pins the header cells of ONE header row to the top of the scroll wrapper on an opaque fill, with none of the collection view's fixed layout, minimum width or row height, and works under either variant. Every header cell takes `top: 0`, so a second header row would slide under the first. The fill is the caller's `--table-header-fill` when set, else `--card`; the collection view keeps its own fill. It switches the table from collapsed to separated borders so the rule under the header travels with it. Without a bounded wrapper height (`containerClassName` or `containerStyle`) there is nothing to scroll and the pinning has no visible effect."
     }
   ],
   "anti_patterns": [
@@ -76,6 +80,10 @@
     }
   },
   "prop_statements": {
+    "containerRef": {
+      "states": "containerRef is a React ref to the scroll wrapper div, not to the <table>",
+      "because": "TableProps types it as React's `Ref<HTMLDivElement>`, a union of a ref object and a callback, which has no single JSON type, so nothing is asserted. `ref` itself still lands on the <table>."
+    },
     "containerStyle": {
       "states": "containerStyle is a plain React style object applied to the scroll wrapper, not to the <table>",
       "because": "TableProps types it as React's `CSSProperties`; the compiler has no JSON type for `CSSProperties`, so nothing is asserted. The wrapper's own styling goes through table.module.css, not through this."
@@ -84,7 +92,7 @@
   "unexposed_parts": [
     {
       "part": "the scroll wrapper div",
-      "reason": "Table renders a div around its <table> with overflow auto and tabIndex 0; it is not exported, and `label`, `containerClassName` and `containerStyle` are the only props that reach it."
+      "reason": "Table renders a div around its <table> with overflow auto and tabIndex 0; it is not exported, and `label`, `containerClassName`, `containerStyle` and `containerRef` are the only props that reach it."
     }
   ],
   "examples": {
@@ -92,6 +100,10 @@
       {
         "title": "A captioned table with a header, a body and a totals footer",
         "code": "<Table>\n  <TableCaption>Recent invoices</TableCaption>\n  <TableHeader>\n    <TableRow>\n      <TableHead>Invoice</TableHead>\n      <TableHead>Amount</TableHead>\n    </TableRow>\n  </TableHeader>\n  <TableBody>\n    <TableRow>\n      <TableCell>INV001</TableCell>\n      <TableCell>$250.00</TableCell>\n    </TableRow>\n  </TableBody>\n  <TableFooter>\n    <TableRow>\n      <TableCell>Total</TableCell>\n      <TableCell>$250.00</TableCell>\n    </TableRow>\n  </TableFooter>\n</Table>\n"
+      },
+      {
+        "title": "A pinned header over a height-capped scroll region",
+        "code": "<Table stickyHeader containerStyle={{ maxHeight: 320 }} label=\"Invoices\">\n  <TableHeader>\n    <TableRow>\n      <TableHead>Invoice</TableHead>\n    </TableRow>\n  </TableHeader>\n  <TableBody>\n    <TableRow>\n      <TableCell>INV001</TableCell>\n    </TableRow>\n  </TableBody>\n</Table>\n"
       },
       {
         "title": "A compact collection view with a named scroll region",
@@ -121,6 +133,10 @@
   },
   "x-uikit": {
     "partially_typed_props": {
+      "containerRef": {
+        "typeText": "Ref<HTMLDivElement> | undefined",
+        "optional": true
+      },
       "containerStyle": {
         "typeText": "CSSProperties | undefined",
         "optional": true
@@ -146,6 +162,9 @@
       "containerClassName": {
         "type": "string"
       },
+      "containerRef": {
+        "description": "Partially typed: Ref<HTMLDivElement> | undefined. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. containerRef is a React ref to the scroll wrapper div, not to the <table>. TableProps types it as React's `Ref<HTMLDivElement>`, a union of a ref object and a callback, which has no single JSON type, so nothing is asserted. `ref` itself still lands on the <table>."
+      },
       "containerStyle": {
         "description": "Partially typed: CSSProperties | undefined. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. containerStyle is a plain React style object applied to the scroll wrapper, not to the <table>. TableProps types it as React's `CSSProperties`; the compiler has no JSON type for `CSSProperties`, so nothing is asserted. The wrapper's own styling goes through table.module.css, not through this."
       },
@@ -158,6 +177,9 @@
       },
       "label": {
         "type": "string"
+      },
+      "stickyHeader": {
+        "type": "boolean"
       }
     },
     "required": [],
