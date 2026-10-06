@@ -42,7 +42,7 @@
     },
     {
       "id": "icon-only-needs-the-icon-prop-and-a-label",
-      "text": "The button is squared as icon-only only when the icon is passed through `icon` with no children (Button's `data-icon-only`); it then has no accessible name of its own and needs an `aria-label`."
+      "text": "The icon has to be passed through `icon`, not as children. With `icon` set and no children, the button has no accessible name of its own unless `end` carries content that is announced (a glyph is `aria-hidden`), so it needs an `aria-label` then. It is squared as icon-only (Button's `data-icon-only`) only when `end` is absent too."
     }
   ],
   "anti_patterns": [
@@ -65,6 +65,10 @@
     "icon": {
       "states": "icon is a React node, not a value",
       "because": "`ReactNode` is a union of an element, a string, a number, a fragment, `false` and more - the compiler emits one JSON type per property. It is Button's icon slot, which sizes the icon, hides it while `loading` and marks it `aria-hidden`."
+    },
+    "end": {
+      "states": "end is a React node, not a value",
+      "because": "`ReactNode` is a union of an element, a string, a number, a fragment, `false` and more - the compiler emits one JSON type per property. It is Button's trailing slot, which sizes its content and hides it while `loading`; it is part of the accessible name, not marked `aria-hidden`."
     },
     "render": {
       "states": "render replaces the rendered element with one the caller supplies",
@@ -96,6 +100,10 @@
   },
   "x-uikit": {
     "partially_typed_props": {
+      "end": {
+        "typeText": "ReactNode",
+        "optional": true
+      },
       "icon": {
         "typeText": "ReactNode",
         "optional": true
@@ -136,6 +144,9 @@
       },
       "className": {
         "type": "string"
+      },
+      "end": {
+        "description": "Partially typed: ReactNode. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. end is a React node, not a value. `ReactNode` is a union of an element, a string, a number, a fragment, `false` and more - the compiler emits one JSON type per property. It is Button's trailing slot, which sizes its content and hides it while `loading`; it is part of the accessible name, not marked `aria-hidden`."
       },
       "focusableWhenDisabled": {
         "type": "boolean"

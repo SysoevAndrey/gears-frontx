@@ -182,7 +182,7 @@ describe('attachment: what the schema states', () => {
 
 describe('attachment: what the schema cannot assert', () => {
   const STATEMENTS: Record<string, string[]> = {
-    'attachment-action': ['icon', 'render', 'style'],
+    'attachment-action': ['end', 'icon', 'render', 'style'],
     'attachment-trigger': ['render'],
   };
 
@@ -198,7 +198,7 @@ describe('attachment: what the schema cannot assert', () => {
 
   it('no other contract carries a prop statement, and only the action keeps a kit slot in partially_typed_props', () => {
     for (const { stem, contract } of Object.values(units)) {
-      expect(Object.keys(contract['x-uikit'].partially_typed_props), stem).toEqual(stem === 'attachment-action' ? ['icon'] : []);
+      expect(Object.keys(contract['x-uikit'].partially_typed_props), stem).toEqual(stem === 'attachment-action' ? ['end', 'icon'] : []);
       if (!(stem in STATEMENTS)) expect(contract.prop_statements, stem).toBeUndefined();
     }
   });

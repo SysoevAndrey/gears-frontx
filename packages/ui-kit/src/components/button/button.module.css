@@ -355,7 +355,8 @@
  * with no 18 step. Rounding it onto a step would be a kit-side correction
  * of a drawn value; button.test.tsx pins the literal. (0,2,0), above the
  * base `.icon svg` rule and the `lg` override alike. */
-.variantUtility .icon svg {
+.variantUtility .icon svg,
+.variantUtility .end svg {
   width: 18px;
   height: 18px;
 }
@@ -425,17 +426,22 @@
 }
 
 /* Slots. The wrapper, not the consumer's svg, is the styling target: it
- * normalizes icon size per button size and is what loading hides. */
-.icon {
+ * normalizes icon size per button size and is what loading hides. `end` is
+ * the same slot after the label, so it shares every rule — the flex gap
+ * above spaces it, no margin needed. */
+.icon,
+.end {
   display: inline-flex;
 }
 
-.icon svg {
+.icon svg,
+.end svg {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
 }
 
-.sizeLg .icon svg {
+.sizeLg .icon svg,
+.sizeLg .end svg {
   width: var(--icon-size-md);
   height: var(--icon-size-md);
 }
@@ -448,7 +454,8 @@
  * The slots keep painting layout either way — no width jump.
  */
 .button[data-loading] .icon,
-.button[data-loading] .label {
+.button[data-loading] .label,
+.button[data-loading] .end {
   opacity: 0;
 }
 

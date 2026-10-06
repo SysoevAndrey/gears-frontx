@@ -7,7 +7,8 @@
   "intent": "Trigger a single action in the current context.",
   "typical_uses": [
     "A one-off action with an immediate effect (submit, confirm, open a dialog)",
-    "An icon-only action that has an accessible name (pass aria-label)"
+    "An icon-only action that has an accessible name (pass aria-label)",
+    "An action that opens something or reports a direction, with a trailing glyph after the label (a chevron, a sort arrow)"
   ],
   "dont_use_when": [
     {
@@ -55,7 +56,7 @@
   "invariants": [
     {
       "id": "icon-only-needs-label",
-      "text": "With `icon` set and no children the button renders icon-only and carries no accessible name of its own - `aria-label` is required."
+      "text": "With `icon` set and no children, the button has no accessible name of its own unless `end` carries content that is announced (a glyph is `aria-hidden`), so `aria-label` is required then. It is squared icon-only only when `end` is absent too."
     },
     {
       "id": "loading-is-not-native-disabled",
@@ -70,6 +71,10 @@
     {
       "dont": "Pass an icon element through children",
       "do_instead": "Use the `icon` prop"
+    },
+    {
+      "dont": "Pass a trailing chevron through children",
+      "do_instead": "Use the `end` prop, which sizes and spaces it and hides it while `loading`; mark a hand-written svg `aria-hidden`, since the slot is part of the accessible name"
     }
   ],
   "deprecations": {},
@@ -86,6 +91,10 @@
     "icon": {
       "states": "icon is a React node, not a value",
       "because": "`ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. The slot exists so the icon gets sized, spaced, hidden while `loading` and marked decorative; what may go in it is \"anything React renders\", which is the whole assertion."
+    },
+    "end": {
+      "states": "end is a React node, not a value",
+      "because": "`ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. The slot exists so the trailing content gets sized, spaced and hidden while `loading`; it is not marked decorative, so what goes in it is announced with the label unless it hides itself. What may go in it is \"anything React renders\", which is the whole assertion."
     },
     "render": {
       "states": "render replaces the rendered element with one the caller supplies",
@@ -105,6 +114,10 @@
       {
         "title": "Icon-only, named for assistive tech",
         "code": "<Button variant=\"ghost\" icon={<TrashIcon />} aria-label=\"Delete item\" />"
+      },
+      {
+        "title": "A trailing chevron after the label",
+        "code": "<Button variant=\"outline\" end={<ChevronDownIcon />}>Sort</Button>"
       }
     ],
     "bad": [
@@ -112,6 +125,11 @@
         "title": "Icon passed through children",
         "code": "<Button variant=\"ghost\"><TrashIcon /> Delete</Button>",
         "why": "Children are text only. An icon in children misses the slot that sizes it, spaces it, hides it while `loading` and marks it `aria-hidden`, so it is announced as part of the accessible name."
+      },
+      {
+        "title": "An icon and a trailing chevron with no name",
+        "code": "<Button variant=\"ghost\" icon={<FunnelIcon />} end={<ChevronDownIcon />} />",
+        "why": "The button is not squared, since `end` is present, but it still has no accessible name: both glyphs are decorative or `aria-hidden`. Pass `aria-label`, or put the name in the children."
       },
       {
         "title": "Spinner rendered by hand",
@@ -122,6 +140,10 @@
   },
   "x-uikit": {
     "partially_typed_props": {
+      "end": {
+        "typeText": "ReactNode",
+        "optional": true
+      },
       "icon": {
         "typeText": "ReactNode",
         "optional": true
@@ -162,6 +184,9 @@
       },
       "className": {
         "type": "string"
+      },
+      "end": {
+        "description": "Partially typed: ReactNode. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. end is a React node, not a value. `ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. The slot exists so the trailing content gets sized, spaced and hidden while `loading`; it is not marked decorative, so what goes in it is announced with the label unless it hides itself. What may go in it is \"anything React renders\", which is the whole assertion."
       },
       "focusableWhenDisabled": {
         "type": "boolean"

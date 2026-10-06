@@ -139,7 +139,7 @@ describe('input-group family: what the schema cannot assert', () => {
     expect(Object.keys(units['input-group-input'].contract.prop_statements ?? {}).sort()).toEqual(
       ['defaultValue', 'end', 'icon', 'onValueChange', 'render', 'style', 'value'].sort(),
     );
-    expect(Object.keys(units['input-group-button'].contract.prop_statements ?? {}).sort()).toEqual(['icon', 'render', 'style']);
+    expect(Object.keys(units['input-group-button'].contract.prop_statements ?? {}).sort()).toEqual(['end', 'icon', 'render', 'style']);
     for (const stem of [DIRECTORY, 'input-group-addon', 'input-group-text', 'input-group-textarea'] as const) {
       expect(units[stem].contract.prop_statements, stem).toBeUndefined();
     }

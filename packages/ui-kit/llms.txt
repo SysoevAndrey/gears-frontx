@@ -146,8 +146,12 @@ Rules for generated code:
   consumer className can recolor a button in every state via
   `--button-bg`/`--button-fg`/`--button-bg-hover`/`--button-fg-hover`/
   `--button-border` — no new variant needed; icons go in the `icon` slot
-  prop, NEVER in children — `icon` with no children makes a square
-  icon-only button (always pass `aria-label` then); `loading` spins,
+  prop, NEVER in children — `icon` with no children leaves the button with no
+  accessible name (pass `aria-label` unless `end` holds announced text), and
+  with no `end` either it is a square icon-only button; `end` is the
+  trailing slot after the label (a chevron, a sort arrow, a count; its
+  content joins the accessible name, so hide a glyph with `aria-hidden`);
+  `loading` spins,
   disables, and keeps the width and accessible name; render prop for
   button-semantic actions over a real anchor (not a link substitute);
   `buttonVariants` is exported for styling other elements to match.

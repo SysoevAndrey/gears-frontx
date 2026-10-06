@@ -119,6 +119,53 @@ describe('Button', () => {
     expect(button.querySelector(`.${styles.icon}`)).toBeNull();
   });
 
+  it('renders the end slot after the label', () => {
+    render(<Button end={<svg aria-hidden="true" data-testid="chevron" />}>Sort</Button>);
+    const button = screen.getByRole('button', { name: 'Sort' });
+    const slot = screen.getByTestId('chevron').parentElement;
+    expect(slot).toHaveProperty('tagName', 'SPAN');
+    expect(slot?.className).toContain(styles.end);
+    expect(button.lastElementChild).toBe(slot);
+    expect(button.querySelector(`.${styles.label}`)?.nextElementSibling).toBe(slot);
+    expect(button.hasAttribute('data-icon-only')).toBe(false);
+  });
+
+  // The slot is not decorative like `icon`: a count in it has to be heard.
+  // A glyph keeps itself out by carrying aria-hidden (lucide's default).
+  it('puts the end slot in the accessible name, unless the glyph hides itself', () => {
+    const { unmount } = render(<Button end={3}>Filters</Button>);
+    const slot = screen.getByRole('button', { name: 'Filters 3' }).querySelector(`.${styles.end}`);
+    expect(slot?.hasAttribute('aria-hidden')).toBe(false);
+    unmount();
+    render(<Button end={<svg aria-hidden="true" />}>Sort</Button>);
+    expect(screen.getByRole('button', { name: 'Sort' })).toBeTruthy();
+  });
+
+  it('treats a false end as absent', () => {
+    render(<Button end={false}>Sort</Button>);
+    expect(screen.getByRole('button', { name: 'Sort' }).querySelector(`.${styles.end}`)).toBeNull();
+  });
+
+  it('does not square up an icon button once it has an end slot', () => {
+    render(<Button icon={<svg />} end={<svg />} aria-label="Sort" />);
+    expect(screen.getByRole('button', { name: 'Sort' }).hasAttribute('data-icon-only')).toBe(false);
+  });
+
+  it('hides the end slot while loading', () => {
+    render(
+      <Button loading end={<svg data-testid="chevron" />}>
+        Save
+      </Button>,
+    );
+    // jsdom paints nothing, so pin the rule that hides it: opacity (not
+    // visibility), same as the icon slot, so the width holds.
+    const hidden = rules.find((rule) =>
+      rule.selector.replace(/\s+/g, '').split(',').includes('.button[data-loading].end'),
+    );
+    expect(hidden && declarationMap(hidden.body).get('opacity')).toBe('0');
+    expect(screen.getByTestId('chevron')).toBeTruthy();
+  });
+
   it('loading disables the button, reports aria-busy, and keeps the accessible name', () => {
     const onClick = vi.fn();
     render(
@@ -447,8 +494,9 @@ describe('Button navigation, avatar and utility variants', () => {
   // 18 is off the icon scale (12 / 16 / 20 / 24). Rounding it onto a step
   // would be a kit-side correction of a drawn value.
   it('draws the utility glyph at the drawn 18', () => {
-    expect(declaredFor('.variantUtility .icon svg', 'width')).toBe('18px');
-    expect(declaredFor('.variantUtility .icon svg', 'height')).toBe('18px');
+    const selector = '.variantUtility .icon svg,.variantUtility .end svg';
+    expect(declaredFor(selector, 'width')).toBe('18px');
+    expect(declaredFor(selector, 'height')).toBe('18px');
   });
 });
 
