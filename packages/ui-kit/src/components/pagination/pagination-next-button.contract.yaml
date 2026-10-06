@@ -1,26 +1,26 @@
-# Semantic overlay for PaginationPrevious - part of the Pagination family, see
-# pagination.contract.yaml. `mounted_in` is filled from PaginationItem's
-# own accepted components, not authored here. It renders a PaginationLink
-# with `square` fixed off, so it shares that part's anchor, `isActive` and
-# router behaviour.
-component: pagination-previous
+# Semantic overlay for PaginationNextButton - part of the Pagination family,
+# see pagination.contract.yaml. `mounted_in` is filled from PaginationItem's
+# own accepted components, not authored here. It renders a PaginationButton
+# with `square` fixed off, so it shares that part's native button, disabled
+# and handler behaviour: the state-driven twin of PaginationNext.
+component: pagination-next-button
 
-intent: Link to the previous page of a paged result set with a chevron and a short label.
+intent: Switch to the next page of a paged result set through state, with a chevron and a short label.
 
 typical_uses:
-  - The previous link at the start of the page row
+  - The next button at the end of the page row, disabled at the last page
   - Half of a previous/next pair with no page numbers
 
 dont_use_when:
-  - situation: A previous-page action that is a state update with no URL of its own
+  - situation: A button to one numbered page
+    instead:
+      target: PaginationButton
+      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1
+  - situation: A button to the previous page
     instead:
       target: PaginationPreviousButton
       component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1
-  - situation: A link to one numbered page
-    instead:
-      target: PaginationLink
-      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_link.v1
-  - situation: A link to the next page
+  - situation: A link to the next page, where each page has its own URL
     instead:
       target: PaginationNext
       component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next.v1
@@ -31,8 +31,8 @@ accepts:
 invariants:
   - id: fixed-content-and-accessible-name
     text: >-
-      The link renders a left chevron before the label and ignores children.
-      Its accessible name is the fixed `aria-label` "Go to previous page", set
+      The button renders the label before a right chevron and ignores children.
+      Its accessible name is the fixed `aria-label` "Go to next page", set
       ahead of the consumer's props: `text` changes only the visible label,
       and only an `aria-label` passed to it replaces the name.
   - id: label-hidden-below-640px
@@ -44,10 +44,10 @@ invariants:
     text: >-
       The chevron is mirrored under a right-to-left direction
       (pagination.module.css `.chevron:dir(rtl)`), so it keeps pointing
-      toward the previous pages whatever the reading direction.
+      toward the next pages whatever the reading direction.
 
 anti_patterns:
-  - dont: Relabel the link through `text` alone
+  - dont: Relabel the button through `text` alone
     do_instead: Pass a matching `aria-label` with a custom `text`, so the visible label stays part of the accessible name
 
 deprecations: {}
@@ -56,20 +56,20 @@ attestations:
   a11y:
     outcome: verified
     by: >-
-      pagination.test.tsx asserts getByRole('link', { name: 'Go to previous
-      page' }) finds the link, with the visible "Previous" label and an svg
-      inside it
+      pagination.test.tsx asserts getByRole('button', { name: 'Go to next
+      page' }) finds the button, with the visible "Next" label and an svg
+      inside it, and that it is disabled when asked
   rtl:
     outcome: unknown
     by: >-
       pagination.module.css mirrors the chevron with `.chevron:dir(rtl)` and
       pagination.test.tsx pins that rule, but jsdom has no layout and does
-      not resolve `:dir()`, so no suite renders the link right-to-left
+      not resolve `:dir()`, so no suite renders the button right-to-left
 
 unexposed_parts:
   - part: the chevron icon
     reason: >-
-      pagination.tsx renders a ChevronLeftIcon inside the link; it is not
+      pagination.tsx renders a ChevronRightIcon inside the button; it is not
       exported as a component of its own and cannot be replaced.
   - part: the visible label span
     reason: >-
@@ -79,16 +79,14 @@ unexposed_parts:
 
 examples:
   good:
-    - title: The default label
-      code: <PaginationPrevious href="?page=1" />
-    - title: A custom label with a matching accessible name
-      code: <PaginationPrevious href="?page=1" text="Newer" aria-label="Go to newer results" />
+    - title: Disabled at the last page
+      code: <PaginationNextButton disabled={page === lastPage} onClick={() => setPage(page + 1)} />
   bad:
     - title: A label given as children
-      code: <PaginationPrevious href="?page=1">Back</PaginationPrevious>
+      code: <PaginationNextButton>Forward</PaginationNextButton>
       why: >-
-        The link renders fixed content and ignores children; the visible label
-        is set through `text`.
+        The button renders fixed content and ignores children; the visible
+        label is set through `text`.
 
 family_membership:
   name: pagination

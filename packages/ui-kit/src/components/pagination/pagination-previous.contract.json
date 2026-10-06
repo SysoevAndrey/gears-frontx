@@ -11,6 +11,13 @@
   ],
   "dont_use_when": [
     {
+      "situation": "A previous-page action that is a state update with no URL of its own",
+      "instead": {
+        "target": "PaginationPreviousButton",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1"
+      }
+    },
+    {
       "situation": "A link to one numbered page",
       "instead": {
         "target": "PaginationLink",
@@ -42,6 +49,10 @@
     {
       "id": "label-hidden-below-640px",
       "text": "The visible label is hidden below a 640px viewport width (pagination.module.css `.previousNextText`), so a narrow viewport shows the chevron alone."
+    },
+    {
+      "id": "chevron-mirrors-in-rtl",
+      "text": "The chevron is mirrored under a right-to-left direction (pagination.module.css `.chevron:dir(rtl)`), so it keeps pointing toward the previous pages whatever the reading direction."
     }
   ],
   "anti_patterns": [
@@ -57,8 +68,8 @@
       "by": "pagination.test.tsx asserts getByRole('link', { name: 'Go to previous page' }) finds the link, with the visible \"Previous\" label and an svg inside it"
     },
     "rtl": {
-      "outcome": "failed",
-      "by": "pagination.tsx renders ChevronLeftIcon in the link and pagination.module.css has no rule that mirrors it under a right-to-left direction, so in a right-to-left row it points against the reading order"
+      "outcome": "unknown",
+      "by": "pagination.module.css mirrors the chevron with `.chevron:dir(rtl)` and pagination.test.tsx pins that rule, but jsdom has no layout and does not resolve `:dir()`, so no suite renders the link right-to-left"
     }
   },
   "unexposed_parts": [

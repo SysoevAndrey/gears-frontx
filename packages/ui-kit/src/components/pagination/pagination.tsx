@@ -4,6 +4,27 @@ import type { ComponentProps } from 'react';
 
 import styles from './pagination.module.css';
 
+// The visible content of the previous/next parts, shared by the anchor and
+// the button forms so the two cannot drift. The chevrons carry
+// `styles.chevron`: it is what mirrors them under a right-to-left direction.
+function previousContent(text: string) {
+  return (
+    <>
+      <ChevronLeftIcon className={cx(styles.icon, styles.chevron)} />
+      <span className={styles.previousNextText}>{text}</span>
+    </>
+  );
+}
+
+function nextContent(text: string) {
+  return (
+    <>
+      <span className={styles.previousNextText}>{text}</span>
+      <ChevronRightIcon className={cx(styles.icon, styles.chevron)} />
+    </>
+  );
+}
+
 export type PaginationProps = ComponentProps<'nav'>;
 
 export function Pagination({ className, ...props }: PaginationProps) {
@@ -72,8 +93,7 @@ export function PaginationPrevious({
       className={cx(styles.previous, className)}
       {...props}
     >
-      <ChevronLeftIcon className={styles.icon} />
-      <span className={styles.previousNextText}>{text}</span>
+      {previousContent(text)}
     </PaginationLink>
   );
 }
@@ -91,9 +111,72 @@ export function PaginationNext({ className, text = 'Next', ...props }: Paginatio
       className={cx(styles.next, className)}
       {...props}
     >
-      <span className={styles.previousNextText}>{text}</span>
-      <ChevronRightIcon className={styles.icon} />
+      {nextContent(text)}
     </PaginationLink>
+  );
+}
+
+/*
+ * The button forms: the same items for state-driven paging, where a page
+ * change is a state update and has no URL of its own. They are separate
+ * parts rather than a `render`/`as` on the link because PaginationLink's
+ * contract promises a real anchor (see pagination-link.contract.yaml); a
+ * button part keeps that promise intact and shares every class with it, so
+ * the two forms paint identically.
+ */
+export interface PaginationButtonProps extends Omit<ComponentProps<'button'>, 'className'> {
+  className?: string;
+  /** Marks the page in view: sets `aria-current="page"` and the active
+   * paint, same as PaginationLink's. */
+  isActive?: boolean;
+  /** Same square footprint as PaginationLink's. @default true */
+  square?: boolean;
+}
+
+export function PaginationButton({
+  className,
+  isActive,
+  square = true,
+  type = 'button',
+  ...props
+}: PaginationButtonProps) {
+  return (
+    <button
+      type={type}
+      aria-current={isActive ? 'page' : undefined}
+      data-active={isActive || undefined}
+      className={cx(styles.link, square && styles.square, className)}
+      {...props}
+    />
+  );
+}
+
+export interface PaginationPreviousButtonProps extends Omit<PaginationButtonProps, 'square' | 'isActive'> {
+  /** Label text, hidden below the `sm` breakpoint (640px). @default 'Previous' */
+  text?: string;
+}
+
+export function PaginationPreviousButton({
+  text = 'Previous',
+  ...props
+}: PaginationPreviousButtonProps) {
+  return (
+    <PaginationButton aria-label="Go to previous page" square={false} {...props}>
+      {previousContent(text)}
+    </PaginationButton>
+  );
+}
+
+export interface PaginationNextButtonProps extends Omit<PaginationButtonProps, 'square' | 'isActive'> {
+  /** @default 'Next' */
+  text?: string;
+}
+
+export function PaginationNextButton({ text = 'Next', ...props }: PaginationNextButtonProps) {
+  return (
+    <PaginationButton aria-label="Go to next page" square={false} {...props}>
+      {nextContent(text)}
+    </PaginationButton>
   );
 }
 

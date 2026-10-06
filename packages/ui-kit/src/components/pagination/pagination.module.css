@@ -43,7 +43,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+  /* Zero on the block axis and no border: a no-op on an <a>, and it strips a
+   * native <button>'s own padding and border, so the button forms of the
+   * item (PaginationButton and the previous/next buttons) share this rule
+   * and measure the same 28px. */
+  border: 0;
   border-radius: var(--radius-sm);
+  padding-block: 0;
   padding-inline: var(--space-2);
   background-color: transparent;
   color: var(--muted-foreground);
@@ -84,6 +90,15 @@
   }
 }
 
+/* A previous/next button at either end of the range. Dimmed like every other
+ * disabled control (--opacity-disabled), and pointer-transparent so the hover
+ * brightening above never shows on it. Anchors have no disabled state, which
+ * is why this only ever applies to the button forms. */
+.link:disabled {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
 /*
  * The active page. The drawn inversion: the page's own --background becomes
  * the chip fill, which reads as a recess wherever the row sits on a raised
@@ -119,6 +134,14 @@
 .icon {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
+}
+
+/* The previous/next chevrons point along the reading direction, so a
+ * right-to-left row mirrors them: `Previous` then points right, toward where
+ * earlier pages sit. The flex row itself already reverses with `direction`;
+ * only the glyph, which has a fixed left/right shape, needs this. */
+.chevron:dir(rtl) {
+  transform: scaleX(-1);
 }
 
 /* The same 28px box as an item, so the collapsed-pages marker sits on the

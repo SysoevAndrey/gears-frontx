@@ -1,23 +1,26 @@
 # Semantic overlay for Pagination (the root) - the hand-written half of one
-# of seven contracts describing this family. The parts are
+# of ten contracts describing this family. The parts are
 # pagination-content, pagination-item, pagination-link,
-# pagination-previous, pagination-next and pagination-ellipsis;
+# pagination-previous, pagination-next, pagination-button,
+# pagination-previous-button, pagination-next-button and
+# pagination-ellipsis;
 # `family_membership` below is how a reader (or the conformance test) walks
 # between them.
 #
 # Machine-extractable facts (prop list, defaults, forwarded surface) do NOT
 # belong here: the compiler takes those from pagination.tsx and rejects an
 # overlay that restates them. No primitive backs the family: every export
-# is semantic markup (nav > ul > li > a), and the only kit props are
-# PaginationLink's `isActive`/`square` and the `text` of the previous and
-# next links, which the schema states fully.
+# is semantic markup (nav > ul > li > a or button), and the only kit props
+# are `isActive`/`square` on PaginationLink and PaginationButton and the
+# `text` of the previous and next parts, which the schema states fully.
 component: pagination
 
-intent: Let the user move between the pages of one paged result set through links to each page.
+intent: Let the user move between the pages of one paged result set, through links to each page or through buttons that change the page in state.
 
 typical_uses:
   - Page numbers with previous and next links under a server-paged list, where every page has its own URL
   - A previous/next pair alone, with no page numbers
+  - Page buttons under a list paged in component state, where changing the page leaves the URL alone
 
 dont_use_when:
   - situation: Loading more items into the same list, or infinite scroll

@@ -4,10 +4,11 @@
   "metamodel": "2.0.0",
   "component": "pagination",
   "forwards_to": "gts.frontx.uikit.element.dom_nav.v1~",
-  "intent": "Let the user move between the pages of one paged result set through links to each page.",
+  "intent": "Let the user move between the pages of one paged result set, through links to each page or through buttons that change the page in state.",
   "typical_uses": [
     "Page numbers with previous and next links under a server-paged list, where every page has its own URL",
-    "A previous/next pair alone, with no page numbers"
+    "A previous/next pair alone, with no page numbers",
+    "Page buttons under a list paged in component state, where changing the page leaves the URL alone"
   ],
   "dont_use_when": [
     {
@@ -93,12 +94,15 @@
     "name": "pagination",
     "role": "root",
     "members": [
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_button.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_content.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_ellipsis.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_item.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_link.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next.v1",
-      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous.v1"
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next_button.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1"
     ]
   },
   "x-uikit": {
