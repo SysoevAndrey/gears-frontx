@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { declarationMap, extractRules } from '../../__test-utils__/css-rules';
+import { readThemeTokens } from '../../__test-utils__/theme-tokens';
 
 import {
   Table,
@@ -226,6 +227,37 @@ describe('Table', () => {
     expect(wrapper?.style.maxHeight).toBe('220px');
     expect(table.className).not.toContain('capped');
     expect(table.style.maxHeight).toBe('');
+  });
+
+  it('hands the scroll wrapper to containerRef, as an object or a callback, leaving ref on the table', () => {
+    const containerRef = { current: null as HTMLDivElement | null };
+    const tableRef = { current: null as HTMLTableElement | null };
+    const { unmount } = render(
+      <Table containerRef={containerRef} ref={tableRef}>
+        <TableBody>
+          <TableRow>
+            <TableCell>a</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    // The wrapper is what a caller measures or scrolls; ref keeps meaning
+    // the <table>, as it does for every other prop.
+    expect(containerRef.current).toBe(screen.getByRole('table').parentElement);
+    expect(tableRef.current).toBe(screen.getByRole('table'));
+    unmount();
+
+    const seen: Array<HTMLDivElement | null> = [];
+    render(
+      <Table containerRef={(node) => void seen.push(node)}>
+        <TableBody>
+          <TableRow>
+            <TableCell>a</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect(seen[0]).toBe(screen.getByRole('table').parentElement);
   });
 
   it('keeps the table an accessible grid: role=table with the expected row/cell counts', () => {
@@ -508,5 +540,105 @@ describe('Table collection view', () => {
     expect(declared('.variantCollection .tableBody .tableRow[data-pending]', 'cursor')).toBe(
       'progress',
     );
+  });
+});
+
+/*
+ * What a grid built on the Table parts relies on, on top of the collection
+ * view: a pinned header that does not drag the collection layout with it, a
+ * row rule that survives the separated borders model, and a hover tint that
+ * is actually visible. jsdom lays nothing out, so these are asserted on the
+ * stylesheet, plus the one rendering fact: the class lands on the table.
+ */
+describe('Table sticky header and row rules', () => {
+  const rules = extractRules(
+    readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'table.module.css'), 'utf8'),
+  );
+
+  function declared(selector: string, prop: string) {
+    const rule = rules.find((candidate) => candidate.selector === selector);
+    return rule ? declarationMap(rule.body).get(prop) : undefined;
+  }
+
+  function renderRows(props: Parameters<typeof Table>[0] = {}) {
+    return render(
+      <Table {...props}>
+        <TableBody>
+          <TableRow>
+            <TableCell>a</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+  }
+
+  it('marks the table sticky only when asked, whatever the variant', () => {
+    renderRows();
+    expect(screen.getByRole('table').className).not.toContain(styles.stickyHeader);
+    cleanup();
+    renderRows({ stickyHeader: true });
+    const plain = screen.getByRole('table');
+    expect(plain.className).toContain(styles.stickyHeader);
+    // Independent of the collection view: none of its layout comes with it.
+    expect(plain.className).not.toContain(styles.variantCollection);
+    cleanup();
+    renderRows({ stickyHeader: true, variant: 'collection' });
+    expect(screen.getByRole('table').className).toContain(styles.stickyHeader);
+  });
+
+  it('pins the header cells on an opaque fill, and keeps the layout out of it', () => {
+    expect(declared('.stickyHeader .tableHead', 'position')).toBe('sticky');
+    expect(declared('.stickyHeader .tableHead', 'top')).toBe('0');
+    // A consumer hook with the kit's own fill as its fallback, so a caller sets
+    // --table-header-fill without a selector of its own to beat this one.
+    expect(declared('.stickyHeader .tableHead', 'background-color')).toBe(
+      'var(--table-header-fill, var(--card))',
+    );
+    expect(rules.some((rule) => declarationMap(rule.body).has('--table-header-fill'))).toBe(false);
+    // The collection view's layout stays the collection view's.
+    expect(declared('.stickyHeader', 'table-layout')).toBeUndefined();
+    expect(declared('.stickyHeader', 'min-width')).toBeUndefined();
+    // Opaque in both themes: a hex with no alpha channel.
+    const { light, dark } = readThemeTokens();
+    for (const [theme, tokens] of [['light', light], ['dark', dark]] as const) {
+      expect(tokens.get('--card'), `${theme} --card`).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('switches to separated borders only for the sticky header, so its rule stays with it', () => {
+    expect(declared('.table', 'border-collapse')).toBe('collapse');
+    expect(declared('.stickyHeader', 'border-collapse')).toBe('separate');
+    expect(declared('.stickyHeader', 'border-spacing')).toBe('0');
+    // Same specificity as `.table`, so the later one wins.
+    const order = (selector: string) => rules.findIndex((rule) => rule.selector === selector);
+    expect(order('.stickyHeader')).toBeGreaterThan(order('.table'));
+  });
+
+  it('draws the row rule under the cells, since a separated table ignores a row border', () => {
+    const rule = 'var(--border-width) solid var(--border)';
+    expect(declared('.tableHead', 'border-bottom')).toBe(rule);
+    expect(declared('.tableCell', 'border-bottom')).toBe(rule);
+    expect(declared('.tableRow', 'border-bottom')).toBeUndefined();
+    // The last row's rule is still dropped, now cell by cell.
+    expect(declared('.tableBody:last-child .tableRow:last-child > *', 'border-bottom')).toBe('0');
+    expect(declared('.tableFooter .tableRow:last-child > *', 'border-bottom')).toBe('0');
+  });
+
+  it('tints a hovered row with a fill that differs from both backdrops in both themes', () => {
+    const hover = 'var(--card-hover)';
+    expect(declared(".tableBody .tableRow:hover,\n.tableBody .tableRow:has([aria-expanded='true'])", '--table-row-fill')).toBe(
+      hover,
+    );
+    // A row is transparent, so the tint has to read against whatever is behind
+    // the table: --surface inside a card, --background on a bare page. --muted
+    // is drawn equal to --background in light and to every surface in dark
+    // (tokens.test.ts pins it), which is why it painted nothing.
+    const { light, dark } = readThemeTokens();
+    for (const [theme, tokens] of [['light', light], ['dark', dark]] as const) {
+      const fill = tokens.get('--card-hover');
+      expect(fill, `${theme} --card-hover`).toBeDefined();
+      expect(fill, `${theme} vs --surface`).not.toBe(tokens.get('--surface'));
+      expect(fill, `${theme} vs --background`).not.toBe(tokens.get('--background'));
+    }
   });
 });

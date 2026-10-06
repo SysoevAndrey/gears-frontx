@@ -56,8 +56,9 @@
    * a full-bleed 1px rule, with the border and the corner radius belonging
    * to the container around the table rather than to each row. Nothing in
    * the drawn table needs a model that can put space between cells, and the
-   * collapsed model is what lets a <tr> carry that single rule as one real
-   * border instead of six per-cell edges.
+   * collapsed model is what merges the per-cell rules (see .tableRow) into
+   * that one line. `stickyHeader` is the one place the table opts out, back
+   * into separated borders with no spacing, for the reason given there.
    */
   border-collapse: collapse;
   caption-side: bottom;
@@ -75,22 +76,54 @@
 }
 
 /*
- * The row: a fill and the rule under it, both row-level so a state changes
- * one declaration rather than one per cell. The fill starts transparent on
- * purpose — the drawn table paints no per-row background at rest, it lets
- * the surface of whatever container holds it (DataTable's card, a Card, the
- * page) show through, and only a state or hover tints a row away from it.
+ * The pinned header (TableProps.stickyHeader), independent of the collection
+ * view: no layout, row height or minimum width, only the pinning. The header
+ * cells stick to the top of the scroll wrapper, so the wrapper needs a
+ * bounded height; the fill is opaque so the rows scrolling beneath do not
+ * show through. One header row: every header cell takes `top: 0`, so a
+ * second header row would slide under the first.
+ *
+ * Separated borders, with no spacing, are what keep the rule under the header
+ * on screen: in the collapsed model a border belongs to the table's grid, not
+ * to the cell, and does not travel with a sticky cell. Declared after .table
+ * at the same specificity, so it overrides that rule's collapse.
+ */
+.stickyHeader {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.stickyHeader .tableHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* A hook, read with the kit's own fill as the fallback: a consumer sets
+   * --table-header-fill on the table or an ancestor, with no selector of its
+   * own to win against this one. The collection view keeps its own fill. */
+  background-color: var(--table-header-fill, var(--card));
+}
+
+/*
+ * The row: a fill, row-level so a state changes one declaration rather than
+ * one per cell. The fill starts transparent on purpose — the drawn table
+ * paints no per-row background at rest, it lets the surface of whatever
+ * container holds it (DataTable's card, a Card, the page) show through, and
+ * only a state or hover tints a row away from it.
+ *
+ * The rule between rows is NOT on the row: it sits under every cell
+ * (.tableHead, .tableCell below). A row's own border is ignored by the
+ * separated borders model, and a sticky header (`stickyHeader`) needs that
+ * model to keep its rule with it. Under the collapsed model the cell rules
+ * merge into the same single full-bleed 1px line a row border drew.
  */
 .tableRow {
   --table-row-fill: transparent;
   background-color: var(--table-row-fill);
-  border-bottom: var(--border-width) solid var(--border);
   /* Colour crossfades only, no transform/geometry — not motion under WCAG
      2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
   transition:
     color 150ms ease,
-    background-color 150ms ease,
-    border-color 150ms ease;
+    background-color 150ms ease;
 }
 
 /*
@@ -102,7 +135,7 @@
  * the body still gets separated from it — with a footer present the body is
  * no longer the table's last section, and the rule stays.
  */
-.tableBody:last-child .tableRow:last-child {
+.tableBody:last-child .tableRow:last-child > * {
   border-bottom: 0;
 }
 
@@ -112,17 +145,19 @@
  * the highlight while a row-level disclosure is open — value-tested, so a
  * collapsed toggle does not match.
  *
- * --muted, never --card-hover: rows are transparent, so this tint has to
- * read against whatever is behind the table, and the two backdrops it
- * actually meets are --surface (DataTable's card, a Card) and --background
- * (a bare Table on the page). --card-hover IS --background's own value in
- * light mode — it is a step up from --surface-elevated, which no row paints
- * — so on a card-less table it would make hover invisible. --muted is a
- * step off both.
+ * --card-hover, not --muted: rows are transparent, so this tint has to read
+ * against whatever is behind the table, and the two backdrops it actually
+ * meets are --surface (DataTable's card, a Card) and --background (a bare
+ * Table on the page). --muted cannot do that job: theme.css draws it equal to
+ * --background in light and to every surface in dark, deliberately, so a
+ * --muted row fill paints nothing on a bare table in light or on any table
+ * in dark. --card-hover is the kit's hover step for a raised surface and
+ * differs from both backdrops in both themes; table.test.tsx pins that
+ * against theme.css, so a retune of any of the three has to answer to it.
  */
 .tableBody .tableRow:hover,
 .tableBody .tableRow:has([aria-expanded='true']) {
-  --table-row-fill: var(--muted);
+  --table-row-fill: var(--card-hover);
 }
 
 /*
@@ -202,6 +237,8 @@
    */
   height: var(--control-height-md);
   padding: 0 var(--space-4);
+  /* The rule between rows, on the cell rather than the row; see .tableRow. */
+  border-bottom: var(--border-width) solid var(--border);
   text-align: start;
   vertical-align: middle;
   font-family: var(--font-mono);
@@ -316,6 +353,8 @@
    */
   padding: var(--space-3) var(--space-4);
   height: var(--control-height-lg);
+  /* The rule between rows, on the cell rather than the row; see .tableRow. */
+  border-bottom: var(--border-width) solid var(--border);
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -448,6 +487,6 @@
 /* The last row of the table, whatever section it is in, has the container's
  * own bottom edge under it — see the .tableBody rule above for the full
  * reasoning; this is that same rule for a table that ends in a <tfoot>. */
-.tableFooter .tableRow:last-child {
+.tableFooter .tableRow:last-child > * {
   border-bottom: 0;
 }
