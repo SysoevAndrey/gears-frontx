@@ -208,7 +208,7 @@ export function CarouselItem({ className, ...props }: CarouselItemProps) {
   );
 }
 
-export type CarouselPreviousProps = Omit<ButtonProps, 'icon'>;
+export type CarouselPreviousProps = Omit<ButtonProps, 'icon' | 'end'>;
 
 /* Upstream's base-registry source names this icon directly
  * (`IconPlaceholder lucide="ChevronLeftIcon"`). */
@@ -247,7 +247,7 @@ export function CarouselPrevious({
   );
 }
 
-export type CarouselNextProps = Omit<ButtonProps, 'icon'>;
+export type CarouselNextProps = Omit<ButtonProps, 'icon' | 'end'>;
 
 export function CarouselNext({
   className,

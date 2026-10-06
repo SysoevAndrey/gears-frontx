@@ -27,6 +27,7 @@ polymorphism, correct disabled/focus behavior, `type="button"` by default
 | `variant` | `default` \| `destructive` \| `outline` \| `secondary` \| `ghost` \| `link` \| `navigation` \| `avatar` \| `utility` - `destructive` is a tint of `--destructive` under a `--destructive` label; `navigation` is a card-filled row with a hairline whose current location is marked by a `data-current` attribute; `avatar` has no box of its own and wears a `--primary` ring while hovered or while it owns an open popup; `utility` is a borderless action with an 18px glyph | `default` |
 | `size` | `default` \| `sm` \| `lg` (the F-mockups' md/sm/lg scale; `default` is md) | `default` |
 | `icon` | `ReactNode` — leading icon slot, marked decorative (`aria-hidden`); the ONLY right place for a button icon | — |
+| `end` | `ReactNode` — trailing slot after the label (a chevron, a sort arrow), same sizing, spacing and `loading` handling as `icon`, but not marked decorative: its content is part of the accessible name, so a count is announced, and a glyph hides itself with `aria-hidden` (lucide icons carry it by default) | — |
 | `loading` | `boolean` — centered spinner, disables the button, sets `aria-busy`; content keeps its space and the button keeps its accessible name | `false` |
 | `render` | `ReactElement` — replaces the root element, button semantics are applied to it | — |
 | `nativeButton` | `boolean` — set to `false` whenever `render` is not a native `<button>` | `true` |
@@ -73,8 +74,18 @@ sitting in an Input's `end` slot inside that container, for instance. Use
 container-level scoping deliberately, or scope to the button itself to
 avoid the surprise.
 
-Icon-only is derived, not a size: `icon` with no children renders a square
-button of the current `size`. There is no `size="icon"`.
+Icon-only is derived, not a size: `icon` with no children and no `end`
+renders a square button of the current `size`. There is no `size="icon"`.
+
+`end` is the same slot on the other side of the label, for what follows it:
+a chevron on a button that opens a menu, an arrow that shows a sort
+direction, a count. Unlike `icon` it is not marked decorative: its content
+joins the accessible name, so a count (`<Button end={3}>Filters</Button>`)
+is read out with the label. A glyph is hidden from assistive tech by its
+own `aria-hidden="true"`, which lucide icons carry by default; pass it
+yourself on a hand-written svg. It holds no control of its own (a button
+inside a button is invalid HTML); a clear button next to a text field is
+Input's `end`, not this one.
 
 `loading` keeps the button focusable instead of setting the native
 `disabled` attribute (so `aria-busy` has somewhere to be announced to,
@@ -101,6 +112,9 @@ import { Button } from '@gears-frontx/ui-kit';
 
 // Icon next to the label goes in the icon slot, never in children
 <Button icon={<PlusIcon />} onClick={create}>New project</Button>
+
+// A trailing glyph after the label goes in the end slot
+<Button variant="outline" end={<ChevronDownIcon />}>Sort by</Button>
 
 // Icon-only (icon slot + no children): always label it
 <Button icon={<CrossIcon />} aria-label="Close" />
@@ -130,8 +144,14 @@ import { Button } from '@gears-frontx/ui-kit';
 - Do not put an icon in `children` next to text — it lands in the `icon`
   slot, which is what sizes it, spaces it, hides it during `loading`, and
   keeps it out of the accessible name.
-- Do not render an icon-only button (icon slot, no children) without
-  `aria-label` — the icon is decorative and carries no name.
+- Do not put a trailing chevron in `children` — it lands in the `end` slot,
+  which sizes and spaces it and hides it during `loading`. A hand-written svg
+  in `end` needs its own `aria-hidden="true"`: the slot does not mark it
+  decorative, because a count in `end` is meant to be announced.
+- Do not render a button with an icon slot and no children without
+  `aria-label` — the icon is decorative and carries no name, and `end` only
+  names the button if it holds text that is announced (a glyph is
+  `aria-hidden`). It is squared icon-only only when `end` is absent too.
 - Do not emulate `loading` by swapping children for a spinner — the button
   loses its accessible name and jumps in width; pass `loading`.
 - Do not emulate disabled with CSS/`onClick` guards — pass `disabled`

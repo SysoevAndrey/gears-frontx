@@ -32,7 +32,7 @@
   "invariants": [
     {
       "id": "icon-only-needs-label",
-      "text": "With `icon` set and no children the button renders icon-only and carries no accessible name of its own - `aria-label` is required."
+      "text": "With `icon` set and no children, the button has no accessible name of its own unless `end` carries content that is announced (a glyph is `aria-hidden`), so `aria-label` is required then. It is squared icon-only only when `end` is absent too."
     },
     {
       "id": "disabled-dims-only-the-button",
@@ -64,6 +64,10 @@
       "states": "icon is a React node, not a value",
       "because": "`ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. It is Button's icon slot, reaching this part unchanged."
     },
+    "end": {
+      "states": "end is a React node, not a value",
+      "because": "`ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. It is Button's trailing slot, reaching this part unchanged."
+    },
     "render": {
       "states": "render replaces the rendered element with one the caller supplies",
       "because": "Base UI's render prop takes an element or a function of the button's own state, so its type is a union of a React element and a callback - the compiler emits one JSON type per property."
@@ -94,6 +98,10 @@
   },
   "x-uikit": {
     "partially_typed_props": {
+      "end": {
+        "typeText": "ReactNode",
+        "optional": true
+      },
       "icon": {
         "typeText": "ReactNode",
         "optional": true
@@ -123,6 +131,9 @@
       },
       "className": {
         "type": "string"
+      },
+      "end": {
+        "description": "Partially typed: ReactNode. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. end is a React node, not a value. `ReactNode` is a union, and the compiler emits one JSON type per property - an element, a string, a fragment and `false` are all valid and only tsc can tell them from a mistake. It is Button's trailing slot, reaching this part unchanged."
       },
       "focusableWhenDisabled": {
         "type": "boolean"

@@ -25,8 +25,10 @@ accepts:
 invariants:
   - id: icon-only-needs-label
     text: >-
-      With `icon` set and no children the button renders icon-only and carries
-      no accessible name of its own - `aria-label` is required.
+      With `icon` set and no children, the button has no accessible name of
+      its own unless `end` carries content that is announced (a glyph is
+      `aria-hidden`), so `aria-label` is required then. It is squared
+      icon-only only when `end` is absent too.
   - id: disabled-dims-only-the-button
     text: >-
       A disabled InputGroupButton dims only itself; the group dims as a whole
@@ -61,6 +63,13 @@ prop_statements:
       property - an element, a string, a fragment and `false` are all valid
       and only tsc can tell them from a mistake. It is Button's icon slot,
       reaching this part unchanged.
+  end:
+    states: end is a React node, not a value
+    because: >-
+      `ReactNode` is a union, and the compiler emits one JSON type per
+      property - an element, a string, a fragment and `false` are all valid
+      and only tsc can tell them from a mistake. It is Button's trailing
+      slot, reaching this part unchanged.
   render:
     states: render replaces the rendered element with one the caller supplies
     because: >-

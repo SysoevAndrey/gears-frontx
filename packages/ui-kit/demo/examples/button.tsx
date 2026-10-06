@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { ChevronDown } from 'lucide-react';
+
 import { Button } from '@gears-frontx/ui-kit';
 
 import { Avatar, AvatarFallback } from '@gears-frontx/ui-kit';
@@ -124,6 +126,27 @@ export default function ButtonExample() {
           </Button>
           <Button variant="outline" icon={<DemoIcon />}>
             Outline
+          </Button>
+        </Row>
+      </Section>
+      <Section title="Trailing end slot">
+        <Row>
+          <Button variant="outline" end={<ChevronDown />}>
+            Outline
+          </Button>
+          <Button variant="secondary" size="sm" end={<ChevronDown />}>
+            Small
+          </Button>
+          <Button size="lg" icon={<DemoIcon />} end={<ChevronDown />}>
+            Large with icon
+          </Button>
+          {/* A count in `end` joins the accessible name; a lucide chevron
+              hides itself with its own aria-hidden. */}
+          <Button variant="outline" end={2}>
+            Filters
+          </Button>
+          <Button variant="outline" loading end={<ChevronDown />}>
+            Loading
           </Button>
         </Row>
       </Section>

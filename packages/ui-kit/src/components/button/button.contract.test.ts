@@ -250,13 +250,13 @@ describe('button contract conformance', () => {
 
   it("records only the kit's own slotted props in x-uikit.partially_typed_props, not every partly checked property", () => {
     // Two kinds of property go unchecked by the schema, and they are
-    // documented in different places: `icon` is the kit's own slot and its
-    // type lives in x-uikit.partially_typed_props, while `render`/`style` are
+    // documented in different places: `icon` and `end` are the kit's own
+    // slots and their type lives in x-uikit.partially_typed_props, while `render`/`style` are
     // the primitive's API and their types live in their own descriptions plus
     // a `prop_statements` entry. Both are named by the pairing (see
     // testing.ts); only the first is the kit's own.
-    expect(partlyCheckedPropertyNames(contract)).toEqual(['icon', 'render', 'style']);
-    expect(Object.keys(contract['x-uikit'].partially_typed_props)).toEqual(['icon']);
+    expect(partlyCheckedPropertyNames(contract)).toEqual(['end', 'icon', 'render', 'style']);
+    expect(Object.keys(contract['x-uikit'].partially_typed_props)).toEqual(['end', 'icon']);
   });
 
   it('classifies className as a declared prop, and keeps the narrower declaration', () => {

@@ -327,7 +327,7 @@ export function Sidebar({
   );
 }
 
-export interface SidebarTriggerProps extends Omit<ButtonProps, 'icon' | 'children'> {
+export interface SidebarTriggerProps extends Omit<ButtonProps, 'icon' | 'end' | 'children'> {
   /** Accessible name for the icon-only button. @default 'Toggle Sidebar' */
   label?: string;
 }

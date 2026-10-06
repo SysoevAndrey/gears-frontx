@@ -39,12 +39,25 @@ export interface ButtonProps
   /**
    * Leading icon slot — the one right way to put an icon in a Button (never
    * via children; the slot is what gets sized, spaced, hidden during
-   * `loading`, and marked decorative). With no children the button turns
-   * square icon-only — pass `aria-label` then, the icon carries no
-   * accessible name. Same prop shape as react-kit's AcvButton; a trailing
-   * slot, if ever needed, takes AcvButton's `end` name.
+   * `loading`, and marked decorative). With no children the button has no
+   * accessible name of its own — pass `aria-label` — unless `end` holds
+   * announced content, since the icon is decorative. With no `end` either it
+   * also turns square icon-only.
    */
   icon?: ReactNode;
+  /**
+   * Trailing slot, rendered after the children — a chevron that opens a
+   * menu, a sort-direction arrow, a count. Sized, spaced and hidden during
+   * `loading` like `icon`, but NOT marked decorative: its content is part
+   * of the button's accessible name, so a count is announced with the label.
+   * A glyph hides itself from assistive tech when it carries
+   * `aria-hidden="true"`, which lucide icons do by default; hand-written
+   * svgs need it passed. A button is itself interactive, so a nested control
+   * has no place here (it would be invalid HTML); for a clear button next to
+   * a field use Input's `end`. Passing `end` stops the button turning
+   * icon-only, since there is then more than one glyph to square up.
+   */
+  end?: ReactNode;
   /**
    * Shows a centered spinner and reports `aria-busy`. Content is hidden
    * with opacity, not visibility: it keeps painting the button's size (no
@@ -80,6 +93,7 @@ export function Button({
   variant,
   size,
   icon,
+  end,
   loading,
   disabled,
   focusableWhenDisabled,
@@ -108,7 +122,11 @@ export function Button({
   // Without this, a false condition still forced the button icon-only and
   // rendered an empty square.
   const hasIcon = Children.toArray(icon).some((child) => child !== '');
-  const iconOnly = hasIcon && !hasLabel;
+  // Same predicate once more for the trailing slot. It also gates
+  // icon-only: `icon` + `end` with no label is a two-glyph button, and
+  // squaring it (padding 0, aspect-ratio 1) would overflow both.
+  const hasEnd = Children.toArray(end).some((child) => child !== '');
+  const iconOnly = hasIcon && !hasLabel && !hasEnd;
   return (
     <ButtonPrimitive
       className={buttonVariants({ variant, size, className })}
@@ -142,6 +160,9 @@ export function Button({
         </span>
       )}
       {hasLabel && <span className={styles.label}>{children}</span>}
+      {hasEnd && (
+        <span className={styles.end}>{end}</span>
+      )}
     </ButtonPrimitive>
   );
 }
