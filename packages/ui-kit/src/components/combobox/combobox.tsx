@@ -42,6 +42,17 @@ export interface ComboboxTriggerProps
   extends Omit<ComponentPropsWithRef<typeof ComboboxPrimitive.Trigger>, 'className'> {
   className?: string;
   children?: ReactNode;
+  /**
+   * `default` is the compact chevron button ComboboxInput composes into the
+   * trailing corner of its field. `select` is a field of its own that looks
+   * like SelectTrigger: the children (the chosen value, or a placeholder)
+   * and then a chevron the trigger adds itself. Pair `select` with the
+   * search input INSIDE ComboboxContent (`<ComboboxInput showTrigger={false} />`)
+   * and give the trigger an `aria-label`: its role is `combobox`, which takes
+   * no name from its content.
+   * @default 'default'
+   */
+  variant?: 'default' | 'select';
 }
 
 /*
@@ -49,8 +60,28 @@ export interface ComboboxTriggerProps
  * ComboboxInput's own `showTrigger` — the two are the same button, upstream
  * just composes it inline via `render={<ComboboxTrigger/>}` where this kit
  * has no InputGroup primitive to render it into (see ComboboxInput).
+ *
+ * `variant="select"` is the same primitive dressed as a Select trigger, for a
+ * combobox whose search field lives in the popup. Its children sit in a span
+ * so a long value ellipsises instead of pushing the chevron out; that span
+ * is also what holds ComboboxChips for a multiple select, which is why the
+ * trigger is then rendered as a div (`render={<div />}` with
+ * `nativeButton={false}`): a button may not contain the chips' div.
  */
-export function ComboboxTrigger({ className, children, ...props }: ComboboxTriggerProps) {
+export function ComboboxTrigger({
+  className,
+  children,
+  variant = 'default',
+  ...props
+}: ComboboxTriggerProps) {
+  if (variant === 'select') {
+    return (
+      <ComboboxPrimitive.Trigger className={cx(styles.selectTrigger, className)} {...props}>
+        <span className={styles.selectValue}>{children}</span>
+        <ChevronDownIcon className={cx(styles.svgIcon, styles.selectTriggerIcon)} />
+      </ComboboxPrimitive.Trigger>
+    );
+  }
   return (
     <ComboboxPrimitive.Trigger className={cx(styles.inputTrigger, className)} {...props}>
       {children ?? <ChevronDownIcon className={styles.svgIcon} />}
@@ -328,7 +359,15 @@ export function ComboboxChip({
     <ComboboxPrimitive.Chip className={cx(styles.chip, className)} {...props}>
       {children}
       {showRemove && (
-        <ComboboxPrimitive.ChipRemove className={styles.chipRemove} aria-label={removeLabel}>
+        <ComboboxPrimitive.ChipRemove
+          className={styles.chipRemove}
+          aria-label={removeLabel}
+          // A chip inside a select-style trigger sits in the trigger's React
+          // tree, and the trigger opens the popup on mousedown: without this
+          // the press that removes a chip also opens the list. pointerdown is
+          // left alone, so outside-press dismissal elsewhere still sees it.
+          onMouseDown={(event) => event.stopPropagation()}
+        >
           <XIcon className={cx(styles.svgIcon, styles.chipRemoveIcon)} />
         </ComboboxPrimitive.ChipRemove>
       )}

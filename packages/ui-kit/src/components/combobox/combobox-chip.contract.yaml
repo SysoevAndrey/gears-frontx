@@ -27,6 +27,11 @@ invariants:
       chips: the remove button, and Backspace or Delete while the chip has
       focus, remove the value at that index of the root's value, whatever
       the chip's caption says.
+  - id: remove-press-does-not-open-the-popup
+    text: >-
+      Pressing the remove button does not open the popup, even when the chip
+      sits inside a select-style ComboboxTrigger, which opens on mousedown:
+      the button stops its own mousedown from reaching that trigger.
   - id: remove-button-out-of-the-tab-order
     text: >-
       The remove button takes no keyboard focus (the primitive gives it

@@ -14,6 +14,7 @@ import {
   ComboboxLabel,
   ComboboxList,
   ComboboxSeparator,
+  ComboboxTrigger,
   ComboboxValue,
   useComboboxAnchor,
 } from '@gears-frontx/ui-kit';
@@ -75,6 +76,38 @@ function MultipleDemo() {
   );
 }
 
+// A select-looking field whose search input lives in the popup. The trigger
+// is a div here because it holds the chips, and a button may not contain
+// the chips' div.
+function MultipleSelectDemo() {
+  return (
+    <Combobox multiple items={FRAMEWORKS}>
+      <ComboboxTrigger variant="select" render={<div />} nativeButton={false} aria-label="Frameworks">
+        <ComboboxChips>
+          <ComboboxValue>
+            {(values: string[]) =>
+              values.length === 0
+                ? 'Select frameworks…'
+                : values.map((value) => (
+                    <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
+                      {value}
+                    </ComboboxChip>
+                  ))
+            }
+          </ComboboxValue>
+        </ComboboxChips>
+      </ComboboxTrigger>
+      <ComboboxContent>
+        <ComboboxInput showTrigger={false} aria-label="Search frameworks" placeholder="Search…" />
+        <ComboboxEmpty>No frameworks found.</ComboboxEmpty>
+        <ComboboxList>
+          {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
+
 export default function ComboboxExample() {
   const [region, setRegion] = useState<Region | null>(null);
 
@@ -93,6 +126,49 @@ export default function ComboboxExample() {
       </Section>
       <Section title="Multiple">
         <MultipleDemo />
+      </Section>
+      <Section title="Select-style trigger">
+        <Combobox items={REGIONS}>
+          <ComboboxTrigger variant="select" aria-label="Region">
+            <ComboboxValue placeholder="Select a region…" />
+          </ComboboxTrigger>
+          <ComboboxContent>
+            <ComboboxInput showTrigger={false} aria-label="Search regions" placeholder="Search…" />
+            <ComboboxEmpty>No region matches your search.</ComboboxEmpty>
+            <ComboboxList>
+              {(item: Region) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </Section>
+      <Section title="Select-style trigger, multiple">
+        <MultipleSelectDemo />
+      </Section>
+      <Section title="Select-style trigger, invalid and disabled">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Combobox items={REGIONS}>
+            <ComboboxTrigger variant="select" aria-label="Region" aria-invalid>
+              <ComboboxValue placeholder="Select a region…" />
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput showTrigger={false} aria-label="Search regions" />
+              <ComboboxList>
+                {(item: Region) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+          <Combobox items={REGIONS} disabled>
+            <ComboboxTrigger variant="select" aria-label="Region">
+              <ComboboxValue placeholder="Select a region…" />
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput showTrigger={false} aria-label="Search regions" />
+              <ComboboxList>
+                {(item: Region) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
       </Section>
       <Section title="Groups">
         <Combobox items={GROUPS}>

@@ -8,6 +8,7 @@ intent: The single-line text field of a one-value combobox, showing the chosen i
 
 typical_uses:
   - The field of a combobox that holds one value
+  - The search field at the top of the popup of a select-style combobox, with `showTrigger` off
 
 dont_use_when:
   - situation: A combobox that holds several values
@@ -46,6 +47,12 @@ invariants:
   - id: disabled-reaches-the-trailing-buttons
     text: >-
       `disabled` disables the input and both trailing buttons together.
+  - id: fills-the-popup-when-inside-it
+    text: >-
+      Rendered inside ComboboxContent, the field's wrapper fills the popup's
+      width, inset by the step the list pads its items by
+      (combobox.module.css `.popup .inputWrap`); anywhere else it is only as
+      wide as the field itself.
 
 anti_patterns:
   - dont: Leave the field with no accessible name
