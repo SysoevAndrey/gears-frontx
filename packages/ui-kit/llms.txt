@@ -186,7 +186,10 @@ Rules for generated code:
 - [Combobox](dist/docs/combobox.md): filterable text field picking from a
   list, wrapping Base UI's dedicated Combobox primitive (not a
   Popover+search composition); single-select (ComboboxInput) or
-  multi-select chips (ComboboxChips+ComboboxChip); always pass `items`.
+  multi-select chips (ComboboxChips+ComboboxChip); a select-looking field
+  with the search input in the popup is `ComboboxTrigger variant="select"`
+  plus `<ComboboxInput showTrigger={false} />` first in ComboboxContent
+  (render the trigger as a `div` to hold chips); always pass `items`.
 - [Command](dist/docs/command.md): searchable, keyboard-navigable
   command/option list built on `cmdk` (Command/CommandInput/CommandList/
   CommandGroup/CommandItem/CommandSeparator); `CommandDialog` composes the

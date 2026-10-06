@@ -173,6 +173,121 @@
   display: none;
 }
 
+/*
+ * .selectTrigger/.selectValue/.selectTriggerIcon: the trigger as a field of
+ * its own (ComboboxTrigger's `select` form), for a combobox whose search
+ * input lives in the popup. It repeats select.module.css's .trigger recipe
+ * rather than importing it: the two share a look, not a part, and a Select
+ * trigger needs Select's context to render at all. Same sizes, same
+ * placeholder tone, same focus ring and disabled/invalid states, so a column
+ * of selects and select-style comboboxes reads as one control.
+ */
+.selectTrigger {
+  /* Same preflight substitute as .input above: this class sets a height and
+   * padding on an element that may be a div, which has no border-box UA
+   * default. */
+  box-sizing: border-box;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  height: var(--control-height-sm);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  /* 10 on the label edge is the drawn value, with no step on the spacing
+   * scale; see select.module.css's .trigger. */
+  padding-block: var(--space-2);
+  padding-inline: 10px var(--space-2);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-elevated);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-label-tracking);
+  white-space: nowrap;
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* Base UI sets the placeholder state while nothing is chosen. */
+.selectTrigger[data-placeholder] {
+  color: var(--muted-foreground);
+}
+
+.selectTrigger:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--ring);
+}
+
+/* The ring above is an inset box-shadow, and forced-colors mode doesn't
+ * render box-shadow at all. */
+@media (forced-colors: active) {
+  .selectTrigger:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+.selectTrigger[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.selectTrigger[aria-invalid='true'] {
+  border-color: var(--destructive);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--destructive);
+}
+
+/* The value (or placeholder) takes the room the chevron leaves, and
+ * ellipsises rather than pushing the chevron off the trigger. */
+.selectValue {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectTriggerIcon {
+  color: var(--muted-foreground);
+}
+
+/*
+ * The search input rendered inside the popup (the input-inside-popup form a
+ * select-style trigger uses) fills the popup instead of shrinking to its own
+ * content, inset by the same step the list pads its items by so the field
+ * and the items share an edge. A margin rather than padding on the wrapper:
+ * the wrapper is the positioned ancestor of the trigger/clear buttons, and
+ * their vertical centring would shift with asymmetric padding. The field
+ * keeps its own height and border; only the wrapper changes.
+ */
+.popup .inputWrap {
+  display: flex;
+  width: auto;
+  margin: var(--space-1) var(--space-1) 0;
+}
+
+/* The field's own 12rem floor would overflow a popup as narrow as a compact
+ * select-style trigger, and .popup clips it. */
+.popup .input {
+  min-width: 0;
+}
+
 .positioner {
   isolation: isolate;
   z-index: 50;
@@ -459,6 +574,32 @@
 
 .chipsInput:disabled {
   cursor: not-allowed;
+}
+
+/*
+ * Chips placed inside a select-style trigger (a multiple select): the
+ * trigger already is the field, so the chips container gives up its own
+ * border, fill and minimum, and the trigger grows to hold chips that wrap
+ * instead of holding one fixed row. After the .chips rules above at the same
+ * specificity, so these win.
+ */
+.selectTrigger:has(.chips) {
+  height: auto;
+  min-height: var(--control-height-sm);
+  padding-block: var(--space-1);
+}
+
+.selectTrigger .chips {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  cursor: inherit;
 }
 
 .svgIcon {

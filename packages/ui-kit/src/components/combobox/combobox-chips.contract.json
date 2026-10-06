@@ -29,6 +29,10 @@
     {
       "container": "Combobox",
       "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox.v1"
+    },
+    {
+      "container": "ComboboxTrigger",
+      "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_trigger.v1"
     }
   ],
   "invariants": [

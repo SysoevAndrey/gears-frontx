@@ -6,7 +6,8 @@
   "intent": "Hold the chosen value, the typed query and the open state of one filterable field, and filter its list of items by what the user types.",
   "typical_uses": [
     "One value picked from a long list that is faster to type into than to scroll",
-    "Several values picked from a list and shown as removable chips"
+    "Several values picked from a list and shown as removable chips",
+    "A value picked from a list through a select-looking trigger, with the search field inside the popup"
   ],
   "dont_use_when": [
     {
@@ -50,6 +51,7 @@
     "components": [
       "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_input.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_chips.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_trigger.v1",
       "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_content.v1"
     ]
   },

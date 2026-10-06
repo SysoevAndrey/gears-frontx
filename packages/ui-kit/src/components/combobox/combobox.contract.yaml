@@ -11,6 +11,7 @@ intent: Hold the chosen value, the typed query and the open state of one filtera
 typical_uses:
   - One value picked from a long list that is faster to type into than to scroll
   - Several values picked from a list and shown as removable chips
+  - A value picked from a list through a select-looking trigger, with the search field inside the popup
 
 dont_use_when:
   - situation: One value from a short fixed list the user scrolls rather than searches
@@ -35,12 +36,15 @@ dont_use_when:
       component: gts.frontx.uikit._.component.v1~frontx.uikit._.input.v1
 
 # The ONE authored statement of the root's nesting: the field (single-line
-# ComboboxInput, or ComboboxChips for several values) and the popup.
+# ComboboxInput, or ComboboxChips for several values), a select-style
+# ComboboxTrigger standing in for the field when the search input lives in
+# the popup, and the popup.
 accepts:
   content: specified
   components:
     - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_input.v1 # ComboboxInput
     - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_chips.v1 # ComboboxChips
+    - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_trigger.v1 # ComboboxTrigger
     - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_content.v1 # ComboboxContent
 
 invariants:

@@ -111,10 +111,10 @@ describe('combobox family: membership resolves', () => {
 });
 
 describe('combobox directory: what nests where', () => {
-  it('the root accepts the two fields and the popup', () => {
+  it('the root accepts the two fields, a select-style trigger and the popup', () => {
     expect(units[DIRECTORY].contract.accepts).toEqual({
       content: 'specified',
-      components: [ref('combobox-input'), ref('combobox-chips'), ref('combobox-content')],
+      components: [ref('combobox-input'), ref('combobox-chips'), ref('combobox-trigger'), ref('combobox-content')],
     });
   });
 
@@ -125,8 +125,20 @@ describe('combobox directory: what nests where', () => {
     });
   });
 
-  it('the popup accepts the list and the no-results message, the list its items and sections', () => {
-    expect(units['combobox-content'].contract.accepts.components).toEqual([ref('combobox-list'), ref('combobox-empty')]);
+  it('the trigger accepts text, the value and the chips, which a select-style trigger holds', () => {
+    expect(units['combobox-trigger'].contract.accepts).toEqual({
+      content: 'specified',
+      text: true,
+      components: [ref('combobox-value'), ref('combobox-chips')],
+    });
+  });
+
+  it('the popup accepts a search field, the list and the no-results message, the list its items and sections', () => {
+    expect(units['combobox-content'].contract.accepts.components).toEqual([
+      ref('combobox-input'),
+      ref('combobox-list'),
+      ref('combobox-empty'),
+    ]);
     expect(units['combobox-list'].contract.accepts.components).toEqual([
       ref('combobox-item'),
       ref('combobox-group'),
@@ -149,9 +161,9 @@ describe('combobox directory: what nests where', () => {
   });
 
   it("every part's mount points are FILLED from the family members that accept it", () => {
-    expect(mountedIn('combobox-input')).toEqual([ref(DIRECTORY)]);
-    expect(mountedIn('combobox-chips')).toEqual([ref(DIRECTORY)]);
-    expect(mountedIn('combobox-trigger')).toEqual([ref('combobox-input')]);
+    expect(mountedIn('combobox-input')).toEqual([ref(DIRECTORY), ref('combobox-content')].sort());
+    expect(mountedIn('combobox-chips')).toEqual([ref(DIRECTORY), ref('combobox-trigger')].sort());
+    expect(mountedIn('combobox-trigger')).toEqual([ref(DIRECTORY), ref('combobox-input')].sort());
     expect(mountedIn('combobox-content')).toEqual([ref(DIRECTORY)]);
     expect(mountedIn('combobox-list')).toEqual([ref('combobox-content')]);
     expect(mountedIn('combobox-empty')).toEqual([ref('combobox-content')]);
@@ -160,7 +172,7 @@ describe('combobox directory: what nests where', () => {
     );
     expect(mountedIn('combobox-label')).toEqual([ref('combobox-group')]);
     expect(mountedIn('combobox-chip')).toEqual([ref('combobox-chips'), ref('combobox-value')].sort());
-    expect(mountedIn('combobox-value')).toEqual([ref('combobox-chips')]);
+    expect(mountedIn('combobox-value')).toEqual([ref('combobox-chips'), ref('combobox-trigger')].sort());
     expect(mountedIn('combobox-chips-input')).toEqual([ref('combobox-chips')]);
     for (const stem of PART_STEMS) {
       for (const entry of units[stem].contract.mounted_in ?? []) {

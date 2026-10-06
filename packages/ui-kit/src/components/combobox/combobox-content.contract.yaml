@@ -19,10 +19,13 @@ dont_use_when:
       component: gts.frontx.uikit._.component.v1~frontx.uikit._.popover_content.v1
 
 # The popup does not wrap its children in a list: ComboboxList and
-# ComboboxEmpty are its own children, side by side.
+# ComboboxEmpty are its own children, side by side. A ComboboxInput placed
+# first is the search field of a select-style combobox, whose trigger is a
+# ComboboxTrigger outside the popup.
 accepts:
   content: specified
   components:
+    - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_input.v1 # ComboboxInput
     - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_list.v1 # ComboboxList
     - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_empty.v1 # ComboboxEmpty
 
@@ -41,8 +44,9 @@ invariants:
   - id: anchored-to-the-input-unless-anchor
     text: >-
       Without `anchor`, the popup is placed against the combobox's input
-      element; combobox.module.css makes it as wide as that anchor (at least
-      9rem) and no taller than the space available, and the list inside it
+      element, or against its trigger when the input sits inside the popup;
+      combobox.module.css makes it as wide as that anchor (at least 9rem)
+      and no taller than the space available, and the list inside it
       scrolls.
   - id: reduced-motion-keeps-the-fade
     text: >-

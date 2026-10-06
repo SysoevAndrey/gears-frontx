@@ -20,6 +20,12 @@ container of `ComboboxChip` pills plus a trailing `ComboboxChipsInput`),
 and anchor the popup to the chips instead of a single-line field with
 `useComboboxAnchor()`.
 
+Composition, select-style: a field that looks like a `Select` but filters like
+a combobox. `ComboboxTrigger variant="select"` is the visible field (the
+chosen value or a placeholder, then a chevron), and the search input moves
+into the popup as `<ComboboxInput showTrigger={false} />`, the first child
+of `ComboboxContent`. See "Select-style trigger" below.
+
 ## When to use
 
 - A single value from a long or unbounded list, filterable by typing —
@@ -55,6 +61,16 @@ Both trailing buttons are icon-only, so those two labels ARE their
 accessible names — override them for any language but English, the same
 way `Dialog`'s `closeLabel` and `SidebarTrigger`'s `label` work.
 
+`ComboboxTrigger`:
+
+| Prop | Type | Default |
+|------|------|---------|
+| `variant` | `default` \| `select` — `default` is the compact chevron button `ComboboxInput` places in its corner; `select` is a field of its own that looks like `SelectTrigger`: its children (the chosen value or a placeholder), then a chevron it adds itself | `default` |
+| `className` | `string` — merged after the kit class | — |
+
+Every other prop is Base UI's `Combobox.Trigger` (`render`, `nativeButton`,
+`disabled`, `aria-*`, ...).
+
 `ComboboxContent` accepts positioning props (`side`, `sideOffset`,
 `align`, `alignOffset`, `anchor`, plus the escape hatch for fields inside a
 `transform`/`filter` container: `positionMethod="fixed"`,
@@ -71,6 +87,36 @@ remove button on a fixed/read-only chip, and `removeLabel` (`string`,
 default `'Remove'`) for that button's accessible name — worth naming the
 chip itself (`removeLabel={`Remove ${label}`}`) once a form carries
 several.
+
+## Select-style trigger
+
+`ComboboxTrigger variant="select"` draws the trigger as a field of its own,
+the same height, border, radius, type and states as `SelectTrigger`: the
+children read in the foreground tone once something is chosen and in
+`--muted-foreground` until then (Base UI flags the empty state, so a
+`ComboboxValue placeholder` is enough), a long value ellipsises before the
+chevron, and `aria-invalid` / `disabled` draw the same invalid and dimmed
+looks. There is no text field in the trigger: the query is typed into a
+`ComboboxInput showTrigger={false}` placed first in `ComboboxContent`.
+Inside the popup that input fills the popup's width, inset by the same step
+the list pads its items by, with no width floor of its own; anywhere else it
+is only as wide as the field. The popup is anchored to the trigger and as
+wide as it (at least 9rem, like every combobox popup). `ComboboxInput`'s
+`children` are rendered inside the field's
+wrapper, so an adornment such as a search icon can be composed there.
+
+The trigger's role is `combobox`, which takes no name from its content, so
+give it an `aria-label` (or a visible label through `Field`); the same goes
+for the search input in the popup.
+
+For a multiple select, render the trigger as a `div` and put
+`ComboboxChips` among its children:
+`<ComboboxTrigger variant="select" render={<div />} nativeButton={false}>`.
+A button may not contain the chips' `div`, so `nativeButton={false}` with a
+`div` is what keeps the markup valid. The chips drop their own border, fill
+and padding there, since the trigger already is the field, and the trigger
+grows to hold chips that wrap instead of holding one fixed row. Pressing a
+chip's remove button removes the chip and does not open the popup.
 
 ## Examples
 
@@ -155,6 +201,70 @@ function FrameworkPicker() {
 }
 ```
 
+Select-style, single (the search input is in the popup):
+
+```tsx
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from '@gears-frontx/ui-kit';
+
+<Combobox items={REGIONS}>
+  <ComboboxTrigger variant="select" aria-label="Region">
+    <ComboboxValue placeholder="Select a region" />
+  </ComboboxTrigger>
+  <ComboboxContent>
+    <ComboboxInput showTrigger={false} aria-label="Search regions" placeholder="Search…" />
+    <ComboboxEmpty>No regions found.</ComboboxEmpty>
+    <ComboboxList>
+      {(region: Region) => (
+        <ComboboxItem key={region.value} value={region}>
+          {region.label}
+        </ComboboxItem>
+      )}
+    </ComboboxList>
+  </ComboboxContent>
+</Combobox>;
+```
+
+Select-style, multiple (chips inside a trigger rendered as a `div`):
+
+```tsx
+<Combobox multiple items={FRAMEWORKS}>
+  <ComboboxTrigger variant="select" render={<div />} nativeButton={false} aria-label="Frameworks">
+    <ComboboxChips>
+      <ComboboxValue>
+        {(values: string[]) =>
+          values.length === 0
+            ? 'Select frameworks'
+            : values.map((value) => (
+                <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
+                  {value}
+                </ComboboxChip>
+              ))
+        }
+      </ComboboxValue>
+    </ComboboxChips>
+  </ComboboxTrigger>
+  <ComboboxContent>
+    <ComboboxInput showTrigger={false} aria-label="Search frameworks" />
+    <ComboboxList>
+      {(item: string) => (
+        <ComboboxItem key={item} value={item}>
+          {item}
+        </ComboboxItem>
+      )}
+    </ComboboxList>
+  </ComboboxContent>
+</Combobox>
+```
+
 ## Not ported from upstream
 
 Upstream's own `combobox.tsx` (the shadcn/ui base-variant registry file
@@ -190,3 +300,7 @@ button-based triggers (which never had the zoom problem to begin with).
 - Do not use a combobox for navigation — that is a menu/link pattern.
 - Do not omit `items` — without it, object-shaped values render as
   `[object Object]` in the field instead of their label.
+- Do not use `variant="select"` without the search input in the popup — the
+  trigger holds no text field, so there is nowhere to type the query.
+- Do not put `ComboboxChips` in a select-style trigger that is still a
+  button — render it as a `div` (`render={<div />}`, `nativeButton={false}`).

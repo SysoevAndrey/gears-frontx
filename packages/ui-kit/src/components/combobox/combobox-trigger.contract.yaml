@@ -3,10 +3,11 @@
 # Combobox.Trigger; the forwarded surface is the button element.
 component: combobox-trigger
 
-intent: The button that opens and closes its Combobox's popup, drawn as a chevron unless given children of its own.
+intent: The button that opens and closes its Combobox's popup, drawn as a chevron unless given children of its own, or as a select-looking field when `variant` is select.
 
 typical_uses:
   - The chevron button of a ComboboxInput, placed as a child of the field when the field's own is turned off
+  - With `variant` select, the whole visible field of a combobox whose search input is inside the popup, showing the chosen value or a placeholder and then a chevron
 
 dont_use_when:
   - situation: The chevron at the end of a single-line combobox field
@@ -21,29 +22,53 @@ dont_use_when:
       target: Button
       component: gts.frontx.uikit._.component.v1~frontx.uikit._.button.v1
 
-# children replace the default chevron glyph.
+# children replace the default chevron glyph; under `variant` select they are
+# the value shown before the chevron: text, a ComboboxValue for the chosen
+# item, or the ComboboxChips of a multiple select.
 accepts:
   content: specified
   text: true
+  components:
+    - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_value.v1 # ComboboxValue
+    - gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_chips.v1 # ComboboxChips
 
 invariants:
   - id: children-replace-the-chevron
     text: >-
-      Without children the button renders a chevron glyph; any children
-      replace it.
+      With the default `variant`, a trigger without children renders a
+      chevron glyph and any children replace it.
   - id: positioned-at-the-field-end
     text: >-
-      combobox.module.css positions the button absolutely at the inline end
-      of its nearest positioned ancestor, square at the small control size
-      and vertically centred; inside ComboboxInput that ancestor is the
-      field's wrapper, and while the field's clear button is mounted the
-      same rule that hides the field's own trigger hides this one.
+      With the default `variant`, combobox.module.css positions the button
+      absolutely at the inline end of its nearest positioned ancestor, square
+      at the small control size and vertically centred; inside ComboboxInput
+      that ancestor is the field's wrapper, and while the field's clear
+      button is mounted the same rule that hides the field's own trigger
+      hides this one.
+  - id: select-variant-is-a-field-of-its-own
+    text: >-
+      With `variant` select the chevron is always rendered, after the
+      children, and the button is not positioned: it is a bordered
+      field the height of a Select trigger (the small control step), its
+      children ellipsised before the chevron, its text muted while nothing is
+      chosen. It grows to hold ComboboxChips among its children, which then
+      draw no field chrome of their own. Its role is combobox, so its name
+      comes from `aria-label` or a label, not from its content.
 
 anti_patterns:
   - dont: Render the default chevron with no `aria-label`
     do_instead: >-
       Pass `aria-label` (or visible children); the chevron alone gives the
       button no accessible name
+  - dont: Use `variant` select without a search input inside the popup
+    do_instead: >-
+      Put `<ComboboxInput showTrigger={false} />` first in ComboboxContent;
+      the select-style trigger holds no text field of its own, so the popup
+      is where the query is typed
+  - dont: Put ComboboxChips inside a select-style trigger that is a button
+    do_instead: >-
+      Render the trigger as a div (`render={<div />}` with
+      `nativeButton={false}`); a button may not contain the chips' div
 
 deprecations: {}
 
@@ -84,6 +109,20 @@ examples:
         <ComboboxInput aria-label="Region" showTrigger={false} showClear>
           <ComboboxTrigger aria-label="Show regions" />
         </ComboboxInput>
+    - title: A select-style trigger with the search field in the popup
+      code: |
+        <Combobox items={REGIONS}>
+          <ComboboxTrigger variant="select" aria-label="Region">
+            <ComboboxValue placeholder="Pick a region" />
+          </ComboboxTrigger>
+          <ComboboxContent>
+            <ComboboxInput showTrigger={false} aria-label="Search regions" />
+            <ComboboxEmpty>No regions found.</ComboboxEmpty>
+            <ComboboxList>
+              {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
   bad:
     - title: A trigger outside any Combobox
       code: <ComboboxTrigger aria-label="Show regions" />

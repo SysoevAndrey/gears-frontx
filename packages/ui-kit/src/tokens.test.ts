@@ -340,6 +340,10 @@ describe('theme tokens', () => {
       // be a kit-side correction. select.test.tsx pins both literals.
       'select.module.css|padding-inline|10px var(--space-2)',
       'select.module.css|padding|var(--space-1) var(--space-8) var(--space-1) 6px',
+      // Combobox's select-style trigger is that same drawn trigger, so it
+      // carries the same 10 on its label edge for the same reason.
+      // combobox.test.tsx pins it equal to select.module.css's own value.
+      'combobox.module.css|padding-inline|10px var(--space-2)',
       // The drawn tab trigger insets 2 on the block axis and 6 on the
       // inline one. The spacing scale starts at 4 and steps to 8, so
       // neither has a step and rounding either would change the drawn
@@ -456,8 +460,8 @@ describe('theme tokens', () => {
 
   // The drawn field corner is 10, which --radius-lg carries. Every control
   // that presents as a field binds it: Input, Textarea, Select's trigger,
-  // InputGroup's group, NativeSelect, and Combobox's own field and its
-  // multi-select chips box. This lives
+  // InputGroup's group, NativeSelect, and Combobox's own field, its
+  // multi-select chips box and its select-style trigger. This lives
   // here rather than in one component's own suite because it is the one
   // check no single module can make - the whole point is that the family
   // agrees, and a module that quietly drops to another step is exactly what
@@ -471,6 +475,7 @@ describe('theme tokens', () => {
       ['native-select/native-select.module.css', '.select'],
       ['combobox/combobox.module.css', '.input'],
       ['combobox/combobox.module.css', '.chips'],
+      ['combobox/combobox.module.css', '.selectTrigger'],
     ];
     for (const [file, selector] of fields) {
       const rules = extractRules(readFileSync(join(componentsDir, file), 'utf8'));
