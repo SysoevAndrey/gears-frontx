@@ -94,9 +94,12 @@ several.
 the same height, border, radius, type and states as `SelectTrigger`: the
 children read in the foreground tone once something is chosen and in
 `--muted-foreground` until then (Base UI flags the empty state, so a
-`ComboboxValue placeholder` is enough), a long value ellipsises before the
-chevron, and `aria-invalid` / `disabled` draw the same invalid and dimmed
-looks. There is no text field in the trigger: the query is typed into a
+`ComboboxValue placeholder` is enough), a long text value is cut with an
+ellipsis before the chevron, and `aria-invalid` / `disabled` draw the same
+invalid and dimmed looks. The ellipsis needs the value to be inline content
+(text, a `ComboboxValue`, an inline icon in front of it): a block element of
+your own in there is not cut. A multiple select's chips wrap onto further
+lines instead. There is no text field in the trigger: the query is typed into a
 `ComboboxInput showTrigger={false}` placed first in `ComboboxContent`.
 Inside the popup that input fills the popup's width, inset by the same step
 the list pads its items by, with no width floor of its own; anywhere else it
@@ -106,8 +109,11 @@ wide as it (at least 9rem, like every combobox popup). `ComboboxInput`'s
 wrapper, so an adornment such as a search icon can be composed there.
 
 The trigger's role is `combobox`, which takes no name from its content, so
-give it an `aria-label` (or a visible label through `Field`); the same goes
-for the search input in the popup.
+name it: `aria-labelledby` pointing at a visible label, or an `aria-label`.
+A `<label for>` (`FieldLabel htmlFor`) names only the button form; the
+multiple form below renders its trigger as a `div`, which `<label for>`
+cannot name, so there it has to be `aria-labelledby` or `aria-label`. The
+same goes for the search input in the popup.
 
 For a multiple select, render the trigger as a `div` and put
 `ComboboxChips` among its children:
@@ -117,6 +123,17 @@ A button may not contain the chips' `div`, so `nativeButton={false}` with a
 and padding there, since the trigger already is the field, and the trigger
 grows to hold chips that wrap instead of holding one fixed row. Pressing a
 chip's remove button removes the chip and does not open the popup.
+
+The keyboard path to a chip is different here. In the chips-field form the
+search input sits among the chips, so ArrowLeft from it reaches a chip and
+Backspace on an empty query removes the last one. In the select-style form
+the input lives in the popup, outside the chips: ArrowLeft never reaches a
+chip and Backspace on an empty query removes nothing. A chosen value is removed
+by toggling its option off in the list instead (a chosen option is highlighted
+when the popup opens, other options are reached with the arrow keys, and Enter
+toggles the highlighted one). The remove buttons stay out of the tab order on
+purpose: interactive content inside an element with `role="combobox"` is its
+own accessibility anti-pattern, so they are a pointer affordance here.
 
 ## Examples
 
@@ -233,36 +250,46 @@ import {
 </Combobox>;
 ```
 
-Select-style, multiple (chips inside a trigger rendered as a `div`):
+Select-style, multiple (chips inside a trigger rendered as a `div`, named by
+its visible label through `aria-labelledby`, since a `<label for>` cannot name
+a `div`):
 
 ```tsx
-<Combobox multiple items={FRAMEWORKS}>
-  <ComboboxTrigger variant="select" render={<div />} nativeButton={false} aria-label="Frameworks">
-    <ComboboxChips>
-      <ComboboxValue>
-        {(values: string[]) =>
-          values.length === 0
-            ? 'Select frameworks'
-            : values.map((value) => (
-                <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
-                  {value}
-                </ComboboxChip>
-              ))
-        }
-      </ComboboxValue>
-    </ComboboxChips>
-  </ComboboxTrigger>
-  <ComboboxContent>
-    <ComboboxInput showTrigger={false} aria-label="Search frameworks" />
-    <ComboboxList>
-      {(item: string) => (
-        <ComboboxItem key={item} value={item}>
-          {item}
-        </ComboboxItem>
-      )}
-    </ComboboxList>
-  </ComboboxContent>
-</Combobox>
+<>
+  <span id="frameworks-label">Frameworks</span>
+  <Combobox multiple items={FRAMEWORKS}>
+    <ComboboxTrigger
+      variant="select"
+      render={<div />}
+      nativeButton={false}
+      aria-labelledby="frameworks-label"
+    >
+      <ComboboxChips>
+        <ComboboxValue>
+          {(values: string[]) =>
+            values.length === 0
+              ? 'Select frameworks'
+              : values.map((value) => (
+                  <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
+                    {value}
+                  </ComboboxChip>
+                ))
+          }
+        </ComboboxValue>
+      </ComboboxChips>
+    </ComboboxTrigger>
+    <ComboboxContent>
+      <ComboboxInput showTrigger={false} aria-label="Search frameworks" />
+      <ComboboxList>
+        {(item: string) => (
+          <ComboboxItem key={item} value={item}>
+            {item}
+          </ComboboxItem>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  </Combobox>
+</>
 ```
 
 ## Not ported from upstream
@@ -304,3 +331,9 @@ button-based triggers (which never had the zoom problem to begin with).
   trigger holds no text field, so there is nowhere to type the query.
 - Do not put `ComboboxChips` in a select-style trigger that is still a
   button — render it as a `div` (`render={<div />}`, `nativeButton={false}`).
+- Do not name that `div` trigger with a `<label for>` / `FieldLabel htmlFor` —
+  a `div` is not labelable, so the combobox ends up with no name. Give it
+  `aria-labelledby` or `aria-label`.
+- Do not make a chip's remove button tabbable to give keyboard users a way to
+  remove a value in the select-style form — remove it by toggling its option
+  in the list.
