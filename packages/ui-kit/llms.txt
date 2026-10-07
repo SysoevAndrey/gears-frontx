@@ -316,7 +316,8 @@ Rules for generated code:
   no URL per page, use the button twins PaginationButton/
   PaginationPreviousButton/PaginationNextButton (`disabled` at the ends of
   the range, plus `focusableWhenDisabled` so a focused button keeps focus
-  there); a custom `text` on Previous/Next is also their accessible name; the
+  there); a custom non-blank `text` on Previous/Next is also their accessible
+  name unless an `aria-label` is passed (blank keeps the default name); the
   Previous/Next chevrons mirror in right-to-left.
 - [Popover](dist/docs/popover.md): portalled panel anchored to a trigger,
   opened by click by default (Popover/PopoverTrigger/PopoverContent/
