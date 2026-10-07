@@ -432,6 +432,89 @@ describe('Combobox select-style trigger', () => {
     await press(screen.getByRole('combobox', { name: 'Regions' }));
     expect(screen.getByRole('listbox')).toBeTruthy();
   });
+
+  // The chips here sit in the trigger and the search input in the popup, so
+  // the keys that take the classic chips field to a chip (ArrowLeft from the
+  // input) and remove it (Backspace on an empty query) have no chip to reach.
+  // What a keyboard user has instead is the list: an option that is chosen
+  // toggles off with Enter, the same press that chose it.
+  it('removes a chosen value by toggling its option off from the keyboard', async () => {
+    const onValueChange = vi.fn();
+    renderMultipleSelectStyle({ defaultValue: ['Europe'], onValueChange });
+    await press(screen.getByRole('combobox', { name: 'Regions' }));
+    const search = screen.getByRole('combobox', { name: 'Search regions' });
+    // A chosen option is the one highlighted when the popup opens.
+    const europe = screen.getByRole('option', { name: 'Europe' });
+    expect(europe.getAttribute('aria-selected')).toBe('true');
+    expect(europe.hasAttribute('data-highlighted')).toBe(true);
+    fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange.mock.calls[0]?.[0]).toEqual([]);
+    expect(europe.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('leaves the chosen values alone when Backspace is pressed in the empty search field', async () => {
+    const onValueChange = vi.fn();
+    renderMultipleSelectStyle({ defaultValue: ['Europe', 'Americas'], onValueChange });
+    await press(screen.getByRole('combobox', { name: 'Regions' }));
+    const search = screen.getByRole('combobox', { name: 'Search regions' });
+    expect((search as HTMLInputElement).value).toBe('');
+    fireEvent.keyDown(search, { key: 'Backspace' });
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  // `<label for>` names a button, and the single form's trigger is one; the
+  // multiple form's is a div, which no label can name, so the name has to be
+  // an attribute on the trigger itself.
+  describe('naming the trigger', () => {
+    function renderNamed(trigger: 'button' | 'div', named: Record<string, string>) {
+      const triggerProps =
+        trigger === 'div' ? ({ render: <div />, nativeButton: false } as const) : ({} as const);
+      return render(
+        <>
+          <label htmlFor="trigger" id="trigger-label">
+            Regions
+          </label>
+          <span id="visible-label">Choose regions</span>
+          <Combobox multiple={trigger === 'div'} items={REGIONS}>
+            <ComboboxTrigger variant="select" id="trigger" {...triggerProps} {...named}>
+              <ComboboxValue placeholder="Pick" />
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput showTrigger={false} aria-label="Search regions" />
+              <ComboboxList>
+                {(item: string) => (
+                  <ComboboxItem key={item} value={item}>
+                    {item}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </>,
+      );
+    }
+
+    it('takes a <label for> as a name when the trigger is a button', () => {
+      renderNamed('button', {});
+      expect(screen.getByRole('combobox', { name: 'Regions' }).tagName).toBe('BUTTON');
+    });
+
+    it('is not named by a <label for> when the trigger is a div', () => {
+      renderNamed('div', {});
+      const trigger = screen.getByRole('combobox', { name: '' });
+      expect(trigger.tagName).toBe('DIV');
+      expect(screen.queryByRole('combobox', { name: 'Regions' })).toBeNull();
+    });
+
+    it('is named by aria-labelledby or aria-label when the trigger is a div', () => {
+      renderNamed('div', { 'aria-labelledby': 'visible-label' });
+      expect(screen.getByRole('combobox', { name: 'Choose regions' }).tagName).toBe('DIV');
+      cleanup();
+      renderNamed('div', { 'aria-label': 'Pick regions' });
+      expect(screen.getByRole('combobox', { name: 'Pick regions' }).tagName).toBe('DIV');
+    });
+  });
 });
 
 describe('Combobox styling', () => {
@@ -476,6 +559,20 @@ describe('Combobox styling', () => {
     expect(declared(rules, '.popup .input', 'min-width')).toBe('0');
     // The same rule outside a popup keeps the field only as wide as itself.
     expect(declared(rules, '.inputWrap', 'width')).toBe('fit-content');
+  });
+
+  // `text-overflow` applies to a block container's own inline content; a flex
+  // container turns the value's bare text into an anonymous flex item that never
+  // gets an ellipsis. jsdom has no layout to show it, so the rule that keeps the
+  // value a block container is what is pinned.
+  it('keeps the select-style value a block container, so a long value ellipsises', () => {
+    expect(declared(rules, '.selectValue', 'display')).toBeUndefined();
+    expect(declared(rules, '.selectValue', 'min-width')).toBe('0');
+    expect(declared(rules, '.selectValue', 'overflow')).toBe('hidden');
+    expect(declared(rules, '.selectValue', 'text-overflow')).toBe('ellipsis');
+    expect(declared(rules, '.selectValue', 'white-space')).toBe('nowrap');
+    // The gap an icon in front of the text used to get from `gap`.
+    expect(declared(rules, '.selectValue > svg', 'margin-inline-end')).toBe('var(--space-2)');
   });
 
   it('strips the chips container down to its content inside a select-style trigger', () => {

@@ -42,7 +42,7 @@
     },
     {
       "id": "remove-button-out-of-the-tab-order",
-      "text": "The remove button takes no keyboard focus (the primitive gives it `tabIndex` -1); keyboard users reach the chip itself with the arrow keys from the input and remove it with Backspace or Delete."
+      "text": "The remove button takes no keyboard focus (the primitive gives it `tabIndex` -1). In the chips-field form, where ComboboxChipsInput sits among the chips, keyboard users reach the chip itself with the arrow keys from the input and remove it with Backspace or Delete. In the select-style form the search input lives in the popup, outside the chips, so ArrowLeft never reaches a chip and Backspace on an empty query removes nothing: a value is removed there by toggling its option off in the list (the chosen option is highlighted when the popup opens, and Enter toggles the highlighted one). The remove buttons are not made tabbable to cover that, since interactive content inside an element with role combobox is itself an accessibility anti-pattern."
     }
   ],
   "anti_patterns": [

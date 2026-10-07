@@ -35,6 +35,22 @@ const REGIONS: Region[] = [
 
 const FRAMEWORKS = ['React', 'Vue', 'Svelte', 'Solid'];
 
+// A value too long for the narrow trigger it is shown in.
+const LONG_REGION: Region = {
+  value: 'eu-central-1b',
+  label: 'Frankfurt, European Union (Central), availability zone b',
+};
+
+// An inline glyph for a value: it sits in the text line, so the trigger puts
+// the gap after it.
+function RegionGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="8" r="5" />
+    </svg>
+  );
+}
+
 const EUROPE: Region[] = [
   { value: 'eu-central', label: 'Frankfurt' },
   { value: 'eu-west', label: 'Dublin' },
@@ -76,35 +92,56 @@ function MultipleDemo() {
   );
 }
 
+// The look of a field label (Label's type step), for text that only names a
+// control through aria-labelledby: a <label> that points at nothing would be
+// reported as a label with no control, and pressing it would do nothing.
+const FIELD_LABEL_STYLE = {
+  fontSize: 'var(--text-label-size)',
+  lineHeight: 'var(--text-label-line-height)',
+  fontWeight: 'var(--text-label-weight)',
+  letterSpacing: 'var(--text-label-tracking)',
+} as const;
+
 // A select-looking field whose search input lives in the popup. The trigger
 // is a div here because it holds the chips, and a button may not contain
-// the chips' div.
+// the chips' div. A div is not a labelable element, so a <label for> cannot
+// name it: the visible label is wired through aria-labelledby instead.
 function MultipleSelectDemo() {
   return (
-    <Combobox multiple items={FRAMEWORKS}>
-      <ComboboxTrigger variant="select" render={<div />} nativeButton={false} aria-label="Frameworks">
-        <ComboboxChips>
-          <ComboboxValue>
-            {(values: string[]) =>
-              values.length === 0
-                ? 'Select frameworks…'
-                : values.map((value) => (
-                    <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
-                      {value}
-                    </ComboboxChip>
-                  ))
-            }
-          </ComboboxValue>
-        </ComboboxChips>
-      </ComboboxTrigger>
-      <ComboboxContent>
-        <ComboboxInput showTrigger={false} aria-label="Search frameworks" placeholder="Search…" />
-        <ComboboxEmpty>No frameworks found.</ComboboxEmpty>
-        <ComboboxList>
-          {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      <span id="frameworks-select-label" style={FIELD_LABEL_STYLE}>
+        Frameworks
+      </span>
+      <Combobox multiple items={FRAMEWORKS}>
+        <ComboboxTrigger
+          variant="select"
+          render={<div />}
+          nativeButton={false}
+          aria-labelledby="frameworks-select-label"
+        >
+          <ComboboxChips>
+            <ComboboxValue>
+              {(values: string[]) =>
+                values.length === 0
+                  ? 'Select frameworks…'
+                  : values.map((value) => (
+                      <ComboboxChip key={value} removeLabel={`Remove ${value}`}>
+                        {value}
+                      </ComboboxChip>
+                    ))
+              }
+            </ComboboxValue>
+          </ComboboxChips>
+        </ComboboxTrigger>
+        <ComboboxContent>
+          <ComboboxInput showTrigger={false} aria-label="Search frameworks" placeholder="Search…" />
+          <ComboboxEmpty>No frameworks found.</ComboboxEmpty>
+          <ComboboxList>
+            {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    </div>
   );
 }
 
@@ -143,6 +180,43 @@ export default function ComboboxExample() {
       </Section>
       <Section title="Select-style trigger, multiple">
         <MultipleSelectDemo />
+      </Section>
+      <Section title="Select-style trigger, long value">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', width: '14rem' }}>
+          <Combobox items={[LONG_REGION]} defaultValue={LONG_REGION}>
+            <ComboboxTrigger variant="select" aria-label="Region">
+              <ComboboxValue placeholder="Select a region…" />
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput showTrigger={false} aria-label="Search regions" />
+              <ComboboxList>
+                {(item: Region) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+          <Combobox items={[LONG_REGION]} defaultValue={LONG_REGION}>
+            <ComboboxTrigger variant="select" aria-label="Region with an icon">
+              <ComboboxValue>
+                {(item: Region | null) =>
+                  item ? (
+                    <>
+                      <RegionGlyph />
+                      {item.label}
+                    </>
+                  ) : (
+                    'Select a region…'
+                  )
+                }
+              </ComboboxValue>
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput showTrigger={false} aria-label="Search regions" />
+              <ComboboxList>
+                {(item: Region) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
       </Section>
       <Section title="Select-style trigger, invalid and disabled">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

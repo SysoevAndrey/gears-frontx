@@ -50,10 +50,14 @@ invariants:
       With `variant` select the chevron is always rendered, after the
       children, and the button is not positioned: it is a bordered
       field the height of a Select trigger (the small control step), its
-      children ellipsised before the chevron, its text muted while nothing is
-      chosen. It grows to hold ComboboxChips among its children, which then
-      draw no field chrome of their own. Its role is combobox, so its name
-      comes from `aria-label` or a label, not from its content.
+      a long text value cut with an ellipsis before the chevron (the value is
+      a block container, so it needs inline content: text, a ComboboxValue,
+      an inline icon in front of it), its text muted while nothing is chosen.
+      It grows to hold ComboboxChips among its children, which then draw no
+      field chrome of their own and wrap their chips instead of ellipsising
+      them. Its role is combobox, so its name comes from `aria-labelledby` or
+      `aria-label`, not from its content, and a `<label for>` names it only
+      while the trigger is a button, not when it is rendered as a div.
 
 anti_patterns:
   - dont: Render the default chevron with no `aria-label`
@@ -69,6 +73,11 @@ anti_patterns:
     do_instead: >-
       Render the trigger as a div (`render={<div />}` with
       `nativeButton={false}`); a button may not contain the chips' div
+  - dont: Name a trigger rendered as a div with a `<label for>` (FieldLabel's `htmlFor`)
+    do_instead: >-
+      Pass `aria-labelledby` pointing at the visible label, or `aria-label`;
+      a div is not a labelable element, so a `<label for>` leaves the combobox
+      with no accessible name
 
 deprecations: {}
 
@@ -109,6 +118,31 @@ examples:
         <ComboboxInput aria-label="Region" showTrigger={false} showClear>
           <ComboboxTrigger aria-label="Show regions" />
         </ComboboxInput>
+    - title: A multiple select-style trigger, a div named by its visible label
+      code: |
+        <span id="frameworks-label">Frameworks</span>
+        <Combobox multiple items={FRAMEWORKS}>
+          <ComboboxTrigger
+            variant="select"
+            render={<div />}
+            nativeButton={false}
+            aria-labelledby="frameworks-label"
+          >
+            <ComboboxChips>
+              <ComboboxValue>
+                {(values: string[]) =>
+                  values.map((value) => <ComboboxChip key={value}>{value}</ComboboxChip>)
+                }
+              </ComboboxValue>
+            </ComboboxChips>
+          </ComboboxTrigger>
+          <ComboboxContent>
+            <ComboboxInput showTrigger={false} aria-label="Search frameworks" />
+            <ComboboxList>
+              {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
     - title: A select-style trigger with the search field in the popup
       code: |
         <Combobox items={REGIONS}>
@@ -124,6 +158,16 @@ examples:
           </ComboboxContent>
         </Combobox>
   bad:
+    - title: A div trigger named by a label that points at it
+      code: |
+        <label htmlFor="frameworks">Frameworks</label>
+        <ComboboxTrigger id="frameworks" variant="select" render={<div />} nativeButton={false}>
+          <ComboboxChips>...</ComboboxChips>
+        </ComboboxTrigger>
+      why: >-
+        `<label for>` only names a labelable element such as a button, and a
+        div is not one, so the combobox has no accessible name. Give the
+        trigger `aria-labelledby` or `aria-label` instead.
     - title: A trigger outside any Combobox
       code: <ComboboxTrigger aria-label="Show regions" />
       why: >-

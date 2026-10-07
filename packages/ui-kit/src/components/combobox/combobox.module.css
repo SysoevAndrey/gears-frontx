@@ -251,16 +251,31 @@
     var(--destructive);
 }
 
-/* The value (or placeholder) takes the room the chevron leaves, and
- * ellipsises rather than pushing the chevron off the trigger. */
+/*
+ * The value (or placeholder) takes the room the chevron leaves, and
+ * ellipsises rather than pushing the chevron off the trigger.
+ *
+ * It is a block container on purpose, not a flex row: `text-overflow` only
+ * applies to a block container's own inline content, and the value is a bare
+ * text node (ComboboxValue renders no element), which a flex container turns
+ * into an anonymous flex item that never gets an ellipsis. As a flex item of
+ * the trigger it is already blockified, so it is enough to declare no
+ * `display` here. A multiple select's ComboboxChips is a block-level flex
+ * box inside it and wraps its chips instead, which this does not touch. What
+ * `gap` gave an icon in front of the text is a margin on the icon, which sits
+ * inline with the text.
+ */
 .selectValue {
-  display: flex;
   flex: 1;
   min-width: 0;
-  align-items: center;
-  gap: var(--space-2);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectValue > svg {
+  vertical-align: middle;
+  margin-inline-end: var(--space-2);
 }
 
 .selectTriggerIcon {
