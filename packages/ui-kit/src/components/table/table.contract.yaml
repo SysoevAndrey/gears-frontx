@@ -77,10 +77,15 @@ invariants:
       `stickyHeader` pins the header cells of ONE header row to the top of
       the scroll wrapper on an opaque fill, with none of the collection
       view's fixed layout, minimum width or row height, and works under
-      either variant. Every header cell takes `top: 0`, so a second header
-      row would slide under the first. The fill is the caller's
-      `--table-header-fill` when set, else `--card`; the collection view
-      keeps its own fill. It switches the table from collapsed to separated
+      either variant. In the default variant only the cells of TableHeader
+      pin, and a TableHead in a body row scrolls with its row; under
+      `variant="collection"` the collection view's own rule still pins every
+      TableHead, body rows included (a known gap: those cells cover the
+      column header while the rows scroll). Every header cell takes `top: 0`, so a
+      second header row would slide under the first. The fill is the
+      caller's `--table-header-fill` when set, else `--card`; the collection
+      view keeps its own fill, also when both are set, so the hook does not
+      reach it. It switches the table from collapsed to separated
       borders so the rule under the header travels with it. Without a
       bounded wrapper height (`containerClassName` or `containerStyle`)
       there is nothing to scroll and the pinning has no visible effect.

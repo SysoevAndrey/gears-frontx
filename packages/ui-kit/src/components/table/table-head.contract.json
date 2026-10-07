@@ -30,7 +30,7 @@
   "invariants": [
     {
       "id": "header-look-follows-the-cell",
-      "text": "The header styling - mono uppercase labels that do not wrap, a header band height - belongs to TableHead itself, so a TableHead in a body row looks the same as one in TableHeader."
+      "text": "The header styling - mono uppercase labels that do not wrap, a header band height - belongs to TableHead itself, so a TableHead in a body row looks the same as one in TableHeader. Under Table's `stickyHeader` in the default variant only the cells of TableHeader pin, and a TableHead in a body row scrolls with its row; under `variant=\"collection\"` every TableHead pins, body rows included (a known gap: such a cell covers the column header while the rows scroll)."
     },
     {
       "id": "resize-trades-width-with-the-next-column",
