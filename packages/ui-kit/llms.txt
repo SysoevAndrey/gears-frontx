@@ -312,7 +312,9 @@ Rules for generated code:
   the current page and sets `aria-current`. For paging held in state, with
   no URL per page, use the button twins PaginationButton/
   PaginationPreviousButton/PaginationNextButton (`disabled` at the ends of
-  the range); the Previous/Next chevrons mirror in right-to-left.
+  the range, plus `focusableWhenDisabled` so a focused button keeps focus
+  there); a custom `text` on Previous/Next is also their accessible name; the
+  Previous/Next chevrons mirror in right-to-left.
 - [Popover](dist/docs/popover.md): portalled panel anchored to a trigger,
   opened by click by default (Popover/PopoverTrigger/PopoverContent/
   PopoverHeader/PopoverTitle/PopoverDescription); non-modal by default —

@@ -41,7 +41,8 @@ invariants:
       PaginationButton always renders a `button` with `type="button"` unless
       the consumer passes another `type`, so it never submits a form by
       accident; every button attribute and handler, `onClick` and `disabled`
-      included, is forwarded to it.
+      included, is forwarded to it (`disabled` through Base UI's Button, see
+      disabled-is-dimmed-and-inert).
   - id: is-active-marks-the-current-page
     text: >-
       `isActive` sets `aria-current="page"` and `data-active` on the button,
@@ -56,15 +57,24 @@ invariants:
       var(--space-2), growing with its label.
   - id: disabled-is-dimmed-and-inert
     text: >-
-      A `disabled` button is dimmed to var(--opacity-disabled) and takes no
-      pointer events (pagination.module.css `.link:disabled`), and, being a
-      native disabled button, leaves the tab order.
+      A `disabled` button is dimmed to var(--opacity-disabled), takes no
+      pointer events (pagination.module.css `.link:disabled` and
+      `.link[data-disabled]`) and runs no click handler, in both forms. By
+      default it is a natively disabled button, which a browser keeps out of
+      the tab order and refuses focus to, so a button that held focus when it
+      became disabled loses it to the page. With `focusableWhenDisabled`, the
+      same prop Button has, it is not natively disabled: it stays in the tab
+      order, can hold focus, and reports `aria-disabled="true"` instead of the
+      `disabled` attribute, so the `disabled` property and a `:disabled`
+      selector do not see it - check `aria-disabled` or `data-disabled`.
 
 anti_patterns:
   - dont: Mark more than one button as isActive
     do_instead: Set isActive on the one button for the page in view; only one page is current
   - dont: Use a button for a page that has its own URL
     do_instead: Use PaginationLink with the page's real href, so the page stays crawlable and can be opened in a new tab
+  - dont: Check the `disabled` property or a `:disabled` selector to tell a `focusableWhenDisabled` button is disabled
+    do_instead: Read `aria-disabled` or `data-disabled`; such a button is not natively disabled
 
 deprecations: {}
 
@@ -74,7 +84,12 @@ attestations:
     by: >-
       pagination.test.tsx asserts aria-current="page" and data-active="true"
       with isActive and neither without it, that the element is a button
-      with type "button" and that a disabled one is not focusable
+      with type "button", that a disabled one matches `:disabled` and fires no
+      click, and that with `focusableWhenDisabled` it takes focus, reports
+      aria-disabled and carries no native `disabled`. jsdom focuses anything
+      with a tabindex, which Base UI's Button always sets, so the suite cannot
+      show a natively disabled button refusing focus; that rests on the
+      browser's own handling of `disabled`
   rtl:
     outcome: unknown
 
@@ -84,6 +99,8 @@ examples:
       code: <PaginationButton isActive onClick={() => setPage(2)}>2</PaginationButton>
     - title: A page that is out of reach
       code: <PaginationButton disabled>9</PaginationButton>
+    - title: A page that is out of reach but stays where a keyboard user is
+      code: <PaginationButton disabled focusableWhenDisabled>9</PaginationButton>
   bad:
     - title: A button for a page that has a URL
       code: <PaginationButton onClick={() => navigate('?page=3')}>3</PaginationButton>

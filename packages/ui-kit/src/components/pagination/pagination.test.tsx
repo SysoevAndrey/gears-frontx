@@ -9,6 +9,7 @@ import { declarationMap, extractRules } from '../../__test-utils__/css-rules';
 import {
   Pagination,
   PaginationButton,
+  type PaginationButtonProps,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
@@ -57,19 +58,20 @@ describe('Pagination', () => {
     expect(link.getAttribute('data-active')).toBe('true');
   });
 
-  it('renders Previous with a label, an icon, and the wide (non-square) footprint', () => {
-    render(<PaginationPrevious href="#" />);
-    const link = screen.getByRole('link', { name: 'Go to previous page' });
-    expect(link.className).not.toContain(paginationStyles.square);
+  it('renders Previous and Next with a label, an icon, and the wide (non-square) footprint', () => {
+    render(
+      <>
+        <PaginationPrevious href="#" />
+        <PaginationNext href="#" />
+      </>,
+    );
+    for (const name of ['Go to previous page', 'Go to next page']) {
+      const link = screen.getByRole('link', { name });
+      expect(link.className).not.toContain(paginationStyles.square);
+      expect(link.querySelector('svg')).not.toBeNull();
+    }
     expect(screen.getByText('Previous')).toBeTruthy();
-    expect(link.querySelector('svg')).not.toBeNull();
-  });
-
-  it('renders Next with a custom label', () => {
-    render(<PaginationNext href="#" text="Forward" />);
-    const link = screen.getByRole('link', { name: 'Go to next page' });
-    expect(screen.getByText('Forward')).toBeTruthy();
-    expect(link.className).not.toContain(paginationStyles.square);
+    expect(screen.getByText('Next')).toBeTruthy();
   });
 
   it('renders the ellipsis as decorative with an accessible "More pages" fallback', () => {
@@ -129,20 +131,138 @@ describe('Pagination', () => {
     render(
       <>
         <PaginationPreviousButton />
-        <PaginationNextButton text="Forward" disabled />
+        <PaginationNextButton />
       </>,
     );
     const previous = screen.getByRole('button', { name: 'Go to previous page' });
     const next = screen.getByRole('button', { name: 'Go to next page' });
     expect(screen.getByText('Previous')).toBeTruthy();
-    expect(screen.getByText('Forward')).toBeTruthy();
+    expect(screen.getByText('Next')).toBeTruthy();
     for (const button of [previous, next]) {
       expect(button.className).not.toContain(paginationStyles.square);
       expect(button.querySelector('svg')).not.toBeNull();
     }
-    // The ends of the range are what `disabled` is for.
+    // Enabled until the range ends.
     expect(previous).toHaveProperty('disabled', false);
-    expect(next).toHaveProperty('disabled', true);
+    expect(next).toHaveProperty('disabled', false);
+  });
+
+  // A page button and the two end buttons share one disabled behaviour: it
+  // comes from the part they all render, so each is asserted, not assumed.
+  describe.each([
+    ['PaginationButton', (props: PaginationButtonProps) => <PaginationButton {...props}>3</PaginationButton>, '3'],
+    [
+      'PaginationPreviousButton',
+      (props: PaginationButtonProps) => <PaginationPreviousButton {...props} />,
+      'Go to previous page',
+    ],
+    ['PaginationNextButton', (props: PaginationButtonProps) => <PaginationNextButton {...props} />, 'Go to next page'],
+  ])('%s when disabled', (_part, element, name) => {
+    // A natively disabled button is one browsers refuse focus to. jsdom cannot
+    // show the refusal itself: it focuses anything carrying a tabindex, and
+    // Base UI's Button always sets one, so `focus()` would land here whatever
+    // the code does. `:disabled` is the state the refusal follows from, and
+    // the browser check of the demo covers the rest.
+    it('is natively disabled, so a browser will not focus it, and fires nothing', () => {
+      const onClick = vi.fn();
+      render(element({ disabled: true, onClick }));
+      const button = screen.getByRole('button', { name });
+      expect(button.matches(':disabled')).toBe(true);
+      expect(button.hasAttribute('aria-disabled')).toBe(false);
+      fireEvent.click(button);
+      expect(onClick).not.toHaveBeenCalled();
+      // What the dimmed paint selects on, with the native attribute present.
+      expect(button.hasAttribute('data-disabled')).toBe(true);
+    });
+
+    it('can take focus with focusableWhenDisabled, and still fires nothing', () => {
+      const onClick = vi.fn();
+      render(element({ disabled: true, focusableWhenDisabled: true, onClick }));
+      const button = screen.getByRole('button', { name });
+      button.focus();
+      expect(document.activeElement).toBe(button);
+      fireEvent.click(button);
+      expect(onClick).not.toHaveBeenCalled();
+      // Reported through ARIA, not the native attribute that would blur it,
+      // and still marked for the same dimmed paint.
+      expect(button.matches(':disabled')).toBe(false);
+      expect(button.getAttribute('aria-disabled')).toBe('true');
+      expect(button.hasAttribute('data-disabled')).toBe(true);
+    });
+
+    it('behaves as an ordinary live button with focusableWhenDisabled while not disabled', () => {
+      const onClick = vi.fn();
+      render(element({ focusableWhenDisabled: true, onClick }));
+      const button = screen.getByRole('button', { name });
+      fireEvent.click(button);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(button.hasAttribute('data-disabled')).toBe(false);
+    });
+  });
+
+  /*
+   * The name of the previous and next parts, in all four forms. A custom text
+   * is what is on screen above 640px and nothing below it, so it has to be the
+   * name; the default text keeps the longer one that says which page it goes to.
+   */
+  describe.each([
+    {
+      part: 'PaginationPrevious',
+      role: 'link',
+      name: 'Go to previous page',
+      label: 'Previous',
+      element: (props: { text?: string; 'aria-label'?: string }) => <PaginationPrevious href="#" {...props} />,
+    },
+    {
+      part: 'PaginationNext',
+      role: 'link',
+      name: 'Go to next page',
+      label: 'Next',
+      element: (props: { text?: string; 'aria-label'?: string }) => <PaginationNext href="#" {...props} />,
+    },
+    {
+      part: 'PaginationPreviousButton',
+      role: 'button',
+      name: 'Go to previous page',
+      label: 'Previous',
+      element: (props: { text?: string; 'aria-label'?: string }) => <PaginationPreviousButton {...props} />,
+    },
+    {
+      part: 'PaginationNextButton',
+      role: 'button',
+      name: 'Go to next page',
+      label: 'Next',
+      element: (props: { text?: string; 'aria-label'?: string }) => <PaginationNextButton {...props} />,
+    },
+  ] as const)('$part accessible name', ({ role, name, label, element }) => {
+    // Also what keeps each part's literal default `text` and the name helpers'
+    // constant in step (see pagination.tsx): were they to differ, the default
+    // would be taken for a custom text and become the name itself.
+    it('is the page-describing name with the default text, and shows the short label', () => {
+      render(element({}));
+      expect(screen.getByRole(role, { name }).textContent).toBe(label);
+    });
+
+    it('is the custom text when one is given', () => {
+      render(element({ text: 'Forward' }));
+      expect(screen.getByRole(role, { name: 'Forward' }).textContent).toBe('Forward');
+      expect(screen.queryByRole(role, { name })).toBeNull();
+    });
+
+    it('is an aria-label of its own, whatever the text', () => {
+      render(element({ text: 'Forward', 'aria-label': 'Older results' }));
+      expect(screen.getByRole(role, { name: 'Older results' })).toBeTruthy();
+    });
+
+    // A blank text hides the label like an empty one does, and a name made of
+    // whitespace is ignored by the browser, so it must not become the name.
+    it.each([['empty', ''], ['blank', '  ']])(
+      'keeps the page-describing name when the text is %s, the icon-only form',
+      (_kind, text) => {
+        render(element({ text }));
+        expect(screen.getByRole(role, { name }).textContent?.trim()).toBe('');
+      },
+    );
   });
 
   it('puts the chevron before the previous label and after the next one', () => {
@@ -214,8 +334,11 @@ describe('Pagination', () => {
   it('strips the native button chrome in the shared item rule, and dims a disabled one', () => {
     expect(declared('.link', 'border')).toBe('0');
     expect(declared('.link', 'padding-block')).toBe('0');
-    expect(declared('.link:disabled', 'opacity')).toBe('var(--opacity-disabled)');
-    expect(declared('.link:disabled', 'pointer-events')).toBe('none');
+    // Both forms of a disabled button: the native one, and the one that
+    // stays focusable and reports `data-disabled` instead.
+    const disabled = '.link:disabled,\n.link[data-disabled]';
+    expect(declared(disabled, 'opacity')).toBe('var(--opacity-disabled)');
+    expect(declared(disabled, 'pointer-events')).toBe('none');
   });
 
   it('inverts the active page onto the page background under a primary label', () => {

@@ -52,13 +52,32 @@ an icon and a label side by side.
 `PaginationPrevious`/`PaginationNext` accept the same props minus `square`
 (fixed to `false`), plus `text` to relabel the link.
 
+Their accessible name follows `text`. With the default text it is "Go to
+previous page" / "Go to next page"; a custom `text` is the name instead,
+because the label is hidden below 640px and the chevron is decorative, so a
+fixed name would leave the words on screen out of it and a voice-control user
+could not say them to press the link. An empty or whitespace-only `text`
+(the icon-only form) keeps the default name. An `aria-label` of your own replaces either; keep the
+visible words in it. The button forms below name themselves the same way.
+
 `PaginationButton` takes the same `isActive` and `square`, and every native
 button prop (`onClick`, `disabled`, ...); `type` defaults to `"button"`, so
 it never submits a form it sits in. `PaginationPreviousButton` /
 `PaginationNextButton` mirror `PaginationPrevious` / `PaginationNext`: no
 `square`, no `isActive`, and `text` to relabel them. A disabled button is
-dimmed and leaves the tab order, which is how a pager marks the ends of its
-range.
+dimmed and inert, which is how a pager marks the ends of its range.
+
+| Prop | Type | Default |
+|------|------|---------|
+| `focusableWhenDisabled` | `boolean` — keep the button in the tab order while `disabled`, reported through `aria-disabled` instead of the native attribute (the same prop `Button` has) | `false` |
+
+A natively disabled button cannot hold focus, so a keyboard user who pages
+with Previous until page 1 sees focus fall to the page behind it the moment
+the button disables. Pass `focusableWhenDisabled` on Previous and Next in a
+pager that is driven from the keyboard: the button stays where focus is, paints
+the same dimmed look and still runs no click. It is no longer natively
+disabled then, so read `aria-disabled` (or `data-disabled`) rather than the
+`disabled` property to tell.
 
 The Previous / Next chevrons mirror under a right-to-left direction, on the
 anchor and the button forms alike.
@@ -109,13 +128,18 @@ import {
 </Pagination>
 ```
 
-A state-driven pager, with the ends of the range disabled:
+A state-driven pager, with the ends of the range disabled and focus kept on
+a button that has just reached one:
 
 ```tsx
 <Pagination>
   <PaginationContent>
     <PaginationItem>
-      <PaginationPreviousButton disabled={page === 1} onClick={() => setPage(page - 1)} />
+      <PaginationPreviousButton
+        disabled={page === 1}
+        focusableWhenDisabled
+        onClick={() => setPage(page - 1)}
+      />
     </PaginationItem>
     {pages.map((n) => (
       <PaginationItem key={n}>
@@ -125,7 +149,11 @@ A state-driven pager, with the ends of the range disabled:
       </PaginationItem>
     ))}
     <PaginationItem>
-      <PaginationNextButton disabled={page === pages.length} onClick={() => setPage(page + 1)} />
+      <PaginationNextButton
+        disabled={page === pages.length}
+        focusableWhenDisabled
+        onClick={() => setPage(page + 1)}
+      />
     </PaginationItem>
   </PaginationContent>
 </Pagination>
@@ -142,3 +170,9 @@ A state-driven pager, with the ends of the range disabled:
   `href`.
 - Do not set `isActive` on more than one `PaginationLink` at a time — only
   one page is "current".
+- Do not pass an `aria-label` to `PaginationPrevious`/`PaginationNext` that
+  leaves out the words of a custom `text`; leave it off and the name follows
+  the text.
+- Do not disable Previous or Next at the end of a range that is paged from the
+  keyboard without `focusableWhenDisabled`; the focused button would drop focus
+  to the page.

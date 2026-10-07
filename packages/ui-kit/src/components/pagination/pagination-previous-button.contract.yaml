@@ -32,9 +32,11 @@ invariants:
   - id: fixed-content-and-accessible-name
     text: >-
       The button renders a left chevron before the label and ignores children.
-      Its accessible name is the fixed `aria-label` "Go to previous page", set
-      ahead of the consumer's props: `text` changes only the visible label,
-      and only an `aria-label` passed to it replaces the name.
+      With the default `text` its accessible name is "Go to previous page",
+      set ahead of the consumer's props. A custom `text` is the name instead,
+      since the visible label is hidden below 640px and the chevron is
+      decorative; an empty or blank `text`, the icon-only form, keeps "Go to previous
+      page". An `aria-label` passed to it replaces either.
   - id: label-hidden-below-640px
     text: >-
       The visible label is hidden below a 640px viewport width
@@ -47,8 +49,16 @@ invariants:
       toward the previous pages whatever the reading direction.
 
 anti_patterns:
-  - dont: Relabel the button through `text` alone
-    do_instead: Pass a matching `aria-label` with a custom `text`, so the visible label stays part of the accessible name
+  - dont: Pass an `aria-label` that leaves out the words of a custom `text`
+    do_instead: >-
+      Leave `aria-label` off, so the name follows `text`; when you do override
+      it, keep the visible words in it, or a voice-control user who says what
+      is on screen cannot press the button
+  - dont: Disable a Previous or Next button that keyboard users page with, and leave `focusableWhenDisabled` off
+    do_instead: >-
+      Pass `focusableWhenDisabled` along with `disabled`: a button that
+      becomes natively disabled while it holds focus loses it to the page, so
+      the next Tab starts over from the top of the document
 
 deprecations: {}
 
@@ -57,8 +67,16 @@ attestations:
     outcome: verified
     by: >-
       pagination.test.tsx asserts getByRole('button', { name: 'Go to previous
-      page' }) finds the button, with the visible "Previous" label and an svg
-      inside it, and that it is disabled when asked
+      page' }) finds the button with the default `text`, whose visible label
+      is "Previous" beside an svg, that a custom `text` "Forward" is the name
+      instead, that an `aria-label` passed to it wins over either, and that
+      an empty or blank `text` keeps "Go to previous page". It also asserts that a
+      disabled one matches `:disabled` and fires no click, and that with
+      `focusableWhenDisabled` it takes focus, reports aria-disabled and
+      carries no native `disabled`. jsdom focuses anything with a tabindex,
+      which Base UI's Button always sets, so the suite cannot show a natively
+      disabled button refusing focus; that rests on the browser's own
+      handling of `disabled`
   rtl:
     outcome: unknown
     by: >-
@@ -79,8 +97,10 @@ unexposed_parts:
 
 examples:
   good:
-    - title: Disabled at the first page
-      code: <PaginationPreviousButton disabled={page === 1} onClick={() => setPage(page - 1)} />
+    - title: Disabled at the first page, keeping the focus a keyboard user has on it
+      code: <PaginationPreviousButton disabled={page === 1} focusableWhenDisabled onClick={() => setPage(page - 1)} />
+    - title: A custom label, which is also the accessible name
+      code: <PaginationPreviousButton text="Newer" onClick={() => setPage(page - 1)} />
   bad:
     - title: A label given as children
       code: <PaginationPreviousButton>Back</PaginationPreviousButton>
