@@ -220,11 +220,19 @@ It is built for ONE header row: every header cell takes `top: 0`, so a
 second `TableRow` of `TableHead` cells would slide under the first rather than
 stack beneath it.
 
+In the default variant only the cells of `TableHeader` pin. A `TableHead` in a
+body row (a row header, `scope="row"`) looks the same but scrolls away with its
+row: pinned, it would sit over the column header. The collection variant is not
+covered by this: its own rule still pins every `TableHead`, body-row headings
+included, so avoid a `TableHead` in a body row under `variant="collection"` (a
+known gap).
+
 To change the fill, set `--table-header-fill` on the table (through
 `className`) or on an ancestor. The kit reads it with `--card` as the
 fallback and declares it nowhere itself, so a plain class is enough: no
 selector has to outrank the kit's. It applies to `stickyHeader`; the
-`collection` variant keeps its own header fill.
+`collection` variant keeps its own header fill, also when both are set, so the
+hook does not reach it.
 
 ```css
 .invoices { --table-header-fill: var(--surface-elevated); }
@@ -253,7 +261,7 @@ ignored by a `stickyHeader` table.
 | `containerClassName` | `string` - className for the scroll wrapper; give it a `max-height` to scroll the rows under a sticky header | - |
 | `containerStyle` | `CSSProperties` - inline style for the same wrapper, e.g. `{ maxHeight: 320 }` | - |
 | `containerRef` | `Ref<HTMLDivElement>` - ref to the scroll wrapper, not the `<table>` (`ref` still lands on the table) | - |
-| `stickyHeader` | `boolean` - pins the header cells to the top of the scroll wrapper on an opaque fill; needs a bounded wrapper height, and is independent of `variant` | `false` |
+| `stickyHeader` | `boolean` - pins the `TableHeader` cells (in the default variant; the collection variant pins every `TableHead`) to the top of the scroll wrapper on an opaque fill; needs a bounded wrapper height, and is independent of `variant` | `false` |
 
 `TableHead`:
 

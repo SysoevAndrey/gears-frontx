@@ -586,14 +586,16 @@ describe('Table sticky header and row rules', () => {
     expect(screen.getByRole('table').className).toContain(styles.stickyHeader);
   });
 
+  // `:where()` holds the rule at two classes of specificity, level with
+  // `.variantCollection .tableHead`, so the collection view keeps its own fill.
+  const PINNED = ':where(.stickyHeader) .tableHeader .tableHead';
+
   it('pins the header cells on an opaque fill, and keeps the layout out of it', () => {
-    expect(declared('.stickyHeader .tableHead', 'position')).toBe('sticky');
-    expect(declared('.stickyHeader .tableHead', 'top')).toBe('0');
+    expect(declared(PINNED, 'position')).toBe('sticky');
+    expect(declared(PINNED, 'top')).toBe('0');
     // A consumer hook with the kit's own fill as its fallback, so a caller sets
     // --table-header-fill without a selector of its own to beat this one.
-    expect(declared('.stickyHeader .tableHead', 'background-color')).toBe(
-      'var(--table-header-fill, var(--card))',
-    );
+    expect(declared(PINNED, 'background-color')).toBe('var(--table-header-fill, var(--card))');
     expect(rules.some((rule) => declarationMap(rule.body).has('--table-header-fill'))).toBe(false);
     // The collection view's layout stays the collection view's.
     expect(declared('.stickyHeader', 'table-layout')).toBeUndefined();
@@ -603,6 +605,43 @@ describe('Table sticky header and row rules', () => {
     for (const [theme, tokens] of [['light', light], ['dark', dark]] as const) {
       expect(tokens.get('--card'), `${theme} --card`).toMatch(/^#[0-9a-f]{6}$/i);
     }
+  });
+
+  // The vitest CSS-module proxy hands back a name for any key, defined or not,
+  // so what proves `.tableHeader` is a real exported class is a selector that
+  // names it (the build only exports what the stylesheet mentions). Matching
+  // that selector against a rendered table then shows which cells it reaches.
+  it('pins the cells of the header group, not a TableHead used as a row header', () => {
+    const { container } = render(
+      <Table stickyHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableHead scope="row">Row header</TableHead>
+            <TableCell>a</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const asDomSelector = PINNED.replace(
+      /\.(\w+)/g,
+      (_, name: string) => `.${(styles as Record<string, string>)[name]}`,
+    );
+    const pinned = Array.from(container.querySelectorAll(asDomSelector));
+    expect(pinned.map((cell) => cell.textContent)).toEqual(['Name']);
+    // The body-row heading is still a TableHead and still looks like one.
+    expect(screen.getByText('Row header').className).toContain(styles.tableHead);
+  });
+
+  it('leaves the collection view its own header fill when both are set', () => {
+    const order = (selector: string) => rules.findIndex((rule) => rule.selector === selector);
+    // Equal specificity, so the later rule wins the fill.
+    expect(order('.variantCollection .tableHead')).toBeGreaterThan(order(PINNED));
+    expect(declared('.variantCollection .tableHead', 'background-color')).toBe('var(--card)');
   });
 
   it('switches to separated borders only for the sticky header, so its rule stays with it', () => {

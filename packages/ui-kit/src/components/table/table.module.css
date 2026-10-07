@@ -87,13 +87,26 @@
  * on screen: in the collapsed model a border belongs to the table's grid, not
  * to the cell, and does not travel with a sticky cell. Declared after .table
  * at the same specificity, so it overrides that rule's collapse.
+ *
+ * Only the header GROUP's cells pin (`.tableHeader`, the <thead>): a TableHead
+ * is also a valid row header in a body row, and pinning that one would lay it
+ * over the column header while the rows scroll. `:where()` keeps the rule at
+ * the two-class specificity it always had, equal to `.variantCollection
+ * .tableHead` below, which is declared later and so still wins the fill, the
+ * collection view keeping its own. A plain `.stickyHeader .tableHeader
+ * .tableHead` would outrank it and let --table-header-fill reach the
+ * collection view. (This selector is also what exports `.tableHeader` to
+ * table.tsx at all: a class no selector names is not in the module's map.)
+ *
+ * `.variantCollection .tableHead` below has the same gap, pinning a TableHead
+ * in a body row as well; the collection view is deliberately left as it was.
  */
 .stickyHeader {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-.stickyHeader .tableHead {
+:where(.stickyHeader) .tableHeader .tableHead {
   position: sticky;
   top: 0;
   z-index: 2;
