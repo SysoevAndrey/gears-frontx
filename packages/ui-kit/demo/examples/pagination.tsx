@@ -19,13 +19,19 @@ const PAGES = [1, 2, 3, 4, 5];
 
 // State-driven paging: the page lives in component state, so each item is a
 // button rather than a link, and the ends of the range disable Previous/Next.
+// focusableWhenDisabled keeps keyboard focus on the one that was just pressed
+// down to the end of the range, instead of dropping it to the page.
 function ButtonPager() {
   const [page, setPage] = useState(2);
   return (
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPreviousButton disabled={page === 1} onClick={() => setPage(page - 1)} />
+          <PaginationPreviousButton
+            disabled={page === 1}
+            focusableWhenDisabled
+            onClick={() => setPage(page - 1)}
+          />
         </PaginationItem>
         {PAGES.map((n) => (
           <PaginationItem key={n}>
@@ -35,7 +41,11 @@ function ButtonPager() {
           </PaginationItem>
         ))}
         <PaginationItem>
-          <PaginationNextButton disabled={page === PAGES.length} onClick={() => setPage(page + 1)} />
+          <PaginationNextButton
+            disabled={page === PAGES.length}
+            focusableWhenDisabled
+            onClick={() => setPage(page + 1)}
+          />
         </PaginationItem>
       </PaginationContent>
     </Pagination>

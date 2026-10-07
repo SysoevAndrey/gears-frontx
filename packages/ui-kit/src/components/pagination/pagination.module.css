@@ -93,8 +93,12 @@
 /* A previous/next button at either end of the range. Dimmed like every other
  * disabled control (--opacity-disabled), and pointer-transparent so the hover
  * brightening above never shows on it. Anchors have no disabled state, which
- * is why this only ever applies to the button forms. */
-.link:disabled {
+ * is why this only ever applies to the button forms. A `focusableWhenDisabled`
+ * button is not natively disabled (it reports `aria-disabled` and stays
+ * focusable), so `:disabled` alone would leave it painted live; Base UI marks
+ * both forms with `data-disabled`. */
+.link:disabled,
+.link[data-disabled] {
   pointer-events: none;
   opacity: var(--opacity-disabled);
 }
