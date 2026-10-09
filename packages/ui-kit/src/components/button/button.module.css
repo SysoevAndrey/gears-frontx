@@ -1,0 +1,504 @@
+/*
+ * Button styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.button {
+  /*
+   * Substitutes for the preflight the kit lacks — but unlike
+   * tabs.module.css/badge.module.css, this one is a no-op for the common
+   * case: <button> is already border-box in every browser's UA
+   * stylesheet, so a real Button (nativeButton, the default) measures
+   * correctly at every size with or without this declaration. It only
+   * matters for the documented `render` escape hatch (button.md's
+   * `<Button render={<a/>} nativeButton={false}>` example): an <a> has no
+   * such UA default, so content-box there piles this class's own border
+   * on top of each size class's height, rendering 38px instead of 36px.
+   * Declared on `.button` rather than each size class since every Button
+   * always combines one of those with this class on the same root (see
+   * button.tsx) — one declaration covers all three.
+   */
+  box-sizing: border-box;
+  /*
+   * Focus ring color; the variants below override it (see :focus-visible).
+   * One custom property is enough because the ring is drawn OUTSIDE the
+   * button (`outline` + `outline-offset`, see :focus-visible below), so
+   * its only WCAG neighbor is ever the page background — there is no
+   * second, fill-side surface a second tone would need to also clear.
+   * default and destructive still get their own family color (set below);
+   * everything else falls through to this kit-wide --ring, same as every
+   * non-Button control.
+   *
+   * The --button-bg/--button-fg/--button-bg-hover/--button-fg-hover/
+   * --button-border family below works the same way: consumer-override
+   * hooks that no kit rule ever declares — each variant CONSUMES them with
+   * its own token as the var() fallback, so a consumer class that sets them
+   * recolors the button without fighting the cascade, and hover falls back
+   * to the consumer's rest color (not the variant's token) via the
+   * var(--button-bg-hover, var(--button-bg, ...)) chain. See button.md's
+   * "Custom colors".
+   */
+  --button-focus-ring: var(--ring);
+  /* Anchors the absolutely-centered .spinner. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  /* Upstream ships `shrink-0`; this kit's default `flex: 0 1 auto` let a
+   * Button shrink below its intrinsic width in a tight flex row, surviving
+   * only via `white-space: nowrap`'s content floor (the label stops
+   * wrapping, but padding/icon slots could still be squeezed). A button is
+   * a fixed-size control, not flexible content — it should hold its own
+   * width like every other kit control does, not lean on a text-wrap side
+   * effect for it. */
+  flex-shrink: 0;
+  border: var(--border-width) solid var(--button-border, transparent);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  /* The drawn buttons (frame 182:371) are BOUND to the Studio/Label text
+   * style — the one component text that references the ramp instead of
+   * hand-set metrics — so the label consumes the ramp tokens directly. */
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/*
+ * The ring is drawn OUTSIDE the button, not on its edge: `outline` sits
+ * clear of the border box, offset a further 2px, so its only WCAG 1.4.11
+ * neighbor is ever the page background — never the button's own fill. That
+ * is what lets each variant use its own hue (see --button-focus-ring on
+ * .button and the per-variant overrides below) without needing a second,
+ * fill-side tone. `outline` is also layout-neutral — unlike a real
+ * border-width switch, it never changes the button's box, so the label
+ * never shifts sideways on focus/blur. The per-variant color arrives via
+ * --button-focus-ring (set on .button above, overridden by the variants
+ * below).
+ */
+.button:focus-visible {
+  outline: var(--border-width-focus) solid var(--button-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * Forced-colors mode replaces author colors with a fixed system palette, so
+ * the per-variant --button-focus-ring color (--primary-ring/
+ * --destructive-ring, or the kit-wide --ring) would be dropped anyway. Hand
+ * the ring to the system's Highlight color instead so it survives the mode.
+ * Only the color needs overriding: width/style/offset already match the
+ * base :focus-visible rule above, so redeclaring them here would just be a
+ * duplicate.
+ */
+@media (forced-colors: active) {
+  .button:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* disabled opacity: see input.module.css */
+.button:disabled {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+/*
+ * Loading stopped setting the native `disabled` attribute (see button.tsx):
+ * a genuinely disabled button drops out of the tab order and blurs itself
+ * the instant `disabled` lands, which would silently steal focus off a
+ * button the user just clicked and leave `aria-busy` announced to no one.
+ * `focusableWhenDisabled` keeps it focusable instead (Base UI reports the
+ * state via `aria-disabled`, not the native attribute), so `:disabled`
+ * above never matches during `loading` and this rule is what keeps a
+ * spinning button dimmed the same way a disabled one is.
+ */
+.button[data-loading] {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+.variantDefault {
+  background-color: var(--button-bg, var(--primary));
+  color: var(--button-fg, var(--primary-foreground));
+}
+
+/*
+ * The palette's own hover step, not the shadcn transparency fade: the
+ * Studio collection defines primary-hover as a real color (the two modes'
+ * primaries swap — dark hovers to the light primary and vice versa), so
+ * the fill stays fully opaque instead of letting the page tint through.
+ */
+.variantDefault:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--primary-hover)));
+  color: var(--button-fg-hover, var(--button-fg, var(--primary-foreground)));
+}
+
+/*
+ * The drawn destructive button is a TINT, not a solid fill: --destructive
+ * at 10 per cent of transparent in light and 20 in dark, under a
+ * --destructive label. Badge carries the identical recipe; the two are
+ * meant to stay in step.
+ *
+ * The standing ban on destructive colour-mixes targets mixes anchored to
+ * --foreground: those darken in light and LIGHTEN in dark, where
+ * --foreground flips near-white, dropping a fixed pale label below its
+ * floor. This mix is anchored to `transparent` and carries a --destructive
+ * label rather than a pale one, so that failure mode does not apply, and
+ * the per-file guard that rejects foreground-anchored mixes still stands.
+ *
+ * The strength is a local so the theme overrides below restate one number
+ * instead of the whole recipe twice.
+ */
+.variantDestructive {
+  --tint: 10%;
+  --tint-hover: 20%;
+  background-color: var(--button-bg, color-mix(in oklab, var(--destructive) var(--tint), transparent));
+  color: var(--button-fg, var(--destructive));
+}
+
+[data-theme='dark'] .variantDestructive {
+  --tint: 20%;
+  --tint-hover: 30%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .variantDestructive {
+    --tint: 20%;
+    --tint-hover: 30%;
+  }
+}
+
+/* Hover is the same tint one step stronger, in the same idiom, so the
+ * label never changes tone under the pointer. */
+.variantDestructive:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, color-mix(in oklab, var(--destructive) var(--tint-hover), transparent)));
+  color: var(--button-fg-hover, var(--button-fg, var(--destructive)));
+}
+
+/*
+ * The drawn bordered button ("secondary" in the Figma component list,
+ * mapped to this kit's `outline` per button.md) sits on --surface-elevated
+ * with a --border-strong border, not the flat page background + hairline
+ * border the shadcn translation started from.
+ */
+.variantOutline {
+  border-color: var(--button-border, var(--border-strong));
+  background-color: var(--button-bg, var(--surface-elevated));
+  color: var(--button-fg, var(--foreground));
+}
+
+/*
+ * A NEUTRAL hover fill, not the accent tint. The Button / Icon masters draw
+ * both borderless treatments across all five states, and they keep the two
+ * jobs apart: `hover` fills with --muted over --foreground text, while
+ * --accent/--accent-foreground is what the `selected` specimen uses.
+ * Reusing accent for hover would make a merely hovered button read as a
+ * selected one, and leave Toggle — whose pressed state genuinely IS
+ * selected — with no louder step to promote to.
+ */
+.variantOutline:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--muted)));
+  color: var(--button-fg-hover, var(--button-fg, var(--foreground)));
+}
+
+.variantSecondary {
+  background-color: var(--button-bg, var(--secondary));
+  color: var(--button-fg, var(--secondary-foreground));
+}
+
+.variantSecondary:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, color-mix(in oklab, var(--secondary) 80%, transparent)));
+  color: var(--button-fg-hover, var(--button-fg, var(--secondary-foreground)));
+}
+
+/*
+ * Rest text is --muted-foreground, per the drawn spec (the hover fill below
+ * is what promotes it to --foreground) — measured against the page
+ * background it actually sits on, since ghost has no fill of its own:
+ * 9.45:1 light / 7.68:1 dark, both clearing the 4.5:1 AA floor for this
+ * 12px label text, so the alignment carries no WCAG cost.
+ */
+.variantGhost {
+  background-color: var(--button-bg, transparent);
+  color: var(--button-fg, var(--muted-foreground));
+}
+
+/* Neutral, for the same reason as .variantOutline:hover above — the drawn
+ * ghost `hover` specimen fills with --muted, and reserves the accent tint
+ * for `selected`. */
+.variantGhost:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--muted)));
+  color: var(--button-fg-hover, var(--button-fg, var(--foreground)));
+}
+
+/*
+ * --link-foreground, not --primary: measured on the page background this
+ * borderless variant actually sits on, --primary is 4.83:1 light but only
+ * 3.72:1 dark (a clear fail for 12px text). Link has no drawn counterpart
+ * to match, so --link-foreground is a text-safe token of its own —
+ * --primary-hover's value in light (same blue family, 4.95:1), a lighter
+ * tint of the same hue in dark (7.75:1 — see theme.css).
+ */
+.variantLink {
+  background-color: var(--button-bg, transparent);
+  color: var(--button-fg, var(--link-foreground));
+  text-underline-offset: 4px;
+}
+
+.variantLink:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, transparent));
+  color: var(--button-fg-hover, var(--button-fg, var(--link-foreground)));
+  text-decoration: underline;
+}
+
+/*
+ * The drawn navigation button: a card-filled row with a hairline, the
+ * muted label tone, and a neutral --muted hover. Its current-location
+ * state takes the secondary pairing, the role the spec paints a selected
+ * control from, and is driven by a `data-current` attribute a caller sets
+ * so the state is the caller's data rather than a second variant.
+ */
+.variantNavigation {
+  border-color: var(--button-border, var(--border));
+  background-color: var(--button-bg, var(--card));
+  color: var(--button-fg, var(--muted-foreground));
+}
+
+.variantNavigation:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--muted)));
+  color: var(--button-fg-hover, var(--button-fg, var(--muted-foreground)));
+}
+
+/* Declared after the hover rule so the current location holds its fill
+ * under the pointer: at equal specificity, source order decides. */
+.variantNavigation[data-current],
+.variantNavigation[data-current]:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--secondary)));
+  color: var(--button-fg-hover, var(--button-fg, var(--secondary-foreground)));
+}
+
+/*
+ * The drawn avatar button: no box of its own at all. The child supplies
+ * the box, the button supplies the round hit area and the ring it wears
+ * while hovered or while it owns an open popup.
+ */
+/*
+ * (0,2,0) for the box: the size classes below own `height` and
+ * `padding-inline` at (0,1,0) and come later in the file, so a
+ * same-specificity reset here would lose to whichever size is active and
+ * the button would measure its size step instead of its child.
+ *
+ * `border: 0`, not a transparent border: the base rule's hairline sits
+ * INSIDE this button's own box, so a transparent one still renders a 32px
+ * child as a 34px button. The drawn ring below is an outset shadow, which
+ * takes part in no box at all, so nothing here ever adds to the child.
+ *
+ * The corner is here for the same specificity reason as the box: `.sizeSm`
+ * tightens the corner at (0,1,0) later in the file, and an avatar button is
+ * round at every size because its child is.
+ */
+.button.variantAvatar {
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+}
+
+.variantAvatar {
+  background-color: var(--button-bg, transparent);
+  color: var(--button-fg, inherit);
+}
+
+.variantAvatar:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, transparent));
+  color: var(--button-fg-hover, var(--button-fg, inherit));
+}
+
+/* The drawn ring, as a shadow rather than a border so the child's own box
+ * stays the button's box. Same on hover and while a popup it owns is
+ * open, which is what the spec draws. */
+.variantAvatar:hover,
+.variantAvatar[data-popup-open],
+.variantAvatar[aria-expanded='true'] {
+  box-shadow: 0 0 0 var(--border-width-focus)
+    color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/*
+ * The drawn utility button: no fill and no border at rest, the muted label
+ * tone, a --muted hover, and an icon one step off the scale.
+ */
+.variantUtility {
+  border-color: transparent;
+  background-color: var(--button-bg, transparent);
+  color: var(--button-fg, var(--muted-foreground));
+}
+
+.variantUtility:hover {
+  background-color: var(--button-bg-hover, var(--button-bg, var(--muted)));
+  color: var(--button-fg-hover, var(--button-fg, var(--foreground)));
+}
+
+/* The drawn utility glyph is 18, and the icon scale runs 12 / 16 / 20 / 24
+ * with no 18 step. Rounding it onto a step would be a kit-side correction
+ * of a drawn value; button.test.tsx pins the literal. (0,2,0), above the
+ * base `.icon svg` rule and the `lg` override alike. */
+.variantUtility .icon svg,
+.variantUtility .end svg {
+  width: 18px;
+  height: 18px;
+}
+
+/*
+ * Focus colors. The ring sits outside the button (see :focus-visible
+ * above), so it only ever borders the page — the one surface every
+ * variant needs to clear WCAG 1.4.11's 3:1 floor against. That single
+ * surface is what makes a single tone per variant enough: default and
+ * destructive keep a family color of their own (a blue a shade darker/
+ * lighter than --primary would otherwise be, and the destructive red's
+ * equivalent — see theme.css's --primary-ring/--destructive-ring), because
+ * their own accent reads better against the page than the plain kit-wide
+ * ring would. outline, secondary, ghost and link get no override at all:
+ * they fall through to .button's own --ring — the same ring every
+ * non-Button kit control uses.
+ *
+ * The ratios are not repeated here: button.test.tsx recomputes all six
+ * variants against the page background in both themes from THIS file's
+ * live values, so a token drift fails the suite instead of silently
+ * outdating a hand-copied table. design-notes.md records the measured
+ * numbers.
+ */
+.variantDefault {
+  --button-focus-ring: var(--primary-ring);
+}
+
+.variantDestructive {
+  --button-focus-ring: var(--destructive-ring);
+}
+
+/* Buttons sit on the control/height scale directly: sm/default/lg =
+ * sm/md/lg (32/36/40, the drawn specimens — see theme.css). */
+.sizeDefault {
+  height: var(--control-height-md);
+  padding: 0 var(--space-4);
+}
+
+/*
+ * One step tighter than the base rule's --radius-lg: the drawn small
+ * control rounds at 8 where the taller two round at 10, so the small
+ * button is a shorter AND slightly squarer button.
+ */
+.sizeSm {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+/* --space-5, the drawn lg inset — its specimen is 8px wider than the md one
+ * at the same label, i.e. one --space-* step up from md's --space-4, not
+ * two. */
+.sizeLg {
+  height: var(--control-height-lg);
+  padding: 0 var(--space-5);
+}
+
+/*
+ * Icon-only (an `icon` slot with no children, set by button.tsx as a data
+ * attribute): square up whatever size class is active. aspect-ratio from
+ * the size's height replaces the old fixed-width `size="icon"` class, so
+ * icon-only buttons exist at every size instead of one.
+ */
+.button[data-icon-only] {
+  aspect-ratio: 1;
+  padding: 0;
+}
+
+/* Slots. The wrapper, not the consumer's svg, is the styling target: it
+ * normalizes icon size per button size and is what loading hides. `end` is
+ * the same slot after the label, so it shares every rule — the flex gap
+ * above spaces it, no margin needed. */
+.icon,
+.end {
+  display: inline-flex;
+}
+
+.icon svg,
+.end svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.sizeLg .icon svg,
+.sizeLg .end svg {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+/*
+ * Loading hides content via opacity, NOT visibility: opacity keeps the
+ * label in the accessibility tree, so the button keeps its accessible name
+ * while aria-busy reports the state (visibility would strip the name and
+ * force a hardcoded, untranslated aria-label like react-kit's i18n one).
+ * The slots keep painting layout either way — no width jump.
+ */
+.button[data-loading] .icon,
+.button[data-loading] .label,
+.button[data-loading] .end {
+  opacity: 0;
+}
+
+/* The drawn loading state uses a 12px spinner and leaves the button's own
+ * height alone. It also swaps the label for a working-state string, which
+ * is a specimen rather than a contract: the kit keeps the caller's children
+ * at opacity 0 under aria-busy, so the button holds its width and its
+ * accessible name. */
+.spinner {
+  /*
+   * border-box, so the drawn 12 is the rendered box rather than the ring's
+   * inner hole: content-box would add the 2px arc on each side and paint a
+   * 16px spinner from a 12px token. Substitutes for the preflight the kit
+   * lacks, same as `.button` above, and load-bearing here rather than
+   * merely tidy.
+   */
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+  border: 2px solid color-mix(in oklab, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: button-spin 0.8s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/*
+ * Slowed, not removed — deviating from skeleton.module.css, which drops its
+ * pulse entirely: the skeleton's shape still reads as "placeholder" when
+ * static, but a frozen spinner arc reads as *stuck*, not loading. The
+ * rotation is the information here, so reduced motion gets a calmer version
+ * of it rather than none.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}

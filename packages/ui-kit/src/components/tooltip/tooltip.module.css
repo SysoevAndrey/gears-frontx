@@ -1,0 +1,154 @@
+/*
+ * Tooltip styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.positioner {
+  isolation: isolate;
+  z-index: 50;
+}
+
+/*
+ * Unlike Select/DropdownMenu/Dialog, the base-vega source renders this as
+ * a solid inverted chip (bg-foreground/text-background) with no border or
+ * shadow — a tooltip sits directly over content rather than as a card-like
+ * surface, so it doesn't borrow the --popover/elevation-shadow idiom the
+ * other overlays share.
+ */
+.popup {
+  /*
+   * Substitutes for the preflight the kit lacks: `width: fit-content`
+   * alone is unaffected by box-sizing (content-based sizing already
+   * accounts for padding/border in the used width, same as `auto`), but
+   * once a long enough tooltip hits the `max-width: 20rem` cap below,
+   * content-box (this kit's ambient default) interprets that cap as the
+   * content width and piles the horizontal padding on top of it,
+   * rendering 344px instead of the declared 320px. Same acute case as
+   * dialog.module.css's `.popup` (measured 498-instead-of-448, now
+   * exactly 448), scoped the same way (this class only).
+   */
+  box-sizing: border-box;
+  position: relative;
+  isolation: isolate;
+  z-index: 50;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 20rem;
+  align-items: center;
+  /* The drawn plate insets 6 on the block axis and 12 on the inline one,
+   * and sets the same 6 between its parts. 6 has no step between
+   * --space-1 (4) and --space-2 (8); tooltip.test.tsx pins both. */
+  gap: 6px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--foreground);
+  color: var(--background);
+  /* The drawn tooltip is 12 medium: Meta's own size and line-height at
+   * --text-label-weight (also 500) for the emphasis, the same "role at a
+   * different weight" idiom as Table's header/footer and DropdownMenu's
+   * .label. The hand-set 17px line normalizes to the ramp's 16 under the
+   * tokens-win ruling (see theme.css). */
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-line-height);
+  font-weight: var(--text-label-weight);
+  transform-origin: var(--transform-origin);
+  outline: none;
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+/*
+ * Mixed transition: opacity (a fade, not motion under WCAG 2.3.3 — kept)
+ * and transform (the popup scaling in/out, which is — suppressed). Split
+ * rather than a blanket `transition: none` so the fade still plays; the
+ * popup just snaps to its final scale instead of animating there. Distinct
+ * from the `[data-instant]` rule below: that's Base UI declaring a specific
+ * state change must not animate at all (so it fully suppresses, including
+ * opacity); this is the user's own reduced-motion preference, which only
+ * objects to the scale.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: opacity 100ms ease;
+  }
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/*
+ * Base UI sets `data-instant` on the popup when an open/close change must
+ * not animate — an adjacent tooltip opening/closing within a shared
+ * `Tooltip.Provider` delay group (`delay`, TooltipRoot.js:92) or the
+ * positioner tracking the cursor instead of the anchor (`tracking-cursor`,
+ * TooltipPositioner.js:76) — both in node_modules/@base-ui/react/tooltip/.
+ * The attribute carries the reason as its value, not a boolean, but both
+ * reasons mean the same thing here: skip the transition. Same specificity
+ * as the starting/ending-style rule above (one class + one attribute), so
+ * this doesn't depend on being declared after it — it wins regardless of
+ * source order because `transition` isn't set by that rule at all, only by
+ * `.popup` itself, which this outranks either way.
+ */
+.popup[data-instant] {
+  transition: none;
+}
+
+/*
+ * A small diamond seamed against the popup edge. Base UI's floating-ui
+ * arrow middleware writes an inline `top` or `left` (whichever is the
+ * cross axis for the rendered side) via style attribute, already offset
+ * to the anchor's tracked center — for top/bottom placement that's an
+ * inline `left`, for left/right/inline placement it's an inline `top`.
+ * These rules therefore only ever set the *other* axis: which edge of
+ * the popup the diamond pokes past. For top/bottom sides that also means
+ * adding a small vertical "tuck" translate (there is no inline `top` to
+ * collide with); for left/right/inline sides no translate is added at
+ * all — anything here would double up on the inline `top` instead of
+ * complementing it, since both would be positioning the same axis.
+ */
+.arrow {
+  position: absolute;
+  z-index: 50;
+  width: 0.625rem;
+  height: 0.625rem;
+  rotate: 45deg;
+  /*
+   * Documented exception, deliberately off the --radius scale: the
+   * smallest step, --radius-xs, is 4px — twice this, and visibly blunter
+   * on a rotated 10px square this small. The intent here isn't a rounded
+   * corner in the scale's sense, it's softening the diamond's point just
+   * enough that it doesn't read as a sharp spike; --radius-xs rounds it
+   * into a visibly curved tip instead. border-radius isn't a guarded
+   * property (tokens.test.ts only guards spacing/type metrics), so this
+   * is a manual call, not a guard bypass.
+   */
+  border-radius: 2px;
+  background-color: var(--foreground);
+}
+
+.arrow[data-side='top'],
+.arrow[data-side='bottom'] {
+  translate: 0 calc(-50% - 2px);
+}
+
+.arrow[data-side='top'] {
+  bottom: -0.625rem;
+}
+
+.arrow[data-side='bottom'] {
+  top: 0.25rem;
+}
+
+.arrow[data-side='left'],
+.arrow[data-side='inline-start'] {
+  right: -0.25rem;
+}
+
+.arrow[data-side='right'],
+.arrow[data-side='inline-end'] {
+  left: -0.25rem;
+}

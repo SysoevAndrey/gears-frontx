@@ -11,16 +11,16 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 ## Environment
-- **HAI3 Version**: (e.g., 0.1.0)
+- **FrontX Version**: (e.g., 0.1.0)
 - **Node.js Version**: (e.g., v25.1.0)
 - **OS**: (e.g., Linux, macOS, Windows)
 - **Package(s) Affected**: (e.g., @gears-frontx/framework, @gears-frontx/react, @gears-frontx/cli)
 
 ## Steps to Reproduce
 Steps to reproduce the behavior:
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected Behavior
 A clear and concise description of what you expected to happen.

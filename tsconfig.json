@@ -1,31 +1,64 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "./packages/cli/template-sources/project/configs/tsconfig.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "stripInternal": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "alwaysStrict": true,
+    "noImplicitThis": true,
+
+    /* Path aliases (ecosystem packages only — template packages carry their
+       own tsconfig in the templates repository) */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/screensets/*": ["./src/screensets/*"],
-      "@gears-frontx/state": ["./packages/state/src/index.ts"],
-      "@gears-frontx/state/*": ["./packages/state/src/*"],
-      "@gears-frontx/layout": ["./packages/layout/src/index.ts"],
-      "@gears-frontx/layout/*": ["./packages/layout/src/*"],
       "@gears-frontx/api": ["./packages/api/src/index.ts"],
       "@gears-frontx/api/*": ["./packages/api/src/*"],
-      "@gears-frontx/i18n": ["./packages/i18n/src/index.ts"],
-      "@gears-frontx/i18n/*": ["./packages/i18n/src/*"],
-      "@gears-frontx/framework": ["./packages/framework/src/index.ts"],
-      "@gears-frontx/framework/*": ["./packages/framework/src/*"],
-      "@gears-frontx/react": ["./packages/react/src/index.ts"],
-      "@gears-frontx/react/*": ["./packages/react/src/*"],
-      "@gears-frontx/studio": ["./packages/studio/src/index.ts"],
-      "@gears-frontx/studio/*": ["./packages/studio/src/*"],
-      "@gears-frontx/cli": ["./packages/cli/src/index.ts"],
-      "@gears-frontx/cli/*": ["./packages/cli/src/*"]
+      "@gears-frontx/gts-plugin": ["./packages/gts-plugin/src/index.ts"],
+      "@gears-frontx/gts-plugin/*": ["./packages/gts-plugin/src/*"],
+      "@gears-frontx/mfes": ["./packages/mfes/src/index.ts"],
+      "@gears-frontx/mfes/*": ["./packages/mfes/src/*"],
+      "@gears-frontx/routing": ["./packages/routing/src/index.ts"],
+      "@gears-frontx/routing/*": ["./packages/routing/src/*"],
+      "@gears-frontx/routing-tanstack": ["./packages/routing-tanstack/src/index.ts"],
+      "@gears-frontx/routing-tanstack/*": ["./packages/routing-tanstack/src/*"],
+      "@gears-frontx/telemetry": ["./packages/telemetry/src/index.ts"],
+      "@gears-frontx/telemetry/*": ["./packages/telemetry/src/*"],
+      "@gears-frontx/ui-kit": ["./packages/ui-kit/src/index.ts"],
+      "@gears-frontx/ui-kit/*": ["./packages/ui-kit/src/*"]
     }
   },
-  "include": ["src", "packages/*/src", "packages/cli/template-sources/layout-custom-uikit"],
-  "exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__", "**/__tests__", "src/mfe_packages"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  // Ecosystem packages only. The host app + template packages (state, i18n,
+  // framework, react, studio, auth) live in the templates repository and
+  // type-check via that repository's own tsconfig.app.json / per-package
+  // tsconfig.json.
+  "include": ["packages/*/src"],
+  "exclude": [
+    "packages/*/dist",
+    "packages/*/__tests__",
+    "packages/*/src/__tests__",
+    "**/__tests__"
+  ]
 }

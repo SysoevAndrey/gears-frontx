@@ -1,0 +1,351 @@
+/*
+ * Toast styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+/*
+ * Fixed to the viewport, bottom-anchored; a max-w-sm column on wider
+ * screens (right-anchored: sm:right-4/left-auto), full-bleed minus 1rem
+ * gutters below the sm breakpoint. pointer-events: none lets clicks pass
+ * through the empty space around the stack; each .toast re-enables them.
+ */
+.viewport {
+  position: fixed;
+  z-index: 50;
+  inset-inline: var(--space-4);
+  bottom: var(--space-4);
+  width: auto;
+  max-width: 24rem;
+  margin-inline: auto;
+  pointer-events: none;
+  outline: none;
+}
+
+@media (min-width: 640px) {
+  .viewport {
+    right: var(--space-4);
+    left: auto;
+    width: 100%;
+    margin-inline: 0;
+  }
+}
+
+/*
+ * Each toast is an absolutely-positioned card stacked bottom-right inside
+ * the viewport. The custom properties below are local computed values —
+ * not theme tokens, not Base UI's own `--toast-*` runtime vars (see
+ * tokens.test.ts) — translating the source's arbitrary-property math 1:1:
+ *   --height    this toast's rendered height: the frontmost toast's height
+ *               while collapsed (so the stack's visual footprint tracks
+ *               the card on top), its own height once expanded (below).
+ *   --offset-y  the expanded vertical position: stack upward by --gap per
+ *               toast behind the front one, plus any live swipe delta.
+ *   --peek/--scale/--shrink  the collapsed "peeking cards" look: each
+ *               toast behind the front one is scaled down 10% per step
+ *               and nudged up by --peek so a sliver of it shows past the
+ *               one in front.
+ * z-index sits in the 900s–1000 range, well above the kit's other overlays
+ * (Dialog/DropdownMenu/Tooltip all use 50) — a toast should surface over an
+ * open modal, matching the source and typical toast UX.
+ */
+.toast {
+  --gap: var(--space-3);
+  --height: var(--toast-frontmost-height, var(--toast-height));
+  --offset-y: calc(
+    (var(--toast-offset-y) * -1) + (var(--toast-index) * var(--gap) * -1) +
+      var(--toast-swipe-movement-y)
+  );
+  --peek: 0.75rem;
+  --scale: calc(max(0, 1 - (var(--toast-index) * 0.1)));
+  --shrink: calc(1 - var(--scale));
+
+  /*
+   * Closes a 2px gap between the declared and rendered height. Base UI
+   * measures `--toast-height` (node_modules/@base-ui/react/toast/root/
+   * ToastRoot.js:124-127) as this same element's own `offsetHeight` —
+   * always border-box-shaped per the DOM spec, border/padding included
+   * regardless of `box-sizing` — taken while `height` is momentarily
+   * `auto` (natural size). Content-box (the prior default here)
+   * interpreted that measured number as *content*-only height, so the
+   * border re-added its own 2px on render: 78px measured → 80px
+   * rendered, 70px measured → 72px rendered — the delta always equals
+   * the border, confirming the box model as the cause, not the
+   * measurement point.
+   *
+   * No clipping risk from now treating that number as the whole box:
+   * `.content` (the only child) is height: 100% of this element, and a
+   * percentage height resolves as `auto` against an indeterminate parent
+   * during that same momentary measurement (CSS Sizing §5.2) — so the
+   * measured value already *is* `.content` at its natural size plus this
+   * border. Border-box hands `.content` that identical content-box size
+   * back (measured value minus the border), i.e. exactly natural, not
+   * less than it.
+   */
+  box-sizing: border-box;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: calc(1000 - var(--toast-index));
+  width: 100%;
+  height: var(--height);
+  border: var(--border-width) solid var(--popover-border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  /* --popover-shadow: the ring-plus-drop-shadow recipe every card-like
+   * popup in the kit shares (see theme.css) — was hand-duplicated here. */
+  box-shadow: var(--popover-shadow);
+  outline: none;
+  user-select: none;
+  pointer-events: auto;
+  transform-origin: bottom;
+  transform: translateX(var(--toast-swipe-movement-x))
+    translateY(
+      calc(
+        var(--toast-swipe-movement-y) - (var(--toast-index) * var(--peek)) -
+          (var(--shrink) * var(--height))
+      )
+    )
+    scale(var(--scale));
+  will-change: transform;
+  transition:
+    transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 500ms,
+    height 150ms;
+}
+
+.toast:focus-visible {
+  /* The kit-wide 2px focus border in --ring, geometry-stable (see
+   * input.module.css). */
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--ring);
+}
+
+/* The ring above is an inset box-shadow, and forced-colors mode doesn't
+ * render box-shadow at all — add an explicit outline or the focus
+ * indicator disappears entirely under the mode. */
+@media (forced-colors: active) {
+  .toast:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * An invisible strip spanning the gap below each toast, so moving the
+ * pointer from one stacked card down into the gap toward the next one
+ * doesn't register as leaving the stack (which would collapse it early).
+ */
+.toast::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: calc(var(--gap) + 1px);
+}
+
+/*
+ * Expanded (hovered/focused) stack: every toast takes its own full height
+ * and stacks upward by --gap, instead of the collapsed peek/scale look.
+ */
+.toast[data-expanded] {
+  height: var(--toast-height);
+  transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
+}
+
+/*
+ * Beyond the toast limit: kept mounted (so it can animate back in once
+ * space frees up) but invisible rather than removed.
+ */
+.toast[data-limited] {
+  opacity: 0;
+}
+
+.toast[data-starting-style] {
+  transform: translateY(150%);
+}
+
+/* Auto/programmatic dismissal (not a swipe, not just over the limit):
+   slide the whole card straight down and out. */
+.toast[data-ending-style]:not([data-limited]):not([data-swipe-direction]) {
+  transform: translateY(150%);
+}
+
+/*
+ * Swipe-dismissed toasts continue off in the swipe direction. The source
+ * duplicates each of these under an extra `data-expanded:` variant with
+ * the exact same computed value — redundant once translated to real
+ * attribute selectors, which already match with or without data-expanded
+ * present, so each direction needs only one rule here.
+ */
+.toast[data-ending-style][data-swipe-direction='down'] {
+  transform: translateY(calc(var(--toast-swipe-movement-y) + 150%));
+}
+
+.toast[data-ending-style][data-swipe-direction='up'] {
+  transform: translateY(calc(var(--toast-swipe-movement-y) - 150%));
+}
+
+.toast[data-ending-style][data-swipe-direction='left'] {
+  transform: translateX(calc(var(--toast-swipe-movement-x) - 150%)) translateY(var(--offset-y));
+}
+
+.toast[data-ending-style][data-swipe-direction='right'] {
+  transform: translateX(calc(var(--toast-swipe-movement-x) + 150%)) translateY(var(--offset-y));
+}
+
+/*
+ * Mixed transition: opacity (a fade, not motion under WCAG 2.3.3 — kept)
+ * vs. transform (the stack's position/scale math) and height (the
+ * collapsed/expanded resize) — both real motion, suppressed. The position,
+ * scale and height of a toast card encode no information a user would lose
+ * by seeing the end state directly instead of animating there; the fade
+ * stays because dimming isn't spatial motion the way a slide or resize is.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: opacity 500ms;
+  }
+}
+
+.content {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the padding on top of the declared
+   * height, rendering 110px inside an 80px .toast card — 30px of
+   * overflow that pushes the close button 16px below the card's true
+   * center. Same acute case as tabs.module.css/badge.module.css, scoped
+   * the same way (this class only).
+   *
+   * `.toast` itself now carries the same declaration (see its own
+   * comment above) for a related but distinct reason: this one is about
+   * `.content`'s own padding piling onto its declared height; that one
+   * is about `.toast`'s declared height disagreeing with Base UI's
+   * measured `--toast-height` by exactly the border width. Fixing one
+   * doesn't fix the other — each class has its own border/padding to
+   * reconcile with its own declared size.
+   */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow: hidden;
+  /* Opacity-only, no transform/geometry — a crossfade isn't motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.content[data-behind] {
+  opacity: 0;
+}
+
+.content[data-expanded] {
+  opacity: 1;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  pointer-events: none;
+}
+
+.iconDestructive {
+  /* --danger, not --destructive — the Toast sits on --popover (== --card
+   * both modes), where --destructive is only verified as a fill under
+   * --destructive-foreground, not as a foreground color itself. */
+  color: var(--danger);
+}
+
+.iconSpin {
+  animation: spin 1s linear infinite;
+}
+
+/*
+ * Not the same case as skeleton.module.css's pulse (dropped outright under
+ * reduced motion): the spinner is the only thing on a `loading` toast that
+ * indicates work is still in progress — freezing it reads as broken, not
+ * calm, since there's no other cue on the card. So this keeps spinning
+ * rather than stopping, just markedly slower (4x), to cut the perceived
+ * motion for a user who asked their OS for less of it without losing the
+ * "still working" signal entirely.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .iconSpin {
+    animation-duration: 4s;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.body {
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Studio/Body Medium — Body metrics at --text-label-weight (also 500;
+ * "Body Medium" is a real ramp role per theme.css's own header comment,
+ * unlike the "Meta at 500" phrasing elsewhere in the kit that named a
+ * style with no ramp entry). */
+.title {
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  font-weight: var(--text-label-weight);
+}
+
+.description {
+  margin: 0;
+  color: var(--muted-foreground);
+  /* Studio/Body, muted — was the shadcn translation's 14px. */
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+/*
+ * A dimmer close affordance than Button's own ghost-variant color,
+ * brightening on hover — the source's deliberate divergence from the
+ * action button beside it. `button.close` (not just `.close`) so the
+ * extra type-selector specificity reliably beats Button's ghost color
+ * rule regardless of which of the two modules' CSS the bundler happens
+ * to emit last.
+ */
+button.close {
+  position: relative;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+button.close:hover {
+  color: var(--foreground);
+}
+
+/* Enlarges the click/tap target past the visible icon without affecting
+   layout — the source's after:-inset-2 hit-area trick. */
+button.close::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-2));
+}
+
+.svgIcon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
+  pointer-events: none;
+}

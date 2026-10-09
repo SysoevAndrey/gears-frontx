@@ -1,0 +1,40 @@
+{
+  "$id": "gts://gts.frontx.mfes.comm.action.v1~frontx.mfes.ext.mount_ext.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Schema for mount_ext extension actions. Self-contained and closed: re-declares every property action.v1 would otherwise provide and rejects any undeclared field, on itself and on its own payload (cpt-frontx-dod-gts-type-provider-infra-schema-ownership).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "x-gts-ref": "/$id",
+      "$comment": "Self-reference to this action's schema type ID"
+    },
+    "target": {
+      "x-gts-ref": "gts.frontx.mfes.ext.domain.v1~*",
+      "$comment": "Lifecycle actions target domains only — the extension is identified via payload.subject"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "x-gts-ref": "gts.frontx.mfes.ext.extension.v1~*",
+          "$comment": "Extension ID that this action targets"
+        },
+        "history": {
+          "type": "string",
+          "enum": ["none", "replace", "push"],
+          "$comment": "Optional history intent passed to the router uninterpreted; absent means push"
+        }
+      },
+      "required": ["subject"],
+      "$comment": "Action payload with required extension reference and optional history intent"
+    },
+    "timeout": {
+      "type": "number",
+      "minimum": 1,
+      "$comment": "Optional timeout override in milliseconds"
+    }
+  },
+  "required": ["type", "target", "payload"]
+}

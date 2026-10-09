@@ -1,0 +1,398 @@
+/*
+ * Select styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.trigger {
+  /*
+   * Substitutes for the preflight the kit lacks. This class combines with
+   * .sizeDefault/.sizeSm (height + this class's own padding/border) on a
+   * Base UI Select.Trigger, which renders a real <button> by default
+   * (verified against the Base UI source) — already border-box via the
+   * UA stylesheet, so it measures correctly (36px) as shipped even
+   * without this declaration. It's declared anyway for the same reason
+   * as button.module.css's `.button`: SelectTriggerProps types both
+   * `render` and `nativeButton` (via BaseUIComponentProps<'button', …>),
+   * so `<SelectTrigger render={<a/>} nativeButton={false}>` type-checks
+   * today and would hit the identical collision on an element with no UA
+   * border-box default. Same acute case as tabs.module.css/
+   * badge.module.css, scoped the same way (this class only).
+   */
+  box-sizing: border-box;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  /* The drawn trigger insets 8 on the block axis and on the chevron edge,
+   * and 10 on the label edge. 10 has no step on the spacing scale, which
+   * runs 8 then 12; rounding it would be a kit-side correction of a drawn
+   * value, and select.test.tsx pins the literal. */
+  padding-block: var(--space-2);
+  padding-inline: 10px var(--space-2);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-lg);
+  /* Fields sit raised, not transparent, per the drawn field. */
+  background-color: var(--surface-elevated);
+  color: var(--foreground);
+  font-family: inherit;
+  /* Studio/Label metrics, applied whole (size/line-height/tracking) and
+   * regular-weight — the same field-text recipe as Input/Textarea (see
+   * input.module.css), so the selected value reads exactly like a typed
+   * one despite the trigger rendering as a real <button>. A button never
+   * triggers the iOS focus zoom, so no 16px small-screen escape hatch is
+   * needed here either. */
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-label-tracking);
+  white-space: nowrap;
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.trigger[data-placeholder] {
+  color: var(--muted-foreground);
+}
+
+.trigger:focus-visible {
+  /* Field focus per the mockups: 2px --ring border, no halo, no geometry
+   * change (see input.module.css) — the trigger is fit-content, a real
+   * width switch would make it jump. */
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--ring);
+}
+
+/* The ring above is an inset box-shadow, and forced-colors mode doesn't
+ * render box-shadow at all — add an explicit outline or the focus
+ * indicator disappears entirely under the mode. */
+@media (forced-colors: active) {
+  .trigger:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* disabled opacity: see input.module.css */
+.trigger:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.trigger[aria-invalid='true'] {
+  border-color: var(--destructive);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--destructive);
+}
+
+/* The drawn trigger is 32, which is the omitted size. */
+.sizeDefault {
+  height: var(--control-height-sm);
+}
+
+/* One step down the control ladder, with the corner one step down the
+ * radius scale to match: a 28px control reads square at a 10px corner. */
+.sizeSm {
+  height: var(--control-height-xs);
+  border-radius: var(--radius-md);
+}
+
+.variantDefault {
+  /* The unmodified field look — all styling lives on .trigger. */
+}
+
+/*
+ * The filter chip (see select.tsx): 36px, the md step. Not drawn, so it
+ * keeps its height. Declared after the size classes: equal specificity,
+ * later source order, so the chip height wins over whichever size is
+ * active.
+ */
+.variantFilter {
+  height: var(--control-height-md);
+  color: var(--muted-foreground);
+}
+
+.triggerIcon {
+  pointer-events: none;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.value {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+}
+
+.positioner {
+  isolation: isolate;
+  z-index: 50;
+}
+
+.popup {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles this class's own border on top of
+   * `width: var(--anchor-width)`, rendering the popup 2px wider than the
+   * trigger it's anchored to — found by auditing every module for this
+   * collision, not by the demo page. Popup is a plain <div> (verified
+   * against the Base UI source), so there's no UA default to fall back
+   * on the way Button/Select.Trigger has. Same acute case as
+   * tabs.module.css/badge.module.css, scoped the same way (this class
+   * only).
+   */
+  box-sizing: border-box;
+  /*
+   * Declared once here rather than on .list/.scrollArrow individually:
+   * both are DOM children of .popup, and custom properties inherit, so an
+   * ancestor declaration plus descendant reads (`.popup .list`, `.popup
+   * .scrollArrow` below) satisfies tokens.test.ts's local-variable guard
+   * without the formula being duplicated — same shape as card.module.css's
+   * --card-spacing. The value is the scroll arrow's own geometry: one icon
+   * plus its own padding on both edges (--space-1 top AND bottom below,
+   * not a single --space-2 — the two only ever agreed numerically).
+   */
+  --select-scroll-arrow-height: calc(var(--icon-size-sm) + var(--space-1) * 2);
+  /*
+   * The popup itself does NOT scroll — .list does (see below). It stays a
+   * flex column that clips (`overflow: hidden`) so its child (the List,
+   * bracketed by the scroll arrows) is capped at `--available-height` and
+   * never spills past its border; `position: relative` remains because the
+   * arrows anchor to this box via their own `position: absolute` (set
+   * inline by Base UI's SelectScrollArrow).
+   */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+  z-index: 50;
+  max-height: var(--available-height);
+  width: var(--anchor-width);
+  min-width: 9rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--popover-border);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  /* --popover-shadow: the ring-plus-drop-shadow recipe every card-like
+   * popup in the kit shares (see theme.css) — was hand-duplicated here. */
+  box-shadow: var(--popover-shadow);
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+/*
+ * Mixed transition: opacity (a fade, not motion under WCAG 2.3.3 — kept)
+ * and transform (the popup scaling in/out, which is — suppressed). Split
+ * rather than a blanket `transition: none` so the fade still plays; the
+ * popup just snaps to its final scale instead of animating there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: opacity 100ms ease;
+  }
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/*
+ * The list — not the group — carries the dropdown's inner padding, so a
+ * groupless list (items placed directly under SelectContent) is padded too.
+ *
+ * The list is also the scroller, not .popup. Base UI's own scroller styles
+ * (LIST_FUNCTIONAL_STYLES: position/max-height/overflow) apply to
+ * Select.List only in its retired align-with-trigger mode (see
+ * node_modules/@base-ui/react/select/list/SelectList.mjs) — this kit always
+ * renders the popup below the trigger (select.tsx pins
+ * `alignItemWithTrigger={false}`), so those styles never land and something
+ * here must scroll instead. It has to be THIS element specifically, not
+ * .popup: Base UI computes scroll-arrow visibility from `store.state.
+ * listElement` (set by SelectList's ref callback), reading ITS scrollTop/
+ * scrollHeight/clientHeight — a scrolling .popup with a non-overflowing
+ * .list leaves that element permanently maxed at zero scroll, so the up/
+ * down arrows compute as never-visible and never mount. `min-height: 0`
+ * is required alongside `overflow-y: auto`: as a child of .popup's flex
+ * column, .list would otherwise refuse to shrink below its content's
+ * height and grow the popup instead of scrolling within it.
+ */
+.list {
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--space-1);
+}
+
+/*
+ * `scroll-padding-block` keeps a scrolled-into-view item clear of the
+ * arrows: Base UI scrolls the active item with `block: 'nearest'`, which
+ * can park it flush against the scrollport edge, and the arrows are
+ * `position: absolute` against .popup, overlaying that same edge — this
+ * reserves exactly one arrow's box height as scroll padding so `nearest`
+ * never lands an item underneath either arrow. Read via `.popup .list`
+ * rather than bare `.list` — ancestor declares, children inherit (see
+ * .popup's --select-scroll-arrow-height comment above) — so this rule,
+ * not the bare-class one above, is the one tokens.test.ts's local-variable
+ * guard exempts.
+ */
+.popup .list {
+  scroll-padding-block: var(--select-scroll-arrow-height);
+}
+
+.group {
+  scroll-margin: var(--space-1) 0;
+}
+
+.groupLabel {
+  padding: var(--space-1) var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-line-height);
+}
+
+.item {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the 2.5rem of horizontal padding
+   * on top of `width: 100%`, rendering each item 40px wider than the
+   * popup's content box — clipped by .popup's own `overflow: hidden`
+   * above, which cuts off .itemIndicator (the checkmark, positioned
+   * `right: var(--space-2)` from this box's now-invisible true right
+   * edge) entirely. Found by auditing every module for this collision, not by
+   * the demo page. Same acute case as tabs.module.css/badge.module.css,
+   * scoped the same way (this class only).
+   */
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  /* The drawn option row: 4 on the block axis, 6 on the label edge and 32
+   * on the indicator edge. 6 has no step between --space-1 (4) and
+   * --space-2 (8); select.test.tsx pins the literal. */
+  padding: var(--space-1) var(--space-8) var(--space-1) 6px;
+  border-radius: var(--radius-md);
+  cursor: default;
+  user-select: none;
+  /* The drawn dropdown options (Overlay symbol, 197:399) are 12px — Meta;
+   * the hand-set 17px line normalizes to the ramp's 16 under the
+   * tokens-win ruling (see theme.css). */
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-line-height);
+  outline: none;
+}
+
+.item:focus,
+.item[data-highlighted] {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* disabled opacity: see input.module.css */
+.item[data-disabled] {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+.itemText {
+  display: flex;
+  flex: 1;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.itemIndicator {
+  pointer-events: none;
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  display: flex;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * The separator now carries the ENTIRE gap between sections, not half of
+ * it: before the list took over the dropdown's padding (see .list above),
+ * a separator's block margin (--space-1) combined with the adjoining
+ * group's own padding (--space-1) for an 8px gap on each side. .group no
+ * longer pads, so this rule alone must supply that 8px — hence
+ * --space-2 rather than --space-1 — and this holds whether or not the
+ * consumer wraps items in a SelectGroup, since it no longer depends on
+ * grouping at all. The inline value is untouched: it still cancels
+ * exactly against the list's own --space-1 padding, so the rule still
+ * bleeds to the popup's left/right edges.
+ */
+.separator {
+  pointer-events: none;
+  margin: var(--space-2) calc(-1 * var(--space-1));
+  height: var(--border-width);
+  background-color: var(--border);
+}
+
+/*
+ * `box-sizing: border-box` is required for the `height` below to equal
+ * this box's actual rendered size: without it (content-box, this kit's
+ * ambient default — see .trigger/.popup/.item above for the same
+ * substitution), the padding below would add on top of the 24px `height`
+ * instead of being absorbed into it, rendering the arrow 8px taller than
+ * .list's reserved scroll padding and leaving the selected item's edge
+ * visible underneath it again.
+ */
+.scrollArrow {
+  box-sizing: border-box;
+  z-index: 10;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) 0;
+  cursor: default;
+  background-color: var(--popover);
+}
+
+/*
+ * `height` is pinned explicitly (not left to the icon + padding to imply
+ * it) so it shares exactly one formula with .list's `scroll-padding-block`
+ * — both read `--select-scroll-arrow-height` from .popup (declared once,
+ * above), so the two can't drift into different numbers. Read via
+ * `.popup .scrollArrow`, same ancestor-declares/children-inherit shape as
+ * `.popup .list` above.
+ */
+.popup .scrollArrow {
+  height: var(--select-scroll-arrow-height);
+}
+
+.scrollArrowUp {
+  top: 0;
+}
+
+.scrollArrowDown {
+  bottom: 0;
+}
+
+.svgIcon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
+  pointer-events: none;
+}

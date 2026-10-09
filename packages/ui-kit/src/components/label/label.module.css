@@ -1,0 +1,29 @@
+/*
+ * Label styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+/*
+ * No color declaration on purpose: the label inherits from its context so
+ * Field can tint it destructive via .field[data-invalid].
+ */
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Studio/Label (the specimens' hand-set 18px line normalizes to the
+   * ramp's 16 under the tokens-win ruling, see theme.css). */
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  user-select: none;
+}
+
+/* Base UI Field.Label stamps data-disabled when its control is disabled;
+ * the same attribute can be set manually outside a Field. */
+.label[data-disabled] {
+  pointer-events: none;
+  /* 0.42, matching the controls' own disabled dim. */
+  opacity: var(--opacity-disabled);
+}

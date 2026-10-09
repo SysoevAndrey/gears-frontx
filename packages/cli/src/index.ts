@@ -1,274 +1,161 @@
-#!/usr/bin/env node
-/**
- * HAI3 CLI Entry Point
- *
- * Commands:
- *   hai3 create <project-name>              Create a new HAI3 project
- *   hai3 update                             Update CLI and project packages
- *   hai3 validate components [path]         Validate component structure
- *   hai3 migrate [version]                  Apply codemod migrations
- */
-// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-component:cpt-frontx-component-cli:p1
+// @cpt-constraint:cpt-frontx-constraint-cli-template-independence:p1
+// Zero template content is bundled in this package.
+// All template resolution happens at runtime via source-spec.
 
-import { Command } from 'commander';
-import { registry, executeCommand } from './core/index.js';
-import {
-  createCommand,
-  updateCommand,
-  validateComponentsCommand,
-  scaffoldLayoutCommand,
-  aiSyncCommand,
-  updateLayoutCommand,
-  migrateCommand,
-  screensetCreateCommand,
-} from './commands/index.js';
+export { parseSourceSpec } from './spec-parser/parse';
+export type { StructuredRef, ParseError, ParseResult } from './spec-parser/types';
 
-// CLI version
-const VERSION = '0.1.0';
+export { resolveToInventory } from './resolver/resolve';
+export type { FetchFn, InventoryReadyRecord, ResolutionError, ResolveResult } from './resolver/types';
 
-// Register all commands
-registry.register(createCommand);
-registry.register(updateCommand);
-registry.register(validateComponentsCommand);
-registry.register(scaffoldLayoutCommand);
-registry.register(aiSyncCommand);
-registry.register(updateLayoutCommand);
-registry.register(migrateCommand);
-registry.register(screensetCreateCommand);
+export { TemplateInventory } from './inventory/TemplateInventory';
+export { InventoryIndex } from './inventory/InventoryIndex';
+export { InventoryStore } from './inventory/InventoryStore';
+export { InventoryState } from './inventory/types';
+export type { InventoryEntry, InventoryError, InventoryResult } from './inventory/types';
 
-// Create Commander program
-const program = new Command();
+export { installCommand } from './commands/install';
+export type { InstallCommandResult } from './commands/install';
 
-const parsePortOption = (value: string): number => {
-  const normalizedValue = value.trim();
+// F16 cross-package edge (F16 <- F10): install-time extension discovery hook
+export type { DiscoveryHookContext, DiscoveryHookResult, ExtensionDiscoveryHook } from './discovery/types';
+export { createFsBackedDiscoveryHook } from './discovery/fs-hook';
+export type { FsExtensionDiscovery } from './discovery/fs-hook';
 
-  if (!/^\d+$/.test(normalizedValue)) {
-    throw new Error('Port must be a number');
-  }
+export { listCommand, listJsonEnvelope } from './commands/list';
+export type { ListEntry, ListJsonEnvelope, ListCommandOptions } from './commands/list';
 
-  return parseInt(normalizedValue, 10);
-};
+export { updateLocalCommand } from './commands/update-local';
+export type { UpdateLocalResult } from './commands/update-local';
 
-program
-  .name('hai3')
-  .description('HAI3 CLI - Project scaffolding and package management')
-  .version(VERSION);
+export { validateManifestContract, readManifestFromContent } from './manifest/validate-contract';
+export { validateContentSelfContainment } from './manifest/validate-content-self-containment';
+export { validateCommand } from './commands/validate';
+export type {
+  TemplateManifest,
+  OwnershipBoundary,
+  SharedFileEntry,
+  ReferencedTemplate,
+  ManifestViolation,
+  ManifestValidationResult,
+  ManifestValidationState,
+  ReadFileFn,
+  ListContentOwnedFilesFn,
+} from './manifest/types';
+export type { ReadManifestResult } from './manifest/validate-contract';
+export { createFsReadFileFn, createFsListContentOwnedFilesFn } from './adapters/fs-project-io';
+export type { ValidateCommandResult } from './commands/validate';
+export { MANIFEST_FILENAME, MANIFEST_SCHEMA_VERSION } from './manifest/types';
 
-// Global quiet flag
-program.option('-q, --quiet', 'Suppress non-essential output');
+export { scaffoldComposedProject } from './scaffold/composed';
+export type { ComposedScaffoldResult } from './scaffold/composed';
 
-// hai3 create <project-name>
-program
-  .command('create <project-name>')
-  .description('Create a new HAI3 project or layer package')
-  .option('--studio', 'Include Studio package')
-  .option('--no-studio', 'Exclude Studio package')
-  .option('--uikit <type>', "UI components ('shadcn' for shadcn/ui, 'none' for no UI components)")
-  .option(
-    '--package-manager <manager>',
-    "Package manager to use ('npm', 'pnpm', 'yarn')"
-  )
-  .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
-  .option('--local', 'Use local @gears-frontx packages from monorepo (file:) instead of npm')
-  .action(async (projectName: string, options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      createCommand,
-      {
-        projectName,
-        studio: options.studio as boolean | undefined,
-        uikit: options.uikit as 'shadcn' | 'none' | undefined,
-        packageManager: options.packageManager as 'npm' | 'pnpm' | 'yarn' | undefined,
-        layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
-        local: options.local as boolean | undefined,
-      },
-      { interactive: true }
-    );
+// F12 kindless assembler core (cpt-frontx-algo-cli-scaffolding-uniform-apply,
+// cpt-frontx-state-cli-scaffolding-assembly-op) — the ONE apply path both
+// seed-a-repository and add-a-template invoke. The pre-flight conflict
+// checker (P29) and the entry flows (P30) build on this surface.
+export { uniformApply } from './scaffold/assembler';
+export type { UniformApplyResult } from './scaffold/assembler';
+export { AssemblyOpState, runAssemblyOp } from './scaffold/state';
+export type {
+  AssemblyOpInput,
+  AssemblyOpResult,
+  AssemblyAbortReason,
+  BoundaryConflictEntry,
+  ConflictVerdict,
+  ConflictVerdictFn,
+  MaterializeAssemblyFn,
+  OccupiedBoundaryEntry,
+} from './scaffold/state.js';
 
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
+// F12 pre-flight assembly conflict checker (P29) — the sole authority for
+// boundary-collision arbitration (cpt-frontx-algo-cli-scaffolding-conflict-check,
+// cpt-frontx-dod-cli-scaffolding-conflict-check). Fills the `conflictVerdictFn`
+// seam `runAssemblyOp` (above) drives through.
+export { checkAssemblyConflicts } from './scaffold/conflict';
+// `ReadProjectFileFn` is intentionally NOT re-exported from here again: it is
+// the same shape as upgrade's `ReadProjectFileFn` (already exported below),
+// redeclared locally in `scaffold/types.ts` only to avoid a cross-feature
+// import, not to mint a second public name for it.
+export type {
+  WriteFileFn,
+  ConflictCheckFn,
+  ContentItem,
+  ReadContentItemsFn,
+  ContributionEntry,
+  StagedAssembly,
+} from './scaffold/types.js';
 
-// hai3 update subcommand
-const updateCmd = program
-  .command('update')
-  .description('Update commands for HAI3 projects');
+export { resolveComposition } from './composition/resolve';
+export { CompositionResolutionState } from './composition/state';
+export type { CompositionEntry, CompositionSetResult } from './composition/types';
 
-// hai3 update (default - updates CLI and packages)
-updateCmd
-  .command('packages', { isDefault: true })
-  .description('Update HAI3 CLI and project packages')
-  .option('-a, --alpha', 'Update to latest alpha/prerelease version')
-  .option('-s, --stable', 'Update to latest stable version')
-  .option('--templates-only', 'Only sync templates (skip CLI and package updates)')
-  .option('--skip-ai-sync', 'Skip running AI sync after update')
-  .action(async (options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      updateCommand,
-      {
-        alpha: options.alpha as boolean | undefined,
-        stable: options.stable as boolean | undefined,
-        templatesOnly: options.templatesOnly as boolean | undefined,
-        skipAiSync: options.skipAiSync as boolean | undefined,
-      },
-      { interactive: true }
-    );
+export { writeProvenance } from './provenance/write';
+export type { WriteProvenanceResult } from './provenance/write';
+export type { ProvenanceRecord, ProvenanceWriteFn } from './provenance/types';
+export { PROVENANCE_RELATIVE_PATH, provenancePath } from './provenance/contract';
 
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
+// F12 shared-file region composer (cpt-frontx-algo-cli-scaffolding-compose-shared-files,
+// cpt-frontx-dod-cli-scaffolding-compose-shared-files) — the sole authority
+// materializeAssembly (below) delegates to for writing every target
+// repository file, so no per-contribution write can silently clobber another
+// contributor's owned region.
+export { composeSharedFiles, groupContributionsByPath } from './scaffold/compose-shared-files';
+export type { ComposeSharedFilesResult, ExtractedRegion, MaterializedFile } from './scaffold/compose-shared-files';
 
-// hai3 update layout
-updateCmd
-  .command('layout')
-  .description('Update layout components from templates')
-  .option('-f, --force', 'Force update without prompting')
-  .action(async (options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      updateLayoutCommand,
-      {
-        force: options.force as boolean,
-      },
-      { interactive: true }
-    );
+// F12 entry flows (P30) — cpt-frontx-flow-cli-scaffolding-seed-repository and
+// cpt-frontx-flow-cli-scaffolding-add-template. Both WIRE the P14 uniform-apply
+// path and the P29 pre-flight conflict checker above; neither re-implements
+// them. materializeAssembly realizes the shared boundary-declared-assembly DoD
+// (cpt-frontx-dod-cli-scaffolding-boundary-declared-assembly) AND delegates to
+// composeSharedFiles for the shared-file region composition DoD
+// (cpt-frontx-dod-cli-scaffolding-compose-shared-files).
+export {
+  isUserFixableMaterializeFailure,
+  materializeAssembly,
+  occupiedBoundariesFromProvenance,
+} from './scaffold/materialize';
+export type { MaterializeResult, ReadProvenanceRecordsFn } from './scaffold/materialize';
+export { seedRepository } from './commands/seed-repository';
+export type { SeedRepositoryResult, ReadTargetDirFn } from './commands/seed-repository';
+export { createFsReadTargetDirFn } from './adapters/fs-target-dir';
+export { addTemplate } from './commands/add-template';
+export type { AddTemplateResult, ReadTargetPathStateFn, TargetPathState } from './commands/add-template';
+export { createFsReadTargetPathStateFn } from './adapters/fs-target-path';
 
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
+// F14 Upgrade Change-Set Engine (cpt-frontx-dod-upgrade-changeset-single-engine)
+// There is exactly ONE engine. Direct CLI invocation uses these canonical
+// modules internally. F17 AI-driven orchestration does NOT import these
+// modules or take a compile-time package dependency on this package for its
+// engine access — it reaches this same engine only through the `frontx
+// upgrade` command/invocation surface (`upgradeCommand`, ./commands/upgrade.js),
+// per DESIGN §3.4 ("orchestrates ... through its command surface ... NOT by
+// linking its engine").
+export { upgradeChangeSetReviewApproval } from './upgrade/flow';
+export type { UpgradeFlowResult, UpgradeFlowDeps } from './upgrade/flow';
+export { computeChangeSet } from './upgrade/compute';
+export type { ComputeResult } from './upgrade/compute';
+export { applyChangeSet } from './upgrade/apply';
+export type { ApplyResult } from './upgrade/apply';
+export { rollbackChangeSet } from './upgrade/rollback';
+export type { RollbackResult } from './upgrade/rollback';
+export { ChangeSetLifecycleState } from './upgrade/state';
+export type {
+  ChangeKind,
+  CleanEntry,
+  ConflictEntry,
+  ChangeSet,
+  ProjectSnapshot,
+  ReadProvenanceFn,
+  ReadProjectFileFn,
+  WriteProjectFileFn,
+  RemoveProjectFileFn,
+  WriteProvenanceFn,
+  PresentAndGetApprovalFn,
+} from './upgrade/types';
 
-// hai3 validate subcommand
-const validateCmd = program
-  .command('validate')
-  .description('Validation commands');
-
-// hai3 validate components [path]
-validateCmd
-  .command('components [path]')
-  .description('Validate component structure and placement')
-  .action(async (targetPath: string | undefined) => {
-    const result = await executeCommand(
-      validateComponentsCommand,
-      { path: targetPath },
-      { interactive: true }
-    );
-
-    if (!result.success || !result.data?.passed) {
-      process.exit(1);
-    }
-  });
-
-// hai3 scaffold subcommand
-const scaffoldCmd = program
-  .command('scaffold')
-  .description('Generate project components from templates');
-
-// hai3 scaffold layout
-scaffoldCmd
-  .command('layout')
-  .description('Generate HAI3 layout components in your project')
-  .option('-f, --force', 'Overwrite existing layout files')
-  .action(async (options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      scaffoldLayoutCommand,
-      {
-        force: options.force as boolean,
-      },
-      { interactive: true }
-    );
-
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
-
-// hai3 ai subcommand
-const aiCmd = program
-  .command('ai')
-  .description('AI assistant configuration commands');
-
-// hai3 ai sync
-aiCmd
-  .command('sync')
-  .description('Sync AI assistant configuration files')
-  .option(
-    '-t, --tool <tool>',
-    'Specific tool to sync (claude, copilot, cursor, windsurf, all)',
-    'all'
-  )
-  .option('-d, --detect-packages', 'Detect installed @gears-frontx packages')
-  .option('--diff', 'Show diff of changes without writing files')
-  .action(async (options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      aiSyncCommand,
-      {
-        tool: options.tool as 'claude' | 'copilot' | 'cursor' | 'windsurf' | 'all',
-        detectPackages: options.detectPackages as boolean,
-        diff: options.diff as boolean,
-      },
-      { interactive: true }
-    );
-
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
-
-// hai3 screenset subcommand
-const screensetCmd = program
-  .command('screenset')
-  .description('Screenset management commands');
-
-// hai3 screenset create <name>
-screensetCmd
-  .command('create <name>')
-  .description('Create a new MFE screenset package')
-  .option('-p, --port <number>', 'MFE dev server port (auto-assigned if omitted)', parsePortOption)
-  .action(async (name: string, options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      screensetCreateCommand,
-      {
-        name,
-        port: options.port as number | undefined,
-      },
-      { interactive: true }
-    );
-
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
-
-// hai3 migrate [version]
-program
-  .command('migrate [targetVersion]')
-  .description('Apply codemod migrations to update HAI3 projects')
-  .option('-d, --dry-run', 'Preview changes without applying')
-  .option('-l, --list', 'List available migrations')
-  .option('-s, --status', 'Show migration status')
-  .option('-p, --path <path>', 'Target directory to migrate')
-  .option('--include <patterns>', 'Include glob patterns (comma-separated)')
-  .option('--exclude <patterns>', 'Exclude glob patterns (comma-separated)')
-  .action(async (targetVersion: string | undefined, options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      migrateCommand,
-      {
-        targetVersion,
-        dryRun: options.dryRun as boolean,
-        list: options.list as boolean,
-        status: options.status as boolean,
-        targetPath: options.path as string | undefined,
-        include: options.include as string | undefined,
-        exclude: options.exclude as string | undefined,
-      },
-      { interactive: true }
-    );
-
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
-
-// Parse and execute
-program.parse();
+// F14 command/invocation surface — the ONLY integration path F17 (and any
+// other external artifact) should use to drive the change-set engine.
+export { upgradeCommand } from './commands/upgrade';
+export type { UpgradeCommandResult } from './commands/upgrade';

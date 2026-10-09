@@ -1,0 +1,177 @@
+/*
+ * Pagination styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ *
+ * PaginationLink used to borrow button.module.css's classes for its paint
+ * and geometry, rendering as a ghost button until it was active and an
+ * outline one once it was. The design spec draws pagination as its own
+ * item rather than as a button size: a 28px square at a 6px radius,
+ * transparent with a --muted-foreground label, inverting on the active
+ * page to a --background fill under a --primary one. That last pair is a
+ * real inversion - the page's own background colour becomes the chip fill
+ * on a raised surface - and no Button variant renders it, so the item is
+ * styled here and takes no size from Button at all.
+ */
+
+.pagination {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * The drawn item: 28 tall at a 6px radius, a 12/16 label in
+ * --muted-foreground, centred, on nothing. Prev/Next share this rule and
+ * only opt out of the square width below, because they carry an icon AND a
+ * label side by side.
+ */
+.link {
+  /* Substitutes for the preflight the kit lacks: an <a> is content-box, so
+   * the padding below would otherwise be added to the square width. */
+  box-sizing: border-box;
+  display: inline-flex;
+  height: var(--control-height-xs);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  /* Zero on the block axis and no border: a no-op on an <a>, and it strips a
+   * native <button>'s own padding and border, so the button forms of the
+   * item (PaginationButton and the previous/next buttons) share this rule
+   * and measure the same 28px. */
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding-block: 0;
+  padding-inline: var(--space-2);
+  background-color: transparent;
+  color: var(--muted-foreground);
+  font-family: inherit;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  /* Colour crossfades only, no transform/geometry, not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+/* The spec draws no pagination hover, so this is the kit's own and stays
+ * as close to the drawn look as a state can: the label brightens toward the
+ * active one's emphasis and nothing else moves. A fill would be the wrong
+ * cue here, since the active page is the one thing in the row that has one. */
+.link:hover {
+  color: var(--foreground);
+}
+
+/* The kit-wide outside ring, Button's idiom: an item with no border of its
+ * own has nothing to thicken, and the ring's only contrast neighbour is the
+ * surface behind the row. */
+.link:focus-visible {
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .link:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* A previous/next button at either end of the range. Dimmed like every other
+ * disabled control (--opacity-disabled), and pointer-transparent so the hover
+ * brightening above never shows on it. Anchors have no disabled state, which
+ * is why this only ever applies to the button forms. A `focusableWhenDisabled`
+ * button is not natively disabled (it reports `aria-disabled` and stays
+ * focusable), so `:disabled` alone would leave it painted live; Base UI marks
+ * both forms with `data-disabled`. */
+.link:disabled,
+.link[data-disabled] {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+/*
+ * The active page. The drawn inversion: the page's own --background becomes
+ * the chip fill, which reads as a recess wherever the row sits on a raised
+ * surface, under a --primary label. Declared after :hover so the active
+ * page keeps its own paint while the pointer is over it.
+ */
+.link[data-active] {
+  background-color: var(--background);
+  color: var(--primary);
+}
+
+/* The square footprint a bare page number takes: the drawn item is 28 on
+ * both axes, so the width is the same token as the height rather than an
+ * aspect ratio derived from it. */
+.link.square {
+  width: var(--control-height-xs);
+  padding-inline: 0;
+}
+
+.previousNextText {
+  /* Hidden below the `sm` breakpoint (640px, Tailwind's default) — matching
+   * upstream's `hidden sm:block` exactly, so a narrow viewport keeps only
+   * the chevron. */
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .previousNextText {
+    display: block;
+  }
+}
+
+.icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* The previous/next chevrons point along the reading direction, so a
+ * right-to-left row mirrors them: `Previous` then points right, toward where
+ * earlier pages sit. The flex row itself already reverses with `direction`;
+ * only the glyph, which has a fixed left/right shape, needs this. */
+.chevron:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* The same 28px box as an item, so the collapsed-pages marker sits on the
+ * row's own rhythm. */
+.ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-xs);
+  height: var(--control-height-xs);
+  color: var(--muted-foreground);
+}
+
+/*
+ * Visually hidden but still announced — see breadcrumb.module.css's
+ * `.srOnly` for why `clip-path: inset(50%)` replaces the classic
+ * clip:rect()+negative-margin recipe (a literal negative margin would trip
+ * this kit's metric-token guard, tokens.test.ts).
+ */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

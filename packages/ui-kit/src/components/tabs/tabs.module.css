@@ -1,0 +1,400 @@
+/*
+ * Tabs styles, structure translated from shadcn/ui (MIT).
+ *
+ * The design spec draws two lists, and both ship. `default` is the filled
+ * track: a --muted strip that insets its triggers by 3 and marks its active
+ * tab with a fill and a hairline. `line` is the trackless row: no chrome of
+ * its own, and one 3px indicator that travels to the active tab. The
+ * indicator belongs to `line` alone - the filled track has none, because
+ * its active tab is already marked by the fill. The two share the trigger,
+ * whose radius, padding and label the spec draws once. Disabled stays at
+ * the drawn 0.42.
+ *
+ * The segment look (bordered items on --border-strong) is NOT a Tabs
+ * variant: it belongs to ToggleGroup.
+ * Consumes only theme.css variables - no raw colors.
+ */
+
+/*
+ * Local `box-sizing: border-box` — this was the first of the kit's
+ * per-module fixes for the preflight reset the kit lacks; the same
+ * declaration now appears across most of the kit (14 of its 19 component
+ * modules, 20 classes total, each substituting for that same missing
+ * reset on its own class list — see input.module.css/dialog.module.css/
+ * select.module.css and others for the acute case each one fixes). Tabs
+ * needed it first, back when `.trigger` was sized by a percentage height
+ * against a fixed-height list. The list is content-height now, so the
+ * acute case here is the `line` list's own indicator band: content-box
+ * would add that band to a height a consumer set rather than fit it
+ * inside.
+ *
+ * Declared on the kit's own classes only (`.list`/`.trigger` — the two
+ * carrying padding, plus `.tabs`/`.content` for the
+ * same box model consistently within this component), never on a
+ * universal descendant selector: a `.tabs *` reset would also silently
+ * flip the box model of whatever a consumer renders inside a
+ * `TabsContent` panel, which isn't this component's content to change.
+ */
+.tabs,
+.list,
+.trigger,
+.content {
+  box-sizing: border-box;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/*
+ * Counterintuitive but correct: horizontal tabs stack the list above its
+ * panel (a flex *column*), while vertical tabs (the default flex-row) put
+ * a column-shaped list beside its panel. Base UI stamps `data-orientation`
+ * on every part (root, list, tab, and panel alike), so every rule below
+ * targets that attribute directly on the part it styles, rather than
+ * reading a shared ancestor's data attribute the way the upstream
+ * `group-data-*` source does.
+ */
+.tabs[data-orientation='horizontal'] {
+  flex-direction: column;
+}
+
+/*
+ * The indicator's own two 3px measurements, declared on the LIST because
+ * that is what reserves room for the bar and positions it: the band the
+ * `line` list keeps clear below its triggers is exactly the gap plus the
+ * bar. Neither 3 is a step on the spacing scale, and the drawn value is
+ * what governs, so they stay raw rather than rounding up to --space-1.
+ * tabs.test.tsx pins both, and tokens.test.ts's metric-guard comment names
+ * them as the locals that reach a guarded property this way.
+ */
+.list {
+  --indicator-gap: 3px;
+  --indicator-thickness: 3px;
+  /* Relative, because the indicator positions against this box. */
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  /* stretch, not center: this is what makes every trigger share the
+   * tallest one's box, and what lets a trigger fill the drawn track. */
+  align-items: stretch;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  color: var(--muted-foreground);
+}
+
+/*
+ * The size axis: the spec draws the two label steps and nothing else
+ * between them, so the trigger's padding, radius and weight are shared and
+ * only the type role changes.
+ */
+.sizeSm .trigger {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  letter-spacing: var(--text-label-tracking);
+}
+
+.sizeDefault .trigger {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  letter-spacing: var(--text-body-tracking);
+}
+
+.list[data-orientation='vertical'] {
+  height: fit-content;
+  flex-direction: column;
+}
+
+/*
+ * The drawn filled track: a --muted strip at the 10px corner, insetting its
+ * triggers by 3 on every edge. 3 has no step on the spacing scale, and it
+ * is the same 3 the indicator is drawn at, so it reads the local rather
+ * than restating the number. The horizontal track is drawn at 32; a
+ * vertical one is not drawn and sizes to its content.
+ */
+.list.variantDefault {
+  padding: var(--indicator-thickness);
+  background-color: var(--muted);
+}
+
+.list.variantDefault[data-orientation='horizontal'] {
+  height: var(--control-height-sm);
+}
+
+.list.variantDefault[data-orientation='vertical'] {
+  height: fit-content;
+}
+
+/* The drawn line list has no track of its own: the travelling bar is the
+ * only chrome, and the triggers sit in a 4px row. */
+.variantLine {
+  background-color: transparent;
+  border-radius: 0;
+  gap: var(--space-1);
+}
+
+.list.variantLine[data-orientation='horizontal'],
+.list.variantLine[data-orientation='vertical'] {
+  height: fit-content;
+}
+
+/* The band the indicator lives in, kept clear of the trigger box so the
+ * bar never overlaps the label's own row. Only the drawn variant reserves
+ * it; the filled-track one has no bar to make room for. */
+.list.variantLine[data-orientation='horizontal'] {
+  padding-block-end: calc(var(--indicator-gap) + var(--indicator-thickness));
+}
+
+.list.variantLine[data-orientation='vertical'] {
+  padding-inline-end: calc(var(--indicator-gap) + var(--indicator-thickness));
+}
+
+.trigger {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 0%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /*
+   * `border: 0`, not a 1px transparent one. The transparent border existed
+   * only so :focus-visible had something to recolor, and it put every
+   * trigger 2px over the box the drawn padding and label add up to; the
+   * ring is an inset shadow instead (see below), which takes part in no
+   * layout. Zero rather than nothing at all because the trigger is a native
+   * <button>, whose UA border is 2px and would take over the moment an
+   * author border stopped covering it.
+   */
+  border: 0;
+  border-radius: var(--radius-md);
+  /* The drawn trigger insets 2 on the block axis and 6 on the inline one.
+   * Neither sits on the spacing scale, which starts at 4 and steps to 8;
+   * tabs.test.tsx pins both literals. */
+  padding: 2px 6px;
+  /* The drawn trigger fills the track it sits in, minus the hairline the
+   * active one draws inside its own box. */
+  height: calc(100% - var(--border-width));
+  background-color: transparent;
+  /* The drawn idle label is --foreground at 60 per cent, going to the full
+   * tone on hover. A mix rather than --muted-foreground, because the drawn
+   * value is a transparency of the text colour and follows it in both
+   * themes. */
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+  /* Size and line-height come from the size axis above; the weight is 500
+   * at both drawn steps and stays here. */
+  font-family: inherit;
+  font-weight: var(--text-label-weight);
+  white-space: nowrap;
+  cursor: pointer;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color var(--duration-micro) var(--ease-standard),
+    background-color var(--duration-micro) var(--ease-standard),
+    box-shadow var(--duration-micro) var(--ease-standard);
+}
+
+/* The drawn trigger icon, one box at both label steps. */
+.trigger svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.trigger[data-orientation='vertical'] {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.trigger:hover {
+  color: var(--foreground);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  /* The kit-wide 2px focus ring in --ring, drawn wholly as an inset shadow
+   * now that the trigger carries no border for --ring-inset to add to. */
+  box-shadow: inset 0 0 0 var(--border-width-focus) var(--ring);
+}
+
+/* The ring above is an inset box-shadow, and forced-colors mode doesn't
+ * render box-shadow at all — add an explicit outline or the focus
+ * indicator disappears entirely under the mode. */
+@media (forced-colors: active) {
+  .trigger:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Base UI keeps a disabled Tab focusable (arrow-key navigation must still
+ * reach and skip it) rather than setting the native `disabled` attribute,
+ * so only `data-disabled` — never `:disabled` — ever matches here. Base UI
+ * itself guards the click/keyboard handlers against `disabled` (see
+ * TabsTab's own `useButton` usage) — no `pointer-events: none` needed to
+ * block activation, and pairing one with `cursor: not-allowed` would have
+ * been self-cancelling anyway: an element with no pointer events never
+ * gets to show a hover cursor at all. cursor is the only mechanism here.
+ * 0.42, not the shadcn 0.5 — the mockup specimens set disabled tabs at
+ * opacity 42.
+ */
+.trigger[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/*
+ * The active tab takes the secondary pairing, the role the spec paints a
+ * selected control from, plus a 1px hairline. The hairline is drawn rather
+ * than a kit-side correction: in dark the secondary fill equals the card
+ * fill, and the drawn active trigger carries a border for exactly that
+ * reason. An inset shadow, not a border, so the trigger's box stays the
+ * size its padding and label add up to.
+ */
+.trigger[data-active] {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  box-shadow: inset 0 0 0 var(--border-width) var(--border);
+}
+
+/*
+ * The active hairline and the focus ring are both inset shadows on the same
+ * element, and the ring is the thicker of the two, so a focused active
+ * trigger draws the ring alone rather than letting whichever rule came last
+ * silently drop the other.
+ */
+.trigger[data-active]:focus-visible {
+  box-shadow: inset 0 0 0 var(--border-width-focus) var(--ring);
+}
+
+/*
+ * The drawn indicator: ONE bar per list that travels to the active tab,
+ * not one bar per trigger crossfading. Base UI's Tabs.Indicator measures
+ * the active tab and writes its geometry as --active-tab-* custom
+ * properties on this element at runtime; everything here reads them.
+ *
+ * Pinned to the list's bottom-left on the horizontal axis and translated on
+ * X, so only `transform` and `width` animate and the browser can keep both
+ * off the layout path. Scoped under `.list` because the two 3px
+ * measurements are declared there.
+ */
+.list .indicator {
+  position: absolute;
+  background-color: var(--primary);
+  pointer-events: none;
+  transition:
+    transform var(--duration-tab) var(--ease-standard),
+    width var(--duration-tab) var(--ease-standard),
+    height var(--duration-tab) var(--ease-standard);
+}
+
+.list .indicator[data-orientation='horizontal'] {
+  bottom: 0;
+  left: 0;
+  width: var(--active-tab-width);
+  height: var(--indicator-thickness);
+  transform: translateX(var(--active-tab-left));
+}
+
+.list .indicator[data-orientation='vertical'] {
+  top: 0;
+  right: 0;
+  width: var(--indicator-thickness);
+  height: var(--active-tab-height);
+  transform: translateY(var(--active-tab-top));
+}
+
+/*
+ * A travelling bar IS motion under WCAG 2.3.3, unlike the colour crossfades
+ * elsewhere in this file, so it collapses rather than being left unguarded.
+ * 1ms rather than `none`: the bar still lands in the right place on the
+ * frame after the switch, it just does not travel there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .list .indicator {
+    transition-duration: 1ms;
+  }
+}
+
+/* The filled track marks its active tab with the fill and the hairline, so
+ * it draws no bar at all - see the file header. */
+.list.variantDefault .indicator {
+  display: none;
+}
+
+.variantLine .trigger[data-active] {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.content {
+  flex: 1 1 0%;
+  /* Studio/Body — panel content is page text, not control text. */
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  outline: none;
+}
+
+/*
+ * The panel's enter animation: it fades up over 4px as it becomes the
+ * active one. `data-starting-style` is Base UI's own "this is the frame it
+ * opens on" hook - the same one the kit's overlays animate from - so the
+ * panel needs no wrapper keyed on the active value to replay it.
+ *
+ * `translate` rather than `transform`, so a consumer's own transform on
+ * the panel is not overwritten by the kit's 4px; same standalone-property
+ * idiom as the `spin` keyframe in spinner.module.css. The travel is 4 and
+ * stays literal: it is an offset, not a step on the spacing scale, and
+ * translate is not a guarded property.
+ *
+ * --duration-tab is the list's own step, the one the indicator already
+ * travels at, so the bar and the panel it points to settle together.
+ */
+.content[data-animate] {
+  transition:
+    opacity var(--duration-tab) var(--ease-standard),
+    translate var(--duration-tab) var(--ease-standard);
+}
+
+.content[data-animate][data-starting-style] {
+  opacity: 0;
+  translate: 0 4px;
+}
+
+/*
+ * The travel is motion under WCAG 2.3.3; the fade is not. So the panel
+ * still announces itself by arriving, it just arrives in place - the same
+ * split the travelling indicator above makes when it stops travelling.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .content[data-animate][data-starting-style] {
+    translate: none;
+  }
+}
+
+/*
+ * Base UI puts the open panel in the tab order itself (`tabIndex: open ?
+ * 0 : -1`, TabsPanel.js:83), so keyboard users land here right after the
+ * tablist. `outline: none` above must not leave that stop invisible —
+ * restore the kit's ring idiom, same as `.trigger:focus-visible`.
+ */
+.content:focus-visible {
+  /* A panel has no border slot to thicken — the borderless focus stops use
+   * a crisp outline in the same 2px/--ring idiom instead. */
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The ring above is already an outline, not a box-shadow — forced-colors
+ * mode still flattens its author --ring color, so pin it to the system's
+ * Highlight color explicitly (same reasoning as button.module.css's own
+ * ring, restated here rather than delegated to it). */
+@media (forced-colors: active) {
+  .content:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}

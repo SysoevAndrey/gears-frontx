@@ -1,0 +1,122 @@
+/*
+ * Checkbox styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.checkbox {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the border on top of the size
+   * classes' declared width/height, rendering each box 2px over its drawn
+   * value. Same acute case as tabs.module.css, scoped the same way (this
+   * class only).
+   */
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: var(--border-width) solid var(--input);
+  /* The spec draws the corner at 4, which --radius-xs carries. */
+  border-radius: var(--radius-xs);
+  /* One drawn control box, bound to the icon scale rather than restated as
+   * a number: the checkbox is glyph-sized by construction and follows a
+   * consumer who retunes that scale. */
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  background-color: var(--surface-elevated);
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/*
+ * The drawn interaction row: the 16px box plus 8 on each block edge, which
+ * is the drawn 32px row, and 12 on each inline edge, which reaches 40 and
+ * is also drawn - a checkbox is easier to hit along the line it labels than
+ * across it. Stated as the two drawn insets rather than as a height,
+ * because the insets are what the spec draws and they stay correct if the
+ * box ever moves.
+ */
+.checkbox::after {
+  content: '';
+  position: absolute;
+  inset-inline: calc(-1 * var(--space-3));
+  inset-block: calc(-1 * var(--space-2));
+}
+
+.checkbox[data-checked] {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.checkbox:focus-visible {
+  /* Fixed-geometry control: a border switch would distort the glyph, so
+   * focus is the crisp 2px/--ring outline offset off the box. */
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The ring above is already an outline, not a box-shadow — forced-colors
+ * mode still flattens its author --ring color, so pin it to the system's
+ * Highlight color explicitly (same reasoning as button.module.css's own
+ * ring, restated here rather than delegated to it). */
+@media (forced-colors: active) {
+  .checkbox:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* Base UI renders the root as a <span role="checkbox">, so :disabled can
+ * never match — the stamped data-disabled attribute is the disabled state. */
+/* disabled opacity: see input.module.css */
+.checkbox[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.checkbox[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+
+/* Invalid but checked: the filled box keeps its primary border. */
+.checkbox[aria-invalid='true'][data-checked] {
+  border-color: var(--primary);
+}
+
+.indicator {
+  display: grid;
+  place-content: center;
+  color: currentcolor;
+}
+
+/* The glyph is drawn at 14, and the icon scale has no 14 step (12 / 16 / 20
+ * / 24). Rounding it onto a step would be a kit-side correction of a drawn
+ * value; checkbox.test.tsx pins the literal instead. */
+.icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Indeterminate shows a minus in an unfilled box (the root gets
+ * data-indeterminate, not data-checked, so it keeps the outline look). */
+.iconIndeterminate {
+  display: none;
+}
+
+.indicator[data-indeterminate] .iconCheck {
+  display: none;
+}
+
+.indicator[data-indeterminate] .iconIndeterminate {
+  display: block;
+}

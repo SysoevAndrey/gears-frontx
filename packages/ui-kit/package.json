@@ -1,0 +1,105 @@
+{
+  "name": "@gears-frontx/ui-kit",
+  "version": "0.4.0",
+  "description": "Standard React component base for FrontX templates - Base UI behavior, CSS Modules styling on semantic tokens, CVA variants",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components/*": null,
+    "./__test-utils__/*": null,
+    "./chunks/*": null,
+    "./package.json": "./package.json",
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    },
+    "./theme.css": "./dist/theme.css",
+    "./utilities.css": "./dist/utilities.css",
+    "./typeset.css": "./dist/typeset.css"
+  },
+  "files": [
+    "dist",
+    "llms.txt",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "type-check": "tsc -p tsconfig.src.json --noEmit && npm run type-check:tools",
+    "type-check:tools": "tsc -p tsconfig.tools.json",
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch",
+    "test:consumer": "bash scripts/verify-consumer.sh",
+    "type-check:demo": "tsc -p demo/tsconfig.json",
+    "predemo": "npm run build",
+    "demo": "vite demo",
+    "contracts:compile": "tsx scripts/contracts/compile.ts",
+    "contracts:check": "tsx scripts/contracts/check.ts",
+    "contracts:enrollment": "tsx scripts/contracts/check.ts enrollment"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.6.0",
+    "@shadcn/react": "0.3.0",
+    "@tanstack/react-table": "9.1.2",
+    "class-variance-authority": "0.7.1",
+    "cmdk": "1.1.1",
+    "date-fns": "4.4.0",
+    "embla-carousel-react": "8.6.0",
+    "lucide-react": "1.33.0",
+    "react-day-picker": "10.0.1",
+    "react-resizable-panels": "4.12.3",
+    "recharts": "3.10.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@globaltypesystem/gts-ts": "0.3.0",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "^25.5.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "4.1.4",
+    "ajv": "8.18.0",
+    "esbuild": "0.25.12",
+    "jsdom": "26.1.0",
+    "magic-string": "0.30.21",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rollup-plugin-node-externals": "^9.0.1",
+    "tsx": "4.20.6",
+    "typescript": "5.4.2",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-lib-inject-css": "^2.2.2",
+    "vitest": "4.1.4",
+    "yaml": "^2.9.0"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "frontx",
+    "ui",
+    "components",
+    "react",
+    "base-ui",
+    "css-modules",
+    "design-system"
+  ],
+  "author": "Cyber Fabric",
+  "license": "Apache-2.0"
+}

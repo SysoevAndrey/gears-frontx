@@ -1,72 +1,38 @@
 {
   "name": "@gears-frontx/cli",
-  "version": "0.1.5",
-  "description": "HAI3 CLI - Project scaffolding and screenset management tools",
+  "version": "0.3.0",
+  "description": "Template resolution CLI for FrontX SDK — zero bundled template content",
   "type": "module",
-  "bin": {
-    "hai3": "./dist/index.js"
-  },
-  "main": "./dist/api.cjs",
-  "module": "./dist/api.js",
-  "types": "./dist/api.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/api.d.ts",
-      "import": "./dist/api.js",
-      "require": "./dist/api.cjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
+  "bin": {
+    "frontx": "./dist/cli.js"
+  },
   "files": [
-    "dist",
-    "templates",
-    "README.md"
+    "dist"
   ],
   "scripts": {
-    "copy-templates": "npx tsx scripts/copy-templates.ts",
-    "build": "npm run copy-templates && tsup",
-    "dev": "tsup --watch",
-    "test:e2e:pr": "node scripts/e2e-pr-smoke.mjs",
-    "test:e2e:nightly": "node scripts/e2e-nightly.mjs"
-  },
-  "keywords": [
-    "hai3",
-    "cli",
-    "scaffolding",
-    "screenset",
-    "saas"
-  ],
-  "author": "HAI3org",
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/HAI3org/HAI3.git",
-    "directory": "packages/cli"
-  },
-  "bugs": {
-    "url": "https://github.com/HAI3org/HAI3/issues"
-  },
-  "homepage": "https://github.com/HAI3org/HAI3#readme",
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "chalk": "^5.4.1",
-    "commander": "^12.1.0",
-    "fs-extra": "^11.2.0",
-    "inquirer": "^12.3.0",
-    "js-yaml": "^4.1.1",
-    "lodash": "^4.17.21",
-    "ts-morph": "^27.0.2"
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false"
   },
   "devDependencies": {
-    "@types/fs-extra": "^11.0.4",
-    "@types/js-yaml": "^4.0.9",
-    "@types/lodash": "^4.17.20",
-    "@types/node": "^24.9.1",
-    "tsup": "^8.5.0",
-    "typescript": "^5.4.2"
+    "@gears-frontx/test-support": "0.1.0-alpha.0",
+    "@vitest/coverage-v8": "4.1.4",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.2",
+    "vitest": "4.1.4"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": [],
+  "license": "MIT"
 }

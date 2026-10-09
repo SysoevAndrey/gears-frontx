@@ -1,0 +1,135 @@
+/*
+ * Switch styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.switch {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the border on top of the width/
+   * height declared by whichever size class (.sizeDefault/.sizeSm below)
+   * is combined onto this same root, rendering 20.4x34 instead of
+   * 18.4x32 (default) — same acute case as tabs.module.css/
+   * badge.module.css, scoped the same way (this class only, since the
+   * size classes never appear without it — see switch.tsx).
+   */
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* Enlarged touch target beyond the track. */
+.switch::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-2)) calc(-1 * var(--space-3));
+}
+
+.switch[data-checked] {
+  background-color: var(--primary);
+}
+
+.switch[data-unchecked] {
+  background-color: var(--input);
+}
+
+.switch:focus-visible {
+  /* Fixed-geometry control — same outline idiom as checkbox.module.css. */
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The ring above is already an outline, not a box-shadow — forced-colors
+ * mode still flattens its author --ring color, so pin it to the system's
+ * Highlight color explicitly (same reasoning as button.module.css's own
+ * ring, restated here rather than delegated to it). */
+@media (forced-colors: active) {
+  .switch:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* disabled opacity: see input.module.css */
+.switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.switch[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+
+/* The mockups' Selection Control spec (frame 195:409): a 38x22 track. */
+.sizeDefault {
+  height: 1.375rem;
+  width: 2.375rem;
+}
+
+.sizeSm {
+  height: 0.875rem;
+  width: 1.5rem;
+}
+
+.thumb {
+  pointer-events: none;
+  display: block;
+  border-radius: var(--radius-full);
+  /* The drawn thumb keeps the same bright fill in BOTH themes and states —
+   * that's --primary-foreground in this palette. --background would flip
+   * the thumb near-black in dark mode. */
+  background-color: var(--primary-foreground);
+  transition: transform 150ms ease;
+}
+
+/*
+ * Pure transform — the thumb sliding along the track on toggle — with
+ * nothing else transitioning to preserve, unlike the colour-only cases
+ * elsewhere in the kit. Suppressed outright under reduced motion: the
+ * thumb still ends up on the correct side, it just gets there without
+ * an animated slide.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition: none;
+  }
+}
+
+/* 16px thumb resting 3px inside the drawn track (2px margin + 1px
+ * border); checked, it travels exactly its own width (16px) to mirror
+ * that inset on the right. */
+.sizeDefault .thumb {
+  width: 1rem;
+  height: 1rem;
+  margin-inline-start: 2px;
+}
+
+.sizeDefault .thumb[data-checked] {
+  transform: translateX(100%);
+}
+
+.sizeSm .thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.thumb[data-checked] {
+  transform: translateX(calc(100% - 2px));
+}
+
+.thumb[data-unchecked] {
+  transform: translateX(0);
+}

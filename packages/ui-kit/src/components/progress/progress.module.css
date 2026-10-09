@@ -1,0 +1,86 @@
+/*
+ * Progress styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ *
+ * .indicator's width is written inline by Base UI at runtime (see
+ * ProgressIndicator.js's `width: ${percentageValue}%`) — this file only
+ * supplies the visual treatment and the width-change transition.
+ */
+
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/*
+ * The drawn track: 6 tall, fully round, filled with --muted. The drawn
+ * height is carried by a product-owned token this kit excludes by
+ * ownership; 6 is a generic number and lands as a literal, which the
+ * spacing scale has no step for anyway (nothing between 4 and 8).
+ * progress.test.tsx pins it.
+ */
+.track {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background-color: var(--muted);
+  height: 6px;
+}
+
+.indicator {
+  height: 100%;
+  background-color: var(--primary);
+  /* Colour/size crossfade only, no transform — left unguarded under
+     prefers-reduced-motion like the kit's other such transitions. */
+  transition: width 300ms ease;
+}
+
+/* Indeterminate has no known percentage to animate toward — a sweeping
+ * band instead of a width transition communicates "still working" without
+ * implying a false completion estimate. */
+.track[data-indeterminate] .indicator {
+  width: 40%;
+  transition: none;
+  animation: progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track[data-indeterminate] .indicator {
+    animation-duration: 3.5s;
+  }
+}
+
+/* The drawn label and readout are both 14; only the weight and the tone
+ * separate them. */
+.label {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-body-tracking);
+  color: var(--foreground);
+}
+
+/* Pushed to the end of the row, with tabular figures so a counting readout
+ * does not shift the label beside it as the digits change. */
+.value {
+  margin-inline-start: auto;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-body-tracking);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}

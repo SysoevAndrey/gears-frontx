@@ -1,0 +1,180 @@
+{
+  "$id": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_trigger.v1",
+  "gts_type": "gts.frontx.uikit._.component.v1~",
+  "metamodel": "2.0.0",
+  "component": "combobox-trigger",
+  "forwards_to": "gts.frontx.uikit.element.dom_button.v1~",
+  "intent": "The button that opens and closes its Combobox's popup, drawn as a chevron unless given children of its own, or as a select-looking field when `variant` is select.",
+  "typical_uses": [
+    "The chevron button of a ComboboxInput, placed as a child of the field when the field's own is turned off",
+    "With `variant` select, the whole visible field of a combobox whose search input is inside the popup, showing the chosen value or a placeholder and then a chevron"
+  ],
+  "dont_use_when": [
+    {
+      "situation": "The chevron at the end of a single-line combobox field",
+      "instead": {
+        "target": "ComboboxInput",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_input.v1",
+        "note": "ComboboxInput already renders this trigger, named by its `toggleLabel`, unless `showTrigger` is false."
+      }
+    },
+    {
+      "situation": "A button that runs an action rather than opening a list",
+      "instead": {
+        "target": "Button",
+        "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.button.v1"
+      }
+    }
+  ],
+  "accepts": {
+    "content": "specified",
+    "text": true,
+    "components": [
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_value.v1",
+      "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_chips.v1"
+    ]
+  },
+  "mounted_in": [
+    {
+      "container": "Combobox",
+      "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox.v1"
+    },
+    {
+      "container": "ComboboxInput",
+      "component": "gts.frontx.uikit._.component.v1~frontx.uikit._.combobox_input.v1"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "children-replace-the-chevron",
+      "text": "With the default `variant`, a trigger without children renders a chevron glyph and any children replace it."
+    },
+    {
+      "id": "positioned-at-the-field-end",
+      "text": "With the default `variant`, combobox.module.css positions the button absolutely at the inline end of its nearest positioned ancestor, square at the small control size and vertically centred; inside ComboboxInput that ancestor is the field's wrapper, and while the field's clear button is mounted the same rule that hides the field's own trigger hides this one."
+    },
+    {
+      "id": "select-variant-is-a-field-of-its-own",
+      "text": "With `variant` select the chevron is always rendered, after the children, and the button is not positioned: it is a bordered field the height of a Select trigger (the small control step), its a long text value cut with an ellipsis before the chevron (the value is a block container, so it needs inline content: text, a ComboboxValue, an inline icon in front of it), its text muted while nothing is chosen. It grows to hold ComboboxChips among its children, which then draw no field chrome of their own and wrap their chips instead of ellipsising them. Its role is combobox, so its name comes from `aria-labelledby` or `aria-label`, not from its content, and a `<label for>` names it only while the trigger is a button, not when it is rendered as a div."
+    }
+  ],
+  "anti_patterns": [
+    {
+      "dont": "Render the default chevron with no `aria-label`",
+      "do_instead": "Pass `aria-label` (or visible children); the chevron alone gives the button no accessible name"
+    },
+    {
+      "dont": "Use `variant` select without a search input inside the popup",
+      "do_instead": "Put `<ComboboxInput showTrigger={false} />` first in ComboboxContent; the select-style trigger holds no text field of its own, so the popup is where the query is typed"
+    },
+    {
+      "dont": "Put ComboboxChips inside a select-style trigger that is a button",
+      "do_instead": "Render the trigger as a div (`render={<div />}` with `nativeButton={false}`); a button may not contain the chips' div"
+    },
+    {
+      "dont": "Name a trigger rendered as a div with a `<label for>` (FieldLabel's `htmlFor`)",
+      "do_instead": "Pass `aria-labelledby` pointing at the visible label, or `aria-label`; a div is not a labelable element, so a `<label for>` leaves the combobox with no accessible name"
+    }
+  ],
+  "deprecations": {},
+  "attestations": {
+    "a11y": {
+      "outcome": "unknown"
+    },
+    "rtl": {
+      "outcome": "unknown"
+    }
+  },
+  "prop_statements": {
+    "children": {
+      "states": "children is any React content, shown in place of the default chevron",
+      "because": "`ReactNode` is a union of elements, strings, numbers, fragments and more; the compiler emits one JSON type per property."
+    },
+    "render": {
+      "states": "render replaces the rendered element with one the caller supplies",
+      "because": "Base UI's render prop takes an element or a function of the button's own state, so its type is a union of a React element and a callback - the compiler emits one JSON type per property."
+    },
+    "style": {
+      "states": "style accepts a function of the button's state as well as a plain style object",
+      "because": "Base UI widens React's `CSSProperties` to `CSSProperties | ((state) => CSSProperties)` so a caller can style off the primitive's own state (open, disabled, popupSide, listEmpty, ...). The compiler emits one JSON type per property, so nothing is asserted; the kit's own styling goes through combobox.module.css, not through this."
+    }
+  },
+  "examples": {
+    "good": [
+      {
+        "title": "A named trigger in place of the field's own",
+        "code": "<ComboboxInput aria-label=\"Region\" showTrigger={false} showClear>\n  <ComboboxTrigger aria-label=\"Show regions\" />\n</ComboboxInput>\n"
+      },
+      {
+        "title": "A multiple select-style trigger, a div named by its visible label",
+        "code": "<span id=\"frameworks-label\">Frameworks</span>\n<Combobox multiple items={FRAMEWORKS}>\n  <ComboboxTrigger\n    variant=\"select\"\n    render={<div />}\n    nativeButton={false}\n    aria-labelledby=\"frameworks-label\"\n  >\n    <ComboboxChips>\n      <ComboboxValue>\n        {(values: string[]) =>\n          values.map((value) => <ComboboxChip key={value}>{value}</ComboboxChip>)\n        }\n      </ComboboxValue>\n    </ComboboxChips>\n  </ComboboxTrigger>\n  <ComboboxContent>\n    <ComboboxInput showTrigger={false} aria-label=\"Search frameworks\" />\n    <ComboboxList>\n      {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}\n    </ComboboxList>\n  </ComboboxContent>\n</Combobox>\n"
+      },
+      {
+        "title": "A select-style trigger with the search field in the popup",
+        "code": "<Combobox items={REGIONS}>\n  <ComboboxTrigger variant=\"select\" aria-label=\"Region\">\n    <ComboboxValue placeholder=\"Pick a region\" />\n  </ComboboxTrigger>\n  <ComboboxContent>\n    <ComboboxInput showTrigger={false} aria-label=\"Search regions\" />\n    <ComboboxEmpty>No regions found.</ComboboxEmpty>\n    <ComboboxList>\n      {(item: string) => <ComboboxItem key={item} value={item}>{item}</ComboboxItem>}\n    </ComboboxList>\n  </ComboboxContent>\n</Combobox>\n"
+      }
+    ],
+    "bad": [
+      {
+        "title": "A div trigger named by a label that points at it",
+        "code": "<label htmlFor=\"frameworks\">Frameworks</label>\n<ComboboxTrigger id=\"frameworks\" variant=\"select\" render={<div />} nativeButton={false}>\n  <ComboboxChips>...</ComboboxChips>\n</ComboboxTrigger>\n",
+        "why": "`<label for>` only names a labelable element such as a button, and a div is not one, so the combobox has no accessible name. Give the trigger `aria-labelledby` or `aria-label` instead."
+      },
+      {
+        "title": "A trigger outside any Combobox",
+        "code": "<ComboboxTrigger aria-label=\"Show regions\" />",
+        "why": "The primitive's Trigger reads the nearest Combobox root's state through context and throws when there is none."
+      }
+    ]
+  },
+  "family_membership": {
+    "name": "combobox",
+    "role": "part"
+  },
+  "x-uikit": {
+    "partially_typed_props": {
+      "children": {
+        "typeText": "ReactNode",
+        "optional": true
+      }
+    },
+    "variant_sources": [],
+    "cannot_extract": []
+  },
+  "props": {
+    "title": "UiKit ComboboxTrigger",
+    "type": "object",
+    "properties": {
+      "children": {
+        "description": "Partially typed: ReactNode. The compiler emits one JSON type per property and none for this one; shape checked by tsc, see x-uikit.partially_typed_props. children is any React content, shown in place of the default chevron. `ReactNode` is a union of elements, strings, numbers, fragments and more; the compiler emits one JSON type per property."
+      },
+      "className": {
+        "type": "string"
+      },
+      "variant": {
+        "type": "string",
+        "enum": [
+          "default",
+          "select"
+        ],
+        "default": "default"
+      },
+      "disabled": {
+        "type": "boolean"
+      },
+      "nativeButton": {
+        "type": "boolean"
+      },
+      "render": {
+        "description": "TS: ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps, ComboboxTriggerState> | undefined. The compiler emits one JSON type per property; this type is left to tsc. render replaces the rendered element with one the caller supplies. Base UI's render prop takes an element or a function of the button's own state, so its type is a union of a React element and a callback - the compiler emits one JSON type per property."
+      },
+      "style": {
+        "description": "TS: CSSProperties | ((state: ComboboxTriggerState) => CSSProperties | undefined) | undefined. The compiler emits one JSON type per property; this type is left to tsc. style accepts a function of the button's state as well as a plain style object. Base UI widens React's `CSSProperties` to `CSSProperties | ((state) => CSSProperties)` so a caller can style off the primitive's own state (open, disabled, popupSide, listEmpty, ...). The compiler emits one JSON type per property, so nothing is asserted; the kit's own styling goes through combobox.module.css, not through this."
+      }
+    },
+    "required": [],
+    "unevaluatedProperties": {
+      "x-uikit-classification": "unchecked"
+    }
+  }
+}

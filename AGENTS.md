@@ -1,11 +1,15 @@
-<!-- @cpt:root-agents -->
+<!-- @cf:root-agents -->
 ```toml
-cypilot_path = ".cypilot"
+cf-studio-path = ".cf-studio"
 ```
-<!-- /@cpt:root-agents -->
 
-Use `.ai/GUIDELINES.md` as the single source of truth for HAI3 development guidelines.
+ALWAYS resolve and enforce prerequisites of skills/workflows/commands BEFORE applying user intent.
+<!-- /@cf:root-agents -->
 
-For routing to specific topics, see the ROUTING section in GUIDELINES.md.
+AI tooling and FrontX development guidelines are provided by the Constructor Studio kit under `.cf-studio/`.
+
+Treat `architecture/` as the authority on what the system is and why: PRD for intent, DESIGN for structure, ADRs for decisions, and each FEATURE for the behaviour its numbered instructions specify. Ecosystem code carries `@cpt-` markers back to those instructions; `cfs validate` checks that the chain holds. Template territory is a top-level directory carrying a `frontx-template.json` manifest, and none exists here: templates are published from a repository of their own and acquired by source-spec (`cpt-frontx-adr-template-acquisition-and-location`). `@cpt-` markers found in template territory bind nothing, wherever it lives (`cpt-frontx-adr-template-territory-traceability`).
+
+Commit requirements — DCO sign-off (`git commit -s`), branch targets, PR flow — live in `CONTRIBUTING.md`; read it before your first commit, including how it's enforced.
 
 ALL user requests MUST be handled by the Orchestrator agent.

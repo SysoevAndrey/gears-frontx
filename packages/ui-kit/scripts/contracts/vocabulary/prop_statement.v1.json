@@ -1,0 +1,24 @@
+{
+  "$id": "gts://gts.frontx.uikit.vocabulary.prop_statement.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UiKit prop statement",
+  "description": "What one of this component's own properties states and why nothing checks it further, keyed on the property itself so the statement can be checked against the property it is about. Required for every prop the schema does not state in full (partly typed, or description-only) and forbidden for one it states completely: a claim about a fully typed prop would be a claim about a different contract. The conformance suite pairs the keys of the overlay's `prop_statements` map with those properties, both ways.",
+  "type": "object",
+  "properties": {
+    "states": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the property actually holds, in the words a reader needs before the schema's own partial shape misleads them - an array of the caller's own generic parameter, a live object, a function."
+    },
+    "because": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why nothing checks it further: no JSON Schema shape for a generic, a live object, a function, or a type this contract has no business re-typing."
+    }
+  },
+  "required": [
+    "states",
+    "because"
+  ],
+  "additionalProperties": false
+}

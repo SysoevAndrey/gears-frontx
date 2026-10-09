@@ -10,7 +10,6 @@
  * SDK Layer: L1 (Zero @gears-frontx dependencies)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-public-api:p1
 
 // Re-export all types
 export type {
@@ -25,6 +24,7 @@ export type {
   RestProtocolConfig,
   SseProtocolConfig,
   HttpMethod,
+  MutationMethod,
   ApiRequestContext,
   ApiResponseContext,
   ShortCircuitResponse,
@@ -39,17 +39,26 @@ export type {
   SsePluginHooks,
   RestRequestContext,
   RestResponseContext,
+  RestRequestOptions,
   ApiPluginErrorContext,
   SseConnectContext,
   EventSourceLike,
   RestShortCircuitResponse,
   SseShortCircuitResponse,
+  // Endpoint descriptor types
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  EndpointOptions,
+  // Stream descriptor types
+  StreamDescriptor,
+  StreamStatus,
 } from './types';
-
-// Re-export mock config types from plugin files
-export type { RestMockConfig } from './plugins/RestMockPlugin';
-export type { SseMockConfig } from './plugins/SseMockPlugin';
-export type { SseMockEvent } from './mocks/MockEventSource';
+export type {
+  SharedFetchCache,
+  SharedFetchCacheFetchOptions,
+  SharedFetchCacheInvalidateFilters,
+} from './sharedFetchCache';
 
 // Export plugin classes and functions
 export {
@@ -76,11 +85,18 @@ export { BaseApiService } from './BaseApiService';
 // Export protocols
 export { RestProtocol } from './protocols/RestProtocol';
 export { SseProtocol } from './protocols/SseProtocol';
-
-// Export protocol-specific mock plugins
-export { RestMockPlugin } from './plugins/RestMockPlugin';
-export { SseMockPlugin } from './plugins/SseMockPlugin';
-export { MockEventSource } from './mocks/MockEventSource';
+export { RestEndpointProtocol } from './protocols/RestEndpointProtocol';
+export { SseStreamProtocol } from './protocols/SseStreamProtocol';
+export {
+  SHARED_FETCH_CACHE_SYMBOL,
+  SHARED_FETCH_CACHE_RETAINERS_SYMBOL,
+  createSharedFetchCache,
+  getSharedFetchCache,
+  peekSharedFetchCache,
+  retainSharedFetchCache,
+  releaseSharedFetchCache,
+  resetSharedFetchCache,
+} from './sharedFetchCache';
 
 // Export registry
 export { apiRegistry } from './apiRegistry';

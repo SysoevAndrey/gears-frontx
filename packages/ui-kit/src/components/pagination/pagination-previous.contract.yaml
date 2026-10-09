@@ -1,0 +1,109 @@
+# Semantic overlay for PaginationPrevious - part of the Pagination family, see
+# pagination.contract.yaml. `mounted_in` is filled from PaginationItem's
+# own accepted components, not authored here. It renders a PaginationLink
+# with `square` fixed off, so it shares that part's anchor, `isActive` and
+# router behaviour.
+component: pagination-previous
+
+intent: Link to the previous page of a paged result set with a chevron and a short label.
+
+typical_uses:
+  - The previous link at the start of the page row
+  - Half of a previous/next pair with no page numbers
+
+dont_use_when:
+  - situation: A previous-page action that is a state update with no URL of its own
+    instead:
+      target: PaginationPreviousButton
+      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_previous_button.v1
+  - situation: A link to one numbered page
+    instead:
+      target: PaginationLink
+      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_link.v1
+  - situation: A link to the next page
+    instead:
+      target: PaginationNext
+      component: gts.frontx.uikit._.component.v1~frontx.uikit._.pagination_next.v1
+
+accepts:
+  content: nothing
+
+invariants:
+  - id: fixed-content-and-accessible-name
+    text: >-
+      The link renders a left chevron before the label and ignores children.
+      With the default `text` its accessible name is "Go to previous page",
+      set ahead of the consumer's props. A custom `text` is the name instead,
+      since the visible label is hidden below 640px and the chevron is
+      decorative; an empty or blank `text`, the icon-only form, keeps "Go to previous
+      page". An `aria-label` passed to it replaces either.
+  - id: label-hidden-below-640px
+    text: >-
+      The visible label is hidden below a 640px viewport width
+      (pagination.module.css `.previousNextText`), so a narrow viewport shows
+      the chevron alone.
+  - id: chevron-mirrors-in-rtl
+    text: >-
+      The chevron is mirrored under a right-to-left direction
+      (pagination.module.css `.chevron:dir(rtl)`), so it keeps pointing
+      toward the previous pages whatever the reading direction.
+
+anti_patterns:
+  - dont: Pass an `aria-label` that leaves out the words of a custom `text`
+    do_instead: >-
+      Leave `aria-label` off, so the name follows `text`; when you do override
+      it, keep the visible words in it, or a voice-control user who says what
+      is on screen cannot press the link
+
+deprecations: {}
+
+attestations:
+  a11y:
+    outcome: verified
+    by: >-
+      pagination.test.tsx asserts getByRole('link', { name: 'Go to previous
+      page' }) finds the link with the default `text`, whose visible label is
+      "Previous", that a custom `text` "Forward" is the name instead, that an
+      `aria-label` passed to it wins over either, and that an empty or blank `text`
+      keeps "Go to previous page"
+  rtl:
+    outcome: unknown
+    by: >-
+      pagination.module.css mirrors the chevron with `.chevron:dir(rtl)` and
+      pagination.test.tsx pins that rule, but jsdom has no layout and does
+      not resolve `:dir()`, so no suite renders the link right-to-left
+
+unexposed_parts:
+  - part: the chevron icon
+    reason: >-
+      pagination.tsx renders a ChevronLeftIcon inside the link; it is not
+      exported as a component of its own and cannot be replaced.
+  - part: the visible label span
+    reason: >-
+      pagination.tsx renders `text` in a span with the stylesheet's
+      previousNextText class; it is not exported, and `text` is the only
+      control over it.
+
+examples:
+  good:
+    - title: The default label
+      code: <PaginationPrevious href="?page=1" />
+    - title: A custom label, which is also the accessible name
+      code: <PaginationPrevious href="?page=1" text="Newer" />
+    - title: A longer name that keeps the visible word in it
+      code: <PaginationPrevious href="?page=1" text="Newer" aria-label="Newer results" />
+  bad:
+    - title: A name that drops the visible word
+      code: <PaginationPrevious href="?page=1" text="Newer" aria-label="Go to page 1" />
+      why: >-
+        The name no longer contains "Newer", so a voice-control user who says
+        the word they see on screen cannot press the link.
+    - title: A label given as children
+      code: <PaginationPrevious href="?page=1">Back</PaginationPrevious>
+      why: >-
+        The link renders fixed content and ignores children; the visible label
+        is set through `text`.
+
+family_membership:
+  name: pagination
+  role: part

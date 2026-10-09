@@ -2,9 +2,16 @@ name: Main CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+
+# Every job here only reads the repo: nothing pushes, comments, or releases —
+# upload-artifact needs no contents scope. Declared once at the workflow level
+# (with persist-credentials: false on each checkout) so the default read/write
+# token never reaches repository-controlled scripts.
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -12,11 +19,19 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [25.x]
+        node-version: [24.14.x, 25.x]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+        # #575: policy:version-bump-on-change needs a merge base with the
+        # PR's target branch, and a shallow (depth-1) checkout has no history
+        # to compute one from. Full history costs little here — this repo is
+        # small — and matches the same choice already made in docs.yml and
+        # publish-packages.yml for the same reason.
+        fetch-depth: 0
 
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v5
@@ -30,59 +45,226 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # Consumer packages (framework, react, studio, cli) resolve workspace deps
+    # via their sibling packages' `dist/` types. A fresh `npm ci` has no dist,
+    # so `type-check:packages:*` fails to resolve `@gears-frontx/*` imports.
+    # Build the packages first so tsc can resolve types across workspaces.
+    - name: Build workspace packages
+      run: npm run build:packages
+
+    - name: Run TypeScript validation
+      run: npm run type-check:all
+
+    - name: Run lint (includes test-dep version guard via lint:deps)
+      run: npm run lint
+
+    # Sequential `--coverage` (no `--parallel`) to keep v8 instrumentation under
+    # the per-test timeout budget. Parallel project spawns + coverage workers
+    # together caused intermittent 5s test timeouts in resource-constrained
+    # runners. Gates the COVERAGE_THRESHOLDS defined in vitest.shared.ts.
+    - name: Run unit tests with coverage gating
+      run: npm run test:unit -- --coverage
+
+    # Packaging acceptance for the published surface: pack the kit, install the
+    # tarball into a clean Vite project and assert the tokens, component styles
+    # and CSS-module class map survive the consumer's build. Kept out of the
+    # unit-test runner (it packs and installs, so it is a slow lane), which is
+    # why it runs as its own step.
+    - name: Verify ui-kit installs into a clean consumer
+      run: npm run test:consumer --workspace=@gears-frontx/ui-kit
+
+    - name: Audit dependencies for high severity vulnerabilities
+      run: npm audit --audit-level=high --omit=dev
+
     - name: Run architecture validation
       run: npm run arch:check
 
-  cypilot-validate:
-    name: Cypilot Validate Artifacts
+    # arch:check covers the ecosystem import graph via the root config
+    # (dependency-cruiser + greps). That coverage was itself vacuous until this
+    # change: the root config excluded `packages/*/dist`, and since a workspace
+    # import resolves through `exports`/`main` to exactly that path, the node
+    # every cross-package rule needed as its `to` was deleted from the graph —
+    # a deliberate `@gears-frontx/api` import in `packages/mfes/src` stayed
+    # green. The root config now bounds `dist` and `node_modules` with
+    # `doNotFollow` instead and matches all three resolution shapes, so the
+    # sentence above is true rather than aspirational.
+    #
+    # These three cover what arch:check still does not: the Core Framework layer
+    # rules applied per-package, the package.json edges of the boundary model,
+    # and the integrity of the shared boundary configs themselves. All three
+    # were unreferenced by CI before #476, which is how they drifted into
+    # failing unnoticed after the framework/template split.
+    - name: Run Core Framework layer rules (import graph)
+      run: npm run arch:deps:core
+
+    - name: Run package edge validation (package.json edges)
+      run: npm run arch:edges
+
+    - name: Run guard config verification
+      run: npm run arch:guards
+
+    # #493: every site pinning an ecosystem package (`@gears-frontx/api`,
+    # `mfes`, `gts-plugin`, #485/PR #492) to an exact registry version must
+    # still match that package's actual on-disk version - across this repo's
+    # own `packages/*` manifests, since `packages/gts-plugin` pins `mfes`
+    # exactly. Templates that pin these packages now live in their own repo
+    # with their own pin-drift coverage; this is the ecosystem-internal half
+    # of that check. No build-order dependency: reads `package.json` files
+    # directly.
+    - name: Check ecosystem pin-drift
+      run: npm run policy:ecosystem-pin-drift
+
+    # #575, follow-up from #574 review: #574 changed `@gears-frontx/react`'s
+    # public API and shipped with no version bump, and the existing consistency
+    # checks (semver line internally sane, pins match disk) would not have
+    # caught it — neither is a CHANGE check. This diffs the PR branch against
+    # its merge base with the target branch and fails for any governed
+    # `packages/*` artifact whose `src/` (or package.json dependencies) changed
+    # without its own `version` changing — comparing actual ref content rather
+    # than the diff, so a version bumped then reverted within the same PR still
+    # fails. Pull-request-only: the merge base it needs is the PR's base
+    # branch, which only exists as `GITHUB_BASE_REF` on `pull_request` events.
+    - name: Check version bump on substantive package change
+      if: github.event_name == 'pull_request'
+      run: npm run policy:version-bump-on-change
+
+    # Contract guard/compat CI wiring (branch review 5720fd49, finding B1):
+    # the ui-kit component-contract harness's own guard/compat pipeline was
+    # built but never invoked anywhere in CI, so nothing enforced it on a
+    # real PR. Unlike the version-bump check above, this step is not gated
+    # to `pull_request` - a merge to develop/main can itself land an
+    # uncovered breaking contract change, not only a PR - so it needs a base
+    # ref for both event shapes. CONTRACTS_POLICY_BASE_REF supplies one, the
+    # same way the step above reads GITHUB_BASE_REF for its own base: on
+    # `pull_request`, `origin/${{ github.base_ref }}` (the same value
+    # GITHUB_BASE_REF holds); on `push`, the commit this push moved FROM
+    # (`github.event.before`) - unless that is the all-zero SHA a branch's
+    # first push carries (nothing to diff against yet), in which case the
+    # env var is left empty and contracts-policy.mjs prints why it is
+    # skipping guard/compat (coverage still runs). Neither branch needs a
+    # secret: `github.base_ref` and `github.event.before` are both plain
+    # event-context values already available on this job's `github` object.
+    - name: Contract guard and compatibility
+      env:
+        CONTRACTS_POLICY_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || '' }}
+      run: npm run policy:contracts
+
+    # #540: the import-boundary check ADR-0003's confirmation section promised.
+    # The mfes barrel must not export concrete Default* implementations, and no
+    # code outside `packages/mfes` may import a concrete implementation name
+    # from `@gears-frontx/mfes` (or deep-import a subpath past the barrel) —
+    # consumers obtain the registry via `createMfeRegistryFactory()` alone.
+    # No build-order dependency: reads source files directly.
+    - name: Check mfes import boundary (ADR-0003)
+      run: npm run policy:mfes-import-boundary
+
+  studio-validate:
+    name: Studio Validate Artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+
+      - name: Install Constructor Studio CLI
+        run: pipx install "git+https://github.com/constructorfabric/studio.git@v1.6.2"
+
+      # .cf-studio/.core is gitignored (Constructor-Studio-owned, regenerated
+      # on demand) — materialize it before invoking studio.py directly.
+      - name: Bootstrap Constructor Studio runtime
+        run: cfs update -y --no-interactive --with-kits yes --version v1.6.2
 
       - name: Validate artifacts and traceability
-        run: python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py validate
+        run: python3 .cf-studio/.core/skills/studio/scripts/studio.py validate
 
-  cypilot-validate-kits:
-    name: Cypilot Validate Kits
+  studio-validate-kits:
+    name: Studio Validate Kits
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+
+      - name: Install Constructor Studio CLI
+        run: pipx install "git+https://github.com/constructorfabric/studio.git@v1.6.2"
+
+      - name: Bootstrap Constructor Studio runtime
+        run: cfs update -y --no-interactive --with-kits yes --version v1.6.2
 
       - name: Validate installed kits
-        run: python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py validate-kits
+        run: python3 .cf-studio/.core/skills/studio/scripts/studio.py validate-kits
 
-  cypilot-spec-coverage:
-    name: Cypilot Spec Coverage
+  studio-spec-coverage:
+    name: Studio Spec Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
+      - name: Install Constructor Studio CLI
+        run: pipx install "git+https://github.com/constructorfabric/studio.git@v1.6.2"
+
+      - name: Bootstrap Constructor Studio runtime
+        run: cfs update -y --no-interactive --with-kits yes --version v1.6.2
+
       - name: Check spec coverage thresholds
-        # TODO: Raise thresholds as coverage improves — see architecture/workflows/spec-coverage-improvement.md
-        # Threshold lowered from 52 → 51 after removing CI/CD YAML from codebase scan (publishing-pipeline markers removed)
+        # Threshold rebased for the post-split ecosystem repo. The framework/
+        # template split changed the scanned code: solution packages moved out
+        # to the templates repository, extracted core-substrate code
+        # (api/mfes/gts-plugin) moved in, and tooling scripts/ were removed
+        # from the scan. Extracted
+        # code + type/interface/glue lines cap fair @cpt marker density well
+        # below the old 58 (even greenfield cli/kit top out ~50-56%). Current
+        # honest coverage is ~41%; the bar sits just below it with headroom.
+        # Raise it as core-substrate (api/mfes/gts-plugin) traceability
+        # density improves over time.
+        #
+        # --min-coverage stays at 38. The scan is 10255 lines over 139 files, so
+        # 3 points below the honest 41% is ~308 lines of slack — a normal-sized
+        # change, not room for a whole unmarked package. Tightening it further
+        # buys ~100 lines and costs every in-flight PR a rebase.
+        #
+        # --min-granularity is the gap worth closing: 0.28 against an actual
+        # 0.7276 permitted covered code to be marked in blocks far coarser than
+        # anything in the tree today, which is the failure mode markers exist to
+        # prevent. 0.60 keeps 0.12 of headroom.
+        #
+        # The per-file flags cannot be used yet, and this is measured rather
+        # than assumed:
+        #   --min-file-coverage    fails on "any file", and 48 of the 139
+        #                          scanned files carry no markers at all, so any
+        #                          value above 0 fails today.
+        #   --min-file-granularity fails on "any covered file", and a small file
+        #                          fully covered by one block scores 0.00 — so it
+        #                          would fail on the best-covered files in the
+        #                          repo, not the worst.
+        # Per-system floors (--system) are the useful next step and need more than one
+        # registered system; today there is only `frontx`, so a per-system floor
+        # is the aggregate under another name.
         run: >-
-          python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py
+          python3 .cf-studio/.core/skills/studio/scripts/studio.py
           spec-coverage
-          --min-coverage 58
-          --min-granularity 0.28
+          --min-coverage 38
+          --min-granularity 0.60
 
   dependency-graph:
     runs-on: ubuntu-latest
@@ -91,6 +273,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
+      with:
+        persist-credentials: false
 
     - name: Setup Node.js
       uses: actions/setup-node@v5

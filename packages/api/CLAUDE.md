@@ -1,10 +1,12 @@
 # @gears-frontx/api
 
-API communication protocols and service registry for HAI3 applications.
+API communication protocols and service registry for FrontX applications.
 
-## SDK Layer
+## Core Framework Layer
 
-This package is part of the **SDK Layer (L1)** - it has zero @gears-frontx dependencies and can be used independently. It has `axios` as a peer dependency.
+This package is part of the **Core Framework layer** (`architecture/DESIGN.md` §1.3), alongside `@gears-frontx/mfes` and `@gears-frontx/gts-plugin`. It ships zero `@gears-frontx/*` runtime dependencies and can be used independently — only shared build-time config (`@gears-frontx/eslint-config`, `@gears-frontx/depcruise-config`) appears under devDependencies, and nothing under `src/` may import them. It has `axios` as a peer dependency.
+
+Enforced by `npm run arch:edges` (manifest edges) and `npm run arch:deps:core` (import graph).
 
 ## Core Concepts
 
@@ -13,13 +15,15 @@ This package is part of the **SDK Layer (L1)** - it has zero @gears-frontx depen
 Abstract base class for domain-specific API services:
 
 ```typescript
-import { BaseApiService, RestProtocol } from '@gears-frontx/api';
+import { BaseApiService, RestEndpointProtocol, RestProtocol } from '@gears-frontx/api';
 
 class AccountsApiService extends BaseApiService {
   constructor() {
+    const rest = new RestProtocol();
     super(
       { baseURL: '/api/accounts' },
-      new RestProtocol()
+      rest,
+      new RestEndpointProtocol(rest)
     );
   }
 
@@ -33,6 +37,41 @@ class AccountsApiService extends BaseApiService {
 }
 ```
 
+### Endpoint Descriptors
+
+Services declare read and write endpoints as descriptors. Cache keys are derived automatically from `[baseURL, method, path]`. No manual key factories needed.
+
+```typescript
+import { BaseApiService, RestEndpointProtocol, RestProtocol } from '@gears-frontx/api';
+
+class AccountsApiService extends BaseApiService {
+  constructor() {
+    const rest = new RestProtocol();
+    super({ baseURL: '/api/accounts' }, rest, new RestEndpointProtocol(rest));
+  }
+
+  // Static read endpoint — key: ['/api/accounts', 'GET', '/user/current']
+  readonly getCurrentUser = this.protocol(RestEndpointProtocol).query<User>('/user/current');
+
+  // Parameterized read endpoint — key: ['/api/accounts', 'GET', '/user/123', { id: '123' }]
+  readonly getUser = this.protocol(RestEndpointProtocol).queryWith<User, { id: string }>(
+    (params) => `/user/${params.id}`
+  );
+
+  // Read endpoint with cache config override
+  readonly getConfig = this.protocol(RestEndpointProtocol).query<AppConfig>('/config', {
+    staleTime: 600_000,  // 10 min
+    gcTime: Infinity,
+  });
+
+  // Write endpoint
+  readonly updateProfile = this.protocol(RestEndpointProtocol)
+    .mutation<User, ProfileUpdate>('PUT', '/user/profile');
+}
+```
+
+Components consume descriptors via `useApiQuery(service.endpoint)` — see `@gears-frontx/react`.
+
 ### API Registry
 
 Central registry for all API services:
@@ -45,8 +84,44 @@ apiRegistry.register(AccountsApiService);
 
 // Get service (type-safe with class reference)
 const accounts = apiRegistry.getService(AccountsApiService);
-const user = await accounts.getCurrentUser();
+const user = await accounts.getCurrentUser.fetch();
 ```
+
+### Stream Descriptors (SSE)
+
+Services declare SSE streaming endpoints as stream descriptors. Keys are derived from `[baseURL, 'SSE', path]`. The `SseStreamProtocol.stream()` contract routes through `SseProtocol` with full plugin chain support (including mock short-circuit via `SseMockPlugin`).
+
+```typescript
+import {
+  BaseApiService,
+  SseProtocol,
+  SseStreamProtocol,
+} from '@gears-frontx/api';
+
+class ChatApiService extends BaseApiService {
+  constructor() {
+    const sse = new SseProtocol();
+    super(
+      { baseURL: '/api/chat' },
+      sse,
+      new SseStreamProtocol(sse)
+    );
+  }
+
+  // SSE stream — key: ['/api/chat', 'SSE', '/stream/messages']
+  // Default parser: JSON.parse(event.data)
+  readonly messageStream = this.protocol(SseStreamProtocol)
+    .stream<ChatMessage>('/stream/messages');
+
+  // With custom parser
+  readonly rawStream = this.protocol(SseStreamProtocol).stream<string>(
+    '/stream/raw',
+    { parse: (event) => event.data }
+  );
+}
+```
+
+Components consume stream descriptors via `useApiStream(service.streamDescriptor)` — see `@gears-frontx/react`.
 
 ### Mock Support
 
@@ -143,7 +218,7 @@ const restProtocol = new RestProtocol({
 Mock mode is controlled centrally by the framework via the `toggleMockMode()` action. Services register mock plugins using `registerPlugin()`, and the framework activates/deactivates them based on mock mode state.
 
 ```typescript
-// In @gears-frontx/framework - toggle mock mode (used by HAI3 Studio)
+// In @gears-frontx/framework - toggle mock mode (used by FrontX Studio)
 import { toggleMockMode } from '@gears-frontx/framework';
 toggleMockMode(true);  // Enable all mock plugins
 toggleMockMode(false); // Disable all mock plugins
@@ -168,9 +243,12 @@ if (isMockPlugin(plugin)) {
 1. **Services extend BaseApiService** - Use the base class for protocol management
 2. **Register with class reference** - Call `apiRegistry.register(ServiceClass)`
 3. **One service per domain** - Each bounded context gets one service
-4. **Mock plugins via registerPlugin()** - Use `this.registerPlugin(protocol, mockPlugin)` in constructor
-5. **Mock mode via framework** - Framework controls mock plugin lifecycle via `toggleMockMode()`
-6. **Plugin identification by class** - Use class references, not string names
+4. **Endpoints as descriptors** - Use explicit descriptor contracts: `RestEndpointProtocol.query()`, `queryWith()`, `mutation()` for REST; `SseStreamProtocol.stream()` for SSE
+5. **Cache keys are automatic** - Derived from `[baseURL, method, path]` — never define manual key factories
+6. **No standalone query factories** - The service IS the data layer; MFEs do not add parallel query-factory layers
+7. **Mock plugins via registerPlugin()** - Use `this.registerPlugin(protocol, mockPlugin)` in constructor
+8. **Mock mode via framework** - Framework controls mock plugin lifecycle via `toggleMockMode()`
+9. **Plugin identification by class** - Use class references, not string names
 
 ## Retry Pattern
 
@@ -236,9 +314,16 @@ const restProtocol = new RestProtocol({ maxRetryDepth: 5 });
 
 ## Exports
 
-- `BaseApiService` - Abstract base class
+- `BaseApiService` - Abstract base class for protocol registration and plugin lifecycle
+- `EndpointDescriptor` - Read endpoint descriptor type (key + fetch + cache options)
+- `ParameterizedEndpointDescriptor` - Parameterized read endpoint descriptor type
+- `MutationDescriptor` - Write endpoint descriptor type
+- `StreamDescriptor` - SSE stream descriptor type (key + connect + disconnect)
+- `StreamStatus` - Stream connection status type (`'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'`)
 - `RestProtocol` - REST API protocol
 - `SseProtocol` - SSE protocol
+- `RestEndpointProtocol` - Declarative REST endpoint descriptor contract
+- `SseStreamProtocol` - Declarative SSE stream descriptor contract
 - `ApiPluginBase` - Abstract base class for plugins (no config)
 - `ApiPlugin` - Abstract generic class for plugins with config
 - `RestPlugin` - REST protocol plugin base class

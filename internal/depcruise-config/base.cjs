@@ -1,6 +1,6 @@
 /**
- * HAI3 Dependency Cruiser Base Configuration (L0)
- * Universal rules that apply to ALL HAI3 code
+ * FrontX Dependency Cruiser Base Configuration (L0)
+ * Universal rules that apply to ALL FrontX code
  *
  * This is the foundation layer - all other configs extend this.
  */
@@ -19,7 +19,11 @@ module.exports = {
     // It would flag legitimate standalone files like templates and test fixtures
   ],
   options: {
-    doNotFollow: '^node_modules',
+    // Matches at any depth, not just the root: npm nests a `node_modules`
+    // under a workspace whenever its pins conflict with the root's, and an
+    // anchored `^node_modules` lets traversal descend into those until
+    // dependency-cruiser OOMs (#523).
+    doNotFollow: '(^|/)node_modules/',
     exclude: {
       dynamic: true,
     },

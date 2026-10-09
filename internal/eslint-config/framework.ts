@@ -1,9 +1,9 @@
 /**
- * HAI3 ESLint Framework Configuration (L2)
+ * FrontX ESLint Framework Configuration (L2)
  * Rules for @gears-frontx/framework package
  *
  * Framework package CAN import:
- * - @gears-frontx/state, @gears-frontx/screensets, @gears-frontx/api, @gears-frontx/i18n (SDK packages)
+ * - @gears-frontx/state, @gears-frontx/mfes, @gears-frontx/api, @gears-frontx/i18n (SDK packages)
  *
  * Framework package CANNOT import:
  * - @gears-frontx/react (would create circular dependency)
@@ -57,7 +57,7 @@ export const frameworkConfig: ConfigArray = [
                 '**/core/actions/**',
               ],
               message:
-                'FLUX VIOLATION: Effects cannot import actions (circular flow risk). Effects only listen to events and update slices. See EVENTS.md.',
+                'FLUX VIOLATION: Effects cannot import actions (circular flow risk). Effects only listen to events and update slices.',
             },
           ],
         },

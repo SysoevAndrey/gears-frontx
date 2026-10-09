@@ -1,0 +1,357 @@
+/*
+ * Badge styles, translated from shadcn/ui (MIT, registry/bases/base/ui/
+ * badge.tsx plus the new-york-v4 style's geometry) to CSS Modules.
+ * Consumes only theme.css variables - no raw colors.
+ *
+ * The design spec's badge row draws six TONE specimens - Neutral, Success,
+ * Warning, Danger, Info, Accent - all on one recipe: a soft tinted fill
+ * with the tone's own color as the label. Its geometry is already what upstream's
+ * base rule below sets (4/8 padding, 4 gap, full radius, 12/16 medium), so
+ * the mockup added no geometry deltas; what it added is the tone family at
+ * the bottom of this file. Neutral is NOT among them: its drawn pair
+ * (muted fill, foreground label) is what `.variantSecondary` already paints
+ * token-for-token, so it stays that one variant rather than shipping a
+ * second name for the same paint.
+ *
+ * The mockup is silent on the other five upstream variants — it draws no
+ * solid-fill, bordered, or borderless badge at all — so `default`,
+ * `destructive`, `outline`, `ghost` and `link` keep their upstream paint
+ * rather than being overwritten by a tone that never claimed their slot.
+ * `destructive` (solid red under --destructive-foreground) and `danger`
+ * (soft red fill, red label) are therefore both here on purpose: two
+ * emphasis levels of the one red theme.css already names twice.
+ *
+ * Geometry is the size axis below, not this rule: padding, type and the one
+ * explicit height belong to whichever step is active. What stays here is
+ * what both steps share - the pill radius, the gap, the single-line rule
+ * and the transitions.
+ *
+ * There is no transparent border. The 1px border this file used to carry
+ * existed only so `outline` and the two ring states had something to
+ * recolor, and it added 2px to every badge's height, which is why the
+ * default measured 26 instead of the drawn 24 at that type step. Those
+ * three states now draw an INSET box-shadow instead: it paints in the same
+ * place and takes part in no layout, so all three keep the drawn height.
+ */
+
+.badge {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: fit-content;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  white-space: nowrap;
+  /* One offset for every underline this file draws (link's rest style and
+   * the tone hovers alike), so hover underlines sit at the same height
+   * across variants. */
+  text-underline-offset: 4px;
+  /*
+   * Colour and box-shadow crossfades only, no transform/geometry — not
+   * motion under WCAG 2.3.3, so deliberately left unguarded under
+   * prefers-reduced-motion.
+   */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* The icon box is 12 at every step: the spec draws one icon size for the
+ * badge and moves only the label. */
+.badge svg {
+  pointer-events: none;
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+/*
+ * The optional status dot, a 6px round lead-in the spec draws on the badge
+ * (and, under two other master names, on the same anatomy elsewhere).
+ * `currentColor` rather than a rule per variant: every variant already sets
+ * `color` to its own label tone, so the dot follows the tone for free, and
+ * it sits in the badge's own `gap` so the spacing is not dot-specific.
+ * 6px has no --space-* step and is not spacing anyway - it is the drawn
+ * size of a shape.
+ */
+.dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+/*
+ * The size axis, two steps. The spec draws ONE badge box, 20 tall on a
+ * 12/16 label with 2px of block padding and 8px of inline: 16 + 2 + 2 = 20,
+ * so the height falls out of the type rather than being restated. That step
+ * is `default`, which is also what an omitted `size` renders.
+ *
+ * `xs` is the count badge, and the spec draws no count badge at all, so the
+ * kit keeps the one it has: 10/14 with no block padding is 14 and the box
+ * is 18, so the height is set, and `min-width` is what actually governs a
+ * one-digit value, keeping it a circle-ish pill instead of a 6px-wide
+ * sliver.
+ *
+ * 2, 6, 18 and 20 are drawn sizes with no step on the spacing scale between
+ * --space-1 (4) and --space-2 (8). tokens.test.ts carries the reasoned
+ * exceptions for the two paddings; the value rule governs, not a rounding.
+ */
+.sizeXs {
+  height: 18px;
+  min-width: 20px;
+  padding-block: 0;
+  padding-inline: 6px;
+  font-size: var(--text-micro-size);
+  line-height: var(--text-micro-line-height);
+  /* The micro role ships the middle of its three drawn weights (500); the
+   * count badge is drawn on the 600 cut. The ramp names one weight per
+   * role, so the cut is set here, the same mixing this file already does
+   * with a --text-meta size under a --text-label weight. */
+  font-weight: 600;
+  letter-spacing: var(--text-micro-tracking);
+}
+
+.sizeDefault {
+  padding-block: 2px;
+  padding-inline: var(--space-2);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-meta-tracking);
+}
+
+/*
+ * Focus ring: the inset border/box-shadow idiom Input/Textarea use (color
+ * swap + inset box-shadow, geometry-stable — see input.module.css), PLUS an
+ * outside outline in the same tone, Button's own idiom (see
+ * button.module.css). The inset half alone isn't enough here: it borders
+ * the badge's own FILL, not just the page, and --ring equals --primary in
+ * light mode — a default-variant link Badge's inset ring then paints the
+ * exact color it's already sitting on and disappears. The outline sits
+ * clear of the fill (offset outside the border box), so its only WCAG
+ * 1.4.11 neighbor is ever the page/card background, never the badge's own
+ * color, the same guarantee button.module.css documents for its own ring.
+ * Only reachable at all once rendered as a link via `render`; a plain span
+ * is never in the tab order.
+ *
+ * The inset half is a full --border-width-focus, not --ring-inset: that
+ * token is the thickness a 2px ring adds INSIDE an existing 1px border,
+ * and this badge has no border for it to add to.
+ */
+.badge:focus-visible {
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 var(--border-width-focus) var(--ring);
+}
+
+@media (forced-colors: active) {
+  .badge:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* Declared after :focus-visible so the invalid ring wins while focused. */
+.badge[aria-invalid='true'] {
+  box-shadow: inset 0 0 0 var(--border-width-focus) var(--destructive);
+}
+
+.variantDefault {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+a.variantDefault:hover {
+  background-color: var(--primary-hover);
+}
+
+.variantSecondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+a.variantSecondary:hover {
+  background-color: color-mix(in oklab, var(--secondary) 80%, transparent);
+}
+
+/*
+ * The drawn destructive badge is a TINT, not a solid fill: --destructive at
+ * 10% of transparent in light, 20% in dark, under a --destructive label.
+ * Button's destructive variant carries the identical recipe; the two are
+ * meant to stay in step.
+ *
+ * The standing ban on destructive colour-mixes targets mixes anchored to
+ * --foreground, which lighten in dark and drop a --destructive-foreground
+ * label below its floor. This mix is anchored to `transparent` and carries
+ * a --destructive label instead, so that failure mode does not apply.
+ *
+ * The strength is a local so the theme overrides below restate one number
+ * instead of the whole recipe twice.
+ */
+.variantDestructive {
+  --tint: 10%;
+  --tint-hover: 20%;
+  background-color: color-mix(in oklab, var(--destructive) var(--tint), transparent);
+  color: var(--destructive);
+}
+
+[data-theme='dark'] .variantDestructive {
+  --tint: 20%;
+  --tint-hover: 30%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .variantDestructive {
+    --tint: 20%;
+    --tint-hover: 30%;
+  }
+}
+
+.variantDestructive:focus-visible {
+  box-shadow: inset 0 0 0 var(--border-width-focus) var(--destructive-ring);
+}
+
+/* Hover is the same tint one step stronger, in the same idiom, so the
+ * label never changes tone under the pointer. */
+a.variantDestructive:hover {
+  background-color: color-mix(in oklab, var(--destructive) var(--tint-hover), transparent);
+}
+
+/*
+ * The drawn category chip: a 1px ring and label in the brand blue over a
+ * tint of the same blue, 10% in light and 40% in dark. The label is the
+ * brand blue carrying 14% of --foreground, which is the drawn tone; unlike
+ * the destructive recipe above, anchoring to --foreground is what the spec
+ * draws here, and the label darkens in light and lightens in dark along
+ * with the fill it sits on rather than against it.
+ */
+.variantCategory {
+  --tint: 10%;
+  box-shadow: inset 0 0 0 var(--border-width) var(--primary);
+  background-color: color-mix(in oklab, var(--primary) var(--tint), transparent);
+  color: color-mix(in oklab, var(--foreground) 14%, var(--primary));
+}
+
+[data-theme='dark'] .variantCategory {
+  --tint: 40%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .variantCategory {
+    --tint: 40%;
+  }
+}
+
+/* The bordered variant's hairline, drawn as an inset shadow like the two
+ * ring states above so it costs the badge no height. */
+.variantOutline {
+  box-shadow: inset 0 0 0 var(--border-width) var(--border);
+  color: var(--foreground);
+}
+
+a.variantOutline:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.variantGhost {
+  color: var(--foreground);
+}
+
+a.variantGhost:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/*
+ * --link-foreground, not --primary, for the same reason as Button's link
+ * variant (see button.module.css): this is 12px text sitting directly on
+ * the page/card, and the dark --primary misses the 4.5:1 AA floor there
+ * (3.72:1 against --background) while --link-foreground is the text-safe
+ * token theme.css carries for exactly this seat (4.95:1 light / 7.75:1
+ * dark).
+ */
+.variantLink {
+  color: var(--link-foreground);
+}
+
+a.variantLink:hover {
+  text-decoration: underline;
+}
+
+/*
+ * Tone family — the mockup's Success/Warning/Danger/Info/Accent specimens.
+ * Each is the status pair theme.css already ships (`--x` over `--x-soft`),
+ * which is what those four -soft fills were carried for: theme.css records
+ * them as unread, kept "so a later tinted surface doesn't have to re-derive
+ * them". This is that surface. Accent is the same shape over the
+ * --accent/--accent-foreground pair, matching the mockup's Accent badge.
+ *
+ * Contrast: at this label size WCAG 1.4.3 asks 4.5:1, and on the drawn
+ * values three of these pairs do not reach it - light success 3.43:1,
+ * light warning 2.00:1, light danger 4.28:1 and dark danger 3.63:1, against
+ * light info 4.59:1, light accent 4.68:1, dark success 8.05:1, dark warning
+ * 10.03:1, dark info 6.62:1 and dark accent 13.77:1. The kit used to ship a
+ * corrected hex for each; under the value rule (see theme.css's header) the
+ * drawn value ships and the finding goes to the designer. Nothing here
+ * paints a local literal to work around it, which is the point: the pair is
+ * fixed where it is defined, or not at all.
+ *
+ * Hover does not recolor the fill. The idiom `a.variantDestructive` above
+ * once used mixes toward --foreground, which flips direction with the
+ * theme, and any darkening of these tints costs the label margin it does
+ * not have. Hover underlines instead: the spec draws no badge hover state,
+ * and Link's own hover above already establishes underline as this file's
+ * affordance for "hover, no color change".
+ */
+.variantSuccess {
+  background-color: var(--success-soft);
+  color: var(--success);
+}
+
+a.variantSuccess:hover {
+  text-decoration: underline;
+}
+
+.variantWarning {
+  background-color: var(--warning-soft);
+  color: var(--warning);
+}
+
+a.variantWarning:hover {
+  text-decoration: underline;
+}
+
+.variantDanger {
+  background-color: var(--danger-soft);
+  color: var(--danger);
+}
+
+a.variantDanger:hover {
+  text-decoration: underline;
+}
+
+.variantInfo {
+  background-color: var(--info-soft);
+  color: var(--info);
+}
+
+a.variantInfo:hover {
+  text-decoration: underline;
+}
+
+.variantAccent {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+a.variantAccent:hover {
+  text-decoration: underline;
+}

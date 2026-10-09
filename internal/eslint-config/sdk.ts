@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint SDK Configuration (L1)
+ * FrontX ESLint SDK Configuration (L1)
  * Rules for SDK packages: @gears-frontx/state, @gears-frontx/layout, @gears-frontx/api, @gears-frontx/i18n
  *
  * SDK packages MUST have:

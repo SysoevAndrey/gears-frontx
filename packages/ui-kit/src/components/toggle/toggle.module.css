@@ -1,0 +1,171 @@
+/*
+ * Toggle styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.toggle {
+  /*
+   * Substitutes for the preflight the kit lacks — same acute case as
+   * button.module.css: a real <button> is border-box by UA default, but
+   * this class also lands on Base UI's `render` escape hatch, where it
+   * isn't.
+   */
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background-color: transparent;
+  color: var(--muted-foreground);
+  font-family: inherit;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.toggle:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/*
+ * Pressed (Base UI's `data-pressed`, the Toggle equivalent of Switch's
+ * data-checked): the secondary pairing, which is what the spec paints a
+ * SELECTED control with. --accent is the highlighted-row role instead, so
+ * a pressed toggle wearing it would read as a focused menu row rather than
+ * a chosen option.
+ */
+.toggle[data-pressed] {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.toggle:focus-visible {
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .toggle:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* disabled opacity: see input.module.css */
+.toggle:disabled {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+.variantOutline {
+  border-color: var(--border-strong);
+  background-color: transparent;
+}
+
+/* The same neutral hover as the borderless toggle above: the drawn outline
+ * `hover` specimen fills with --muted and keeps its border, leaving the
+ * secondary fill to mean `pressed` on both variants alike. */
+.variantOutline:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+.variantOutline[data-pressed] {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border-strong);
+}
+
+/*
+ * The drawn third variant: a hairline in --border over nothing, a --muted
+ * hover, and the same secondary pairing for pressed. The spec binds a
+ * product-owned neutral for the hover fill, which this kit excludes by
+ * ownership; --muted is the kit-generic role at that value, the same
+ * substitution the segmented group already makes.
+ *
+ * The name is the spec's own. shadcn has none for this look, and the word
+ * carries no vendor or product term, so it is adopted as drawn.
+ */
+.variantSteel {
+  border-color: var(--border);
+  background-color: transparent;
+}
+
+.variantSteel:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Declared after the hover rule: a pressed steel toggle ignores hover, so
+ * the fill has to hold under the pointer. */
+.variantSteel[data-pressed],
+.variantSteel[data-pressed]:hover {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+/* Toggles sit on the same control/height scale as Button. */
+.sizeDefault {
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  min-width: var(--control-height-md);
+}
+
+.sizeSm {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  min-width: var(--control-height-sm);
+  border-radius: var(--radius-sm);
+}
+
+.sizeLg {
+  height: var(--control-height-lg);
+  padding: 0 var(--space-4);
+  min-width: var(--control-height-lg);
+}
+
+/* Icon children (e.g. a formatting glyph) — fixed at one size regardless of
+ * the toggle's own size, matching upstream (no per-size icon scale here,
+ * unlike Button's slotted icon). */
+.toggle svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/*
+ * Icon-only (`iconOnly`, set by toggle.tsx as a data attribute): square up
+ * whatever size step is active, the same derivation Button already carries
+ * (see button.module.css) rather than a size of its own - so an icon-only
+ * toggle exists at all three steps instead of one. At `sm` that is the
+ * drawn 32 box: aspect-ratio works off the border box here, so the
+ * hairline is inside the 32 rather than added to it.
+ */
+.toggle[data-icon-only] {
+  aspect-ratio: 1;
+  padding: 0;
+}
+
+/* The drawn icon-only glyph is 18, one step off the icon scale
+ * (12/16/20/24) - the same value the drawn utility button already sets for
+ * its own glyph (see button.module.css). */
+.toggle[data-icon-only] svg {
+  width: 18px;
+  height: 18px;
+}

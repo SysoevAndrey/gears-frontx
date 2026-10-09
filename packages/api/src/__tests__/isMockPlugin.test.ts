@@ -5,19 +5,23 @@
  * Validates OCP compliance - new mock plugins can be identified without modifying isMockPlugin.
  */
 
+import { describe, expect, it } from 'vitest';
 import { MOCK_PLUGIN, isMockPlugin, ApiPluginBase } from '../types';
-import { RestMockPlugin } from '../plugins/RestMockPlugin';
-import { SseMockPlugin } from '../plugins/SseMockPlugin';
+import { LocalRestMockPlugin, LocalSseMockPlugin } from './fixtures/mockPlugins';
 
 describe('isMockPlugin', () => {
-  describe('built-in mock plugins', () => {
-    it('should return true for RestMockPlugin', () => {
-      const plugin = new RestMockPlugin({ mockMap: {} });
+  // These fixtures are minimal local stand-ins for the template-owned RestMockPlugin/
+  // SseMockPlugin — RestMockPlugin/SseMockPlugin are just one example of a plugin that
+  // sets the MOCK_PLUGIN marker via RestPluginWithConfig/SsePluginWithConfig; the
+  // marker mechanism itself is what isMockPlugin validates, and that's api-owned.
+  describe('plugins built on RestPluginWithConfig/SsePluginWithConfig', () => {
+    it('should return true for a REST plugin using the marker', () => {
+      const plugin = new LocalRestMockPlugin({ mockMap: {} });
       expect(isMockPlugin(plugin)).toBe(true);
     });
 
-    it('should return true for SseMockPlugin', () => {
-      const plugin = new SseMockPlugin({ mockStreams: {} });
+    it('should return true for an SSE plugin using the marker', () => {
+      const plugin = new LocalSseMockPlugin({ mockStreams: {} });
       expect(isMockPlugin(plugin)).toBe(true);
     });
   });
@@ -68,14 +72,12 @@ describe('isMockPlugin', () => {
       }
       class DerivedMockPlugin extends BaseMockPlugin {}
 
-      // Note: Static properties are not inherited in JavaScript
-      // Each class needs to declare its own MOCK_PLUGIN symbol
       const basePlugin = new BaseMockPlugin();
       const derivedPlugin = new DerivedMockPlugin();
 
       expect(isMockPlugin(basePlugin)).toBe(true);
-      // Derived class doesn't inherit static symbol
-      expect(isMockPlugin(derivedPlugin)).toBe(false);
+      // Subclass constructor inherits static [MOCK_PLUGIN] from base
+      expect(isMockPlugin(derivedPlugin)).toBe(true);
     });
   });
 
@@ -85,17 +87,17 @@ describe('isMockPlugin', () => {
     });
 
     it('should be registered with Symbol.for for cross-realm compatibility', () => {
-      expect(MOCK_PLUGIN).toBe(Symbol.for('hai3:plugin:mock'));
+      expect(MOCK_PLUGIN).toBe(Symbol.for('frontx:plugin:mock'));
     });
 
-    it('should be present on RestMockPlugin class', () => {
-      expect(MOCK_PLUGIN in RestMockPlugin).toBe(true);
-      expect(RestMockPlugin[MOCK_PLUGIN]).toBe(true);
+    it('should be present on a REST plugin fixture class', () => {
+      expect(MOCK_PLUGIN in LocalRestMockPlugin).toBe(true);
+      expect(LocalRestMockPlugin[MOCK_PLUGIN]).toBe(true);
     });
 
-    it('should be present on SseMockPlugin class', () => {
-      expect(MOCK_PLUGIN in SseMockPlugin).toBe(true);
-      expect(SseMockPlugin[MOCK_PLUGIN]).toBe(true);
+    it('should be present on an SSE plugin fixture class', () => {
+      expect(MOCK_PLUGIN in LocalSseMockPlugin).toBe(true);
+      expect(LocalSseMockPlugin[MOCK_PLUGIN]).toBe(true);
     });
   });
 });

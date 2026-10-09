@@ -5,156 +5,46 @@
  * Validates API Communication feature acceptance criteria for REST plugins.
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RestProtocol } from '../protocols/RestProtocol';
-import { RestMockPlugin } from '../plugins/RestMockPlugin';
+import { LocalRestMockPlugin as RestMockPlugin } from './fixtures/mockPlugins';
 import { apiRegistry } from '../apiRegistry';
-import type { RestPluginHooks, RestRequestContext, RestResponseContext } from '../types';
+import type { ApiPluginErrorContext, RestPluginHooks, RestRequestContext } from '../types';
+import { createProtocolPluginTests } from './protocolPluginTestFactory';
+
+// ---------------------------------------------------------------------------
+// Shared structural tests (global management, instance management, ordering)
+// ---------------------------------------------------------------------------
+
+createProtocolPluginTests({
+  protocolName: 'RestProtocol',
+  ProtocolClass: RestProtocol,
+  makePlugin(): RestPluginHooks {
+    return {
+      onRequest: async (ctx) => ctx,
+      destroy: () => {},
+    };
+  },
+  makePluginWithDestroy(onDestroy: () => void): RestPluginHooks {
+    class DestroyableRestPlugin implements RestPluginHooks {
+      onRequest = async (ctx: RestRequestContext) => ctx;
+      destroy() { onDestroy(); }
+    }
+    return new DestroyableRestPlugin();
+  },
+});
+
+// ---------------------------------------------------------------------------
+// REST-specific tests
+// ---------------------------------------------------------------------------
 
 describe('RestProtocol plugins', () => {
   beforeEach(() => {
-    // Clear all plugins before each test
     apiRegistry.reset();
   });
 
   afterEach(() => {
     apiRegistry.reset();
-  });
-
-  describe('global plugin management via apiRegistry', () => {
-    it('should register global plugins', () => {
-      const plugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, plugin);
-      expect(apiRegistry.plugins.has(RestProtocol, plugin.constructor as never)).toBe(true);
-      expect(apiRegistry.plugins.getAll(RestProtocol)).toContain(plugin);
-    });
-
-    it('should remove global plugins by class and call destroy', () => {
-      let destroyCalled = false;
-
-      class TestPlugin implements RestPluginHooks {
-        onRequest = async (ctx: RestRequestContext) => ctx;
-        destroy() { destroyCalled = true; }
-      }
-
-      const plugin = new TestPlugin();
-      apiRegistry.plugins.add(RestProtocol, plugin);
-      apiRegistry.plugins.remove(RestProtocol, TestPlugin);
-
-      expect(apiRegistry.plugins.has(RestProtocol, TestPlugin)).toBe(false);
-      expect(destroyCalled).toBe(true);
-    });
-
-    it('should clear all global plugins and call destroy on each', () => {
-      let destroyCount = 0;
-
-      class TestPlugin implements RestPluginHooks {
-        onRequest = async (ctx: RestRequestContext) => ctx;
-        destroy() { destroyCount++; }
-      }
-
-      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
-      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
-
-      apiRegistry.plugins.clear(RestProtocol);
-
-      expect(apiRegistry.plugins.getAll(RestProtocol).length).toBe(0);
-      expect(destroyCount).toBe(2);
-    });
-  });
-
-  describe('instance plugin management', () => {
-    it('should register instance plugins', () => {
-      const restProtocol = new RestProtocol();
-      const plugin: RestPluginHooks = {
-        onRequest: async (ctx) => ctx,
-      };
-
-      restProtocol.plugins.add(plugin);
-      expect(restProtocol.plugins.getAll()).toContain(plugin);
-    });
-
-    it('should remove instance plugins and call destroy', () => {
-      const restProtocol = new RestProtocol();
-      let destroyCalled = false;
-      const plugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => { destroyCalled = true; },
-      };
-
-      restProtocol.plugins.add(plugin);
-      restProtocol.plugins.remove(plugin);
-
-      expect(restProtocol.plugins.getAll()).not.toContain(plugin);
-      expect(destroyCalled).toBe(true);
-    });
-  });
-
-  describe('plugin execution order', () => {
-    it('should execute global plugins before instance plugins', () => {
-      const executionOrder: string[] = [];
-
-      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => {
-          executionOrder.push('global');
-          return ctx;
-        },
-        destroy: () => {},
-      };
-
-      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => {
-          executionOrder.push('instance');
-          return ctx;
-        },
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, globalPlugin);
-
-      const restProtocol = new RestProtocol();
-      restProtocol.plugins.add(instancePlugin);
-
-      // Get plugins in order
-      const plugins = restProtocol.getPluginsInOrder();
-      expect(plugins.length).toBe(2);
-      expect(plugins[0]).toBe(globalPlugin);
-      expect(plugins[1]).toBe(instancePlugin);
-    });
-
-    it('should execute global plugins for all protocol instances', () => {
-      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, globalPlugin);
-
-      const protocol1 = new RestProtocol();
-      const protocol2 = new RestProtocol();
-
-      // Both instances should have access to global plugin
-      expect(protocol1.getPluginsInOrder()).toContain(globalPlugin);
-      expect(protocol2.getPluginsInOrder()).toContain(globalPlugin);
-    });
-
-    it('should execute instance plugins only for that instance', () => {
-      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      const protocol1 = new RestProtocol();
-      const protocol2 = new RestProtocol();
-
-      protocol1.plugins.add(instancePlugin);
-
-      expect(protocol1.plugins.getAll()).toContain(instancePlugin);
-      expect(protocol2.plugins.getAll()).not.toContain(instancePlugin);
-    });
   });
 
   describe('short-circuit with RestMockPlugin', () => {
@@ -223,13 +113,25 @@ describe('RestProtocol plugins', () => {
   });
 
   describe('onResponse hooks', () => {
-    it('should execute onResponse hooks in reverse order (LIFO)', () => {
+    it('should execute onResponse hooks in reverse order (LIFO)', async () => {
       const executionOrder: string[] = [];
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+      restProtocol.setRequestDispatcherForTest(async () => ({
+        status: 200,
+        headers: {},
+        data: { order: [] as string[] },
+      }));
 
       const plugin1: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin1');
-          return ctx;
+          return {
+            ...ctx,
+            data: {
+              order: [...((ctx.data as { order: string[] }).order), 'plugin1'],
+            },
+          };
         },
         destroy: () => {},
       };
@@ -237,7 +139,12 @@ describe('RestProtocol plugins', () => {
       const plugin2: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin2');
-          return ctx;
+          return {
+            ...ctx,
+            data: {
+              order: [...((ctx.data as { order: string[] }).order), 'plugin2'],
+            },
+          };
         },
         destroy: () => {},
       };
@@ -245,18 +152,9 @@ describe('RestProtocol plugins', () => {
       apiRegistry.plugins.add(RestProtocol, plugin1);
       apiRegistry.plugins.add(RestProtocol, plugin2);
 
-      const restProtocol = new RestProtocol();
-      const plugins = [...restProtocol.getPluginsInOrder()].reverse();
+      const result = await restProtocol.get<{ order: string[] }>('/test');
 
-      // Simulate onResponse execution order
-      plugins.forEach((p) => {
-        if (p.onResponse) {
-          const ctx: RestResponseContext = { status: 200, headers: {}, data: {} };
-          p.onResponse(ctx);
-        }
-      });
-
-      // LIFO order: plugin2 first, then plugin1
+      expect(result.order).toEqual(['plugin2', 'plugin1']);
       expect(executionOrder).toEqual(['plugin2', 'plugin1']);
     });
   });
@@ -295,18 +193,11 @@ describe('RestProtocol plugins', () => {
       const restProtocol = new RestProtocol();
       restProtocol.initialize({ baseURL: '/api' });
 
-      interface CapturedContext {
-        error: Error;
-        request: RestRequestContext;
-        retryCount: number;
-        retry: (modifiedRequest?: Partial<RestRequestContext>) => Promise<RestResponseContext>;
-      }
-
-      let capturedContext: CapturedContext | null = null;
+      const captured = { context: null as ApiPluginErrorContext | null };
 
       const retryPlugin: RestPluginHooks = {
-        onError: async (context) => {
-          capturedContext = context;
+        onError: async (context: ApiPluginErrorContext) => {
+          captured.context = context;
           return context.error;
         },
         destroy: () => {},
@@ -332,13 +223,14 @@ describe('RestProtocol plugins', () => {
         // Expected to throw
       }
 
-      expect(capturedContext).not.toBeNull();
-      expect(capturedContext?.error).toBeInstanceOf(Error);
-      expect(capturedContext?.error.message).toBe('Test error');
-      expect(capturedContext?.request).toBeDefined();
-      expect(capturedContext?.request.method).toBe('GET');
-      expect(capturedContext?.retryCount).toBe(0);
-      expect(typeof capturedContext?.retry).toBe('function');
+      expect(captured.context).not.toBeNull();
+      const ctx = captured.context!;
+      expect(ctx.error).toBeInstanceOf(Error);
+      expect(ctx.error.message).toBe('Test error');
+      expect(ctx.request).toBeDefined();
+      expect(ctx.request.method).toBe('GET');
+      expect(ctx.retryCount).toBe(0);
+      expect(typeof ctx.retry).toBe('function');
     });
 
     it('should retry with modified headers', async () => {

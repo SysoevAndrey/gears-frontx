@@ -1,0 +1,195 @@
+/*
+ * Input styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.input {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the horizontal padding and border
+   * on top of the declared height, rendering 46px instead of 36px — same
+   * acute case as tabs.module.css/badge.module.css, scoped the same way
+   * (this class only).
+   */
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  /* The mockups' Field spec: 40px tall — the lg step of the control scale
+   * (see theme.css; fields are drawn one step up from the md button). */
+  height: var(--control-height-lg);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-lg);
+  /* Fields sit raised, not transparent, per the Field spec (frame 193:433). */
+  background-color: var(--surface-elevated);
+  color: var(--foreground);
+  font-family: inherit;
+  /* text-base on small screens so iOS Safari does not zoom on focus */
+  font-size: 1rem;
+  line-height: 1.5rem;
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* Studio/Label metrics, applied whole (size/line-height/tracking) — fields
+ * draw the value in regular weight, not Label's own 500, so --text-body-
+ * weight stands in for the one metric this deliberately doesn't borrow
+ * from the role (kept explicit rather than left to inherit, so Input/
+ * Textarea/Select's field text all state the same thing the same way).
+ * The specimens' hand-set 18px line normalizes to the ramp's 16 under the
+ * tokens-win ruling (see theme.css) — desktop only; small screens keep
+ * 16px above so iOS Safari does not zoom on focus. */
+@media (min-width: 768px) {
+  .input {
+    font-size: var(--text-label-size);
+    line-height: var(--text-label-line-height);
+    font-weight: var(--text-body-weight);
+    letter-spacing: var(--text-label-tracking);
+  }
+}
+
+.input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.input::file-selector-button {
+  display: inline-flex;
+  /*
+   * The second preflight substitute in this file (see .input's box-sizing).
+   * Tailwind's reset lists ::file-selector-button alongside every element,
+   * so upstream's `file:` utilities land on a zeroed box; without it
+   * Chrome's UA `padding: 1px 6px` survives, indenting "Choose File" 6px
+   * past the field's own padding-inline and opening a 10px hole before the
+   * filename instead of upstream's 4px. Declared as the logical pair the
+   * UA ends up with, so the gap follows the writing direction under RTL.
+   */
+  padding: 0;
+  margin-block: 0;
+  margin-inline: 0 var(--space-1);
+  /* Upstream draws the button one control step below the field box (h-6
+   * inside h-8, i.e. 8px shorter); against this kit's --control-height-lg
+   * field that step is --control-height-sm. */
+  height: var(--control-height-sm);
+  border: 0;
+  background-color: transparent;
+  color: var(--foreground);
+  font-family: inherit;
+  /* It acts as a button, so it reads as one: Studio/Label, like Button. */
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+}
+
+.input:focus-visible {
+  /* The mockups' Field focus: a 2px --ring border, no halo (frame
+   * 193:383). Drawn as recolored 1px border + inset ring rather than a
+   * real width switch, so the text never shifts on focus/blur (see
+   * button.module.css). */
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--ring);
+}
+
+/* The ring above is an inset box-shadow, and forced-colors mode doesn't
+ * render box-shadow at all — add an explicit outline or the focus
+ * indicator disappears entirely under the mode. */
+@media (forced-colors: active) {
+  .input:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * cursor: not-allowed only — no pointer-events: none paired with it (that
+ * combination is self-cancelling: an element with no pointer events never
+ * gets to show a hover cursor at all, so the cursor rule would be dead
+ * code). A native `:disabled` input already refuses focus/typing on its
+ * own; this only supplies the hover affordance. 0.42 per the mockups'
+ * disabled specimens, matching Checkbox/RadioGroup/Switch/Label (this and
+ * Textarea/Select/Button were the outliers at 0.5).
+ */
+.input:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.input[aria-invalid='true'] {
+  border-color: var(--destructive);
+  box-shadow: inset 0 0 0 var(--ring-inset)
+    var(--destructive);
+}
+
+/*
+ * icon/end slot plumbing (see input.tsx): the wrapper positions the slots
+ * over the field; the input just clears space for whichever slots are
+ * present. The icon slot is aria-hidden decoration with pointer events
+ * off; the end slot is live content overlaid on the field's end padding.
+ */
+.wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.icon {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  top: 50%;
+  translate: 0 -50%;
+  display: inline-flex;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.icon svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.end {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  top: 50%;
+  translate: 0 -50%;
+  display: inline-flex;
+  align-items: center;
+}
+
+/*
+ * .icon renders before .input in the DOM (leading slot) and .end after
+ * (trailing slot), so a plain `~` sibling combinator can reach only one of
+ * them — a prior `.input:disabled ~ .end` rule matched .end but never
+ * .icon, leaving a disabled search field's magnifier at full strength
+ * while its border, text and placeholder dimmed. `:has()` lets .wrap test
+ * the input's disabled state and dim both slots from there regardless of
+ * DOM order — and regardless of *why* .input is disabled, since the direct
+ * `disabled` prop and a `<Field disabled>` ancestor both land on the real
+ * <input>, so this selector fires either way. `pointer-events: none` still
+ * only disarms the mouse, not Tab/Enter — see input.tsx's `inert` on .end
+ * for the keyboard fix, which only the direct-prop path can apply.
+ */
+.wrap:has(.input:disabled) .icon,
+.wrap:has(.input:disabled) .end {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+}
+
+/* Icon inset + the icon + a gap, so the text clears the leading icon. */
+.hasIcon {
+  padding-inline-start: calc(var(--space-3) + var(--icon-size-sm) + var(--space-2));
+}
+
+/* The end slot's stated maximum — a compact 32px icon-button — plus its
+ * inset and a gap. Wider end content is the consumer's padding to extend. */
+.hasEnd {
+  padding-inline-end: calc(var(--space-2) + var(--control-height-sm) + var(--space-1));
+}

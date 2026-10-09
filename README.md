@@ -1,334 +1,260 @@
-> VERSION: 0.1.0, early preview, do not use in production, overall scope completion ~30%
-
-# Gears FrontX - AI-Optimized UI Development Kit for Modern SaaS Applications
+# Gears FrontX — An Ecosystem for AI-Built Frontend Projects
 
 ![Badge](./.github/badgeHN.svg)
 
 
 
-**FrontX**, part of Gears, is a **UI development kit** for modern SaaS applications - heavily optimized for **AI-driven UI generation** with minimal human assistance.
+**FrontX** (part of Gears) is an **ecosystem for AI-driven creation of frontend projects**. It gives AI agents stable, narrow, explicitly-contracted capabilities to scaffold, extend, and evolve a project — instead of improvising against an open-ended codebase — while the human developers steering the work stay in control of intent and review.
 
-It provides a structured, multi-layered framework that enables **AI systems and humans to collaborate** on building, evolving, and refining complex user interfaces - from drafts and mockups to production-ready screens.
-
+**Templates** define what any given project *becomes*; the ecosystem provides the lifecycle and runtime mechanisms for assembling, extending, and evolving a project from them.
 
 ## Why FrontX?
 
-Building modern control panels for cloud service providers, corporate software vendors, and SaaS vendors requires solving complex challenges:
+Teams increasingly rely on AI agents to build and maintain frontends. For an agent to do that reliably it needs a product surface that is **stable, narrow, and explicitly contracted** — not an open-ended codebase to guess at. FrontX provides exactly that, across three recurring needs:
 
-- **Multitenancy**: Isolated data, configurations, and branding per customer/organization
-- **Role-Based Access Control**: Granular permissions that hide/show/disable UI elements based on user roles
-- **White-Label Support**: Per-tenant branding, themes, and feature sets
-- **Plugin Ecosystems**: Runtime-composable integrations without core code changes
-- **Global Enablement**: Multi-language, RTL/LTR, locale-aware formatting
-- **Flexible Build Options**: Web, desktop, on-premise & cloud from a single codebase
-- **High Customization**: Adjust control panel elements, views, dashboards & automation workflows
+- **Stable contracts an agent can target** — a versioned runtime and type-system substrate held to semantic-versioning discipline.
+- **A repository lifecycle an agent can drive end to end** — install, apply, assemble, validate, and upgrade templates, with per-template provenance and review-gated, reversible upgrades.
+- **AI tooling that knows the ecosystem out of the box** — and can be extended with knowledge specific to each template in use.
 
-FrontX addresses these challenges while enabling **AI-assisted development** to accelerate UI creation by 10x.
+## Who FrontX is for
 
+FrontX serves two groups of developers, each working alongside AI agents:
 
-## The Mission
-
-FrontX's mission is to **democratize powerful in-product UI customization and development** — making it accessible without deep programming expertise.
-
-Traditionally, advanced UI development capabilities are available only to SaaS vendors and their engineering teams. FrontX changes this by providing a framework that is:
-
-- **As powerful as traditional cloud-side UI development** — offering full flexibility and control
-- **Accessible without deep technical knowledge** — no need to master complex programming languages and frameworks
-- **AI-optimized** — structured for efficient collaboration between AI agents and humans
-
-This empowers:
-
-- **System Integrators** to deliver highly customizable solutions to their customers
-- **End customers** to build and modify UI applications within SaaS products themselves
-- **Non-technical stakeholders** (product managers, designers, business analysts) to participate directly in UI creation
-- **Rapid iteration** through AI-assisted development workflows
-
-By combining structured conventions, AI-optimized patterns, and a layered architecture, FrontX bridges the gap between no-code simplicity and full-code flexibility—making enterprise-grade UI development accessible to everyone.
-
-
-## Target Audience
-
-FrontX dev kit is designed for:
-
-- **Cloud SaaS Service Providers** requiring multitenant architectures with tenant isolation and customization
-- **Service Vendors** developing white-label solutions with per-customer branding and feature sets
-- **Corporate Software Vendors** building modern control panels for complex business applications
-- **System Integrators** creating pluggable control panels with third-party integrations
-- **Platform/IT Teams** building internal tools and admin portals with role-based access control
-
+- **Template Developers** design, version, and publish the templates other teams build from. They need stable product contracts, pre-publish validation, semantic-versioning discipline, a way to declare the boundaries of what a template owns so independently-authored templates assemble without conflict, and a way to bundle template-specific AI capabilities.
+- **Project Developers** assemble a repository from one or more templates and build business code on top. They need predictable assembly output, reliable per-template upgrades, a clear boundary between what the ecosystem provides and what the application must supply, and AI agents that already understand both the ecosystem and the templates in use.
 
 ---
 
-## Overview
+## What FrontX Delivers
 
-The FrontX Dev Kit introduces a new paradigm in UI development where product management and designers can work with AI to create and polish user interfaces and engineers can take the generated code and turn it into production-ready code.
+FrontX delivers on the above through three capability sets. Architecturally the
+ecosystem is partitioned into three layers — **published libraries** (consumed as
+versioned dependencies), **templates** (applied to produce project content), and
+**projects orchestration** (tooling that drives a project's lifecycle) — described
+in [DESIGN.md](./architecture/DESIGN.md).
 
-With FrontX, UI development becomes a **three-layer process** where AI and humans co-create interfaces:
-- AI generates **draft** layouts using standardized prompts and patterns.
-- Designers and PMs refine **mockups** with lightweight iteration over drafts.
-- Engineers finalize **production screens** with reusable components taking the mockups as a starting point.
+### Core Framework
 
-FrontX provides the visual structure (menu, header, footer, sidebars, main view), defines source code layout conventions, microfrontend engine, customizable type system, and a screen-set switcher ensuring that generated screens reuse needed components libraries and visual styles. It also provides a structured prompting system and AI generation guide set that enables consistent, parameterized UI generation via LLMs.
+Makes an application **runtime-extensible by composable microfrontends** over a
+substrate for typed entities:
 
----
+- Microfrontends register with the application and load on demand
+- Multiple microfrontends can share an extension domain when it permits it
+- Microfrontends communicate with the host and react to host state changes
+- Microfrontends and their extensions are validated against type definitions at registration
+- Applications register their own type definitions, at build time or at runtime
+- UI-framework-agnostic — the core framework never constrains that choice
+- Versioned releases with semantic-versioning discipline
 
-## Key FrontX Use-cases and Values
+Packages: `@gears-frontx/mfes` (runtime substrate), `@gears-frontx/gts-plugin`
+(default type-system provider), `@gears-frontx/api` (API protocols + registry).
 
-The FrontX Dev Kit is built on top of the following key values below allowing it to be used for different usecases starting from a single desktop application to multitenant and mulit-user SaaS  control panel development:
+### CLI
 
-- **V#1** - Human-Configurable UI-Core - layout, styles, build targets
-- **V#2** - Layout-Safe Screen Generation - AI/Human code separation
-- **V#3** - Component and Style Consistency - design system enforcement
-- **V#4** - Modular Screen Architecture - composable building blocks
-- **V#5** - Pluggable UI Microfrontends - secure plugin ecosystem
-- **V#6** – Shared/Private Store and Global/Local State - performance and offline-first
-- **V#7** – Unified API Layer - typed contracts and observability
-- **V#8** - Security, Multitenancy & Role-based Access - enterprise SSO and compliance
-- **V#9** - Internationalization & Localization - global deployment ready
-- **V#10** - Testing and Quality Gates - automated QA pipeline
+Owns the **full lifecycle of assembling and evolving a repository from
+templates**:
 
-See [MANIFEST.md](architecture/PRD.md) for detailed descriptions of each value.
+- Install, list, update, and validate templates from a versioned source
+- Apply a template to seed a new repository or extend an existing one
+- Assemble a repository from multiple templates, resolving referenced presets
+- Declare each template's ownership boundaries; detect and prevent conflicting assembly before any file is written
+- Record each applied template's provenance independently
+- Upgrade each applied template independently, as a reviewable change set
 
-FrontX is structured around **three main projections**, each addressing a critical dimension of the development lifecycle.
+Package: `@gears-frontx/cli` — the `frontx` executable, which ships zero bundled
+templates.
 
-### Projection #I - Assets
+### AI Tooling Framework
 
-| Asset | Description |
-|--------|--------------|
-| **1. UI Core** | The foundational layer providing the visual structure (menu, header, footer, sidebars, main view). Defines source layout conventions, microfrontend engine, customizable type system, and a screen-set switcher. |
-| **2. Prompts & Guidelines** | A structured prompting system and AI generation guide set that enables consistent, parameterized UI generation via LLMs. |
-| **3. Build System** | Flexible build pipeline that can produce Web apps or Electron apps, configure included screen-sets, and pull screens from multiple repositories, and also build the mock API servers automatically. |
+Equips **AI agents with ecosystem-wide capabilities** and lets templates
+contribute their own:
 
-Each FrontX project includes these three assets to ensure **repeatable, automatable, and composable** UI generation workflows.
+- FrontX-specific skills for agents (create microfrontends, validate templates, generate type definitions, …)
+- Template-bundled AI extensions — skills, workflows, guidelines, reference artifacts — alongside the base capabilities
+- Automatic discovery and activation of installed-template extensions, with no manual wiring
+- AI-driven upgrade orchestration with review gates and impact analysis
+- Ecosystem knowledge available at session start, with no training step
+- Template-agnostic: ships zero template-specific content
 
----
+Package: `@gears-frontx/cyber-pilot-kit-frontx` — the AI Tooling Kit.
 
-### Projection #II - Screen-Set Categories
-
-The UI Core is built to host **three categories of screen-sets**, corresponding to the evolution stages of an interface.
-
-| Category | Purpose | Description |
-|-----------|----------|-------------|
-| **1. Drafts** | AI-generated layouts | Automatically created by AI agents using FrontX prompt sets, rules and conventions. Multiple draft sets can coexist (e.g., per PM or feature group). |
-| **2. Mockups** | Semi-refined screens | Converted from drafts when human designers or PMs start refining visual and interaction details. |
-| **3. Production Screens** | Finalized versions | Human-polished mockups integrated into production builds. |
-
-Each category lives in its own folder and is accessible via the **screen-set switcher** - allowing instant preview or live toggling across versions directly in the UI.
-
----
-
-### Projection #III - UI Core Layers
-
-FrontX’s **UI Core** consists of three architectural layers designed for composability and reuse.
-
-| Layer | Description |
-|--------|-------------|
-| **1. Presentation Layer** | Component library including buttons, grids, menus, modals, typography, and TailwindCSS-based style sets. |
-| **2. Layout Layer** | Defines the visual structure - menu, header, footer, right sidebar, popup window system, and screen containers. |
-| **3. Libraries Layer** | Includes shared utilities: HTTP store, event system, plugin host, and microfrontend integration engine. |
-
-The combination of these layers allows developers to **compose UI experiences** from modular parts, shared repos, and AI-generated code.
+Together these let an AI agent carry a project from first scaffold through
+ongoing extension and version upgrades, while **Template Developers** and
+**Project Developers** stay in control of intent and review.
 
 ---
 
-## AI + Human Collaboration Model
+## How AI agents and humans collaborate
 
-FrontX defines a **three-stage development workflow** that maximizes AI efficiency while maintaining code quality:
+FrontX is built so an **AI agent can carry a project through its whole
+lifecycle** — from first scaffold, through ongoing extension, to version
+upgrades — while **humans stay in control of intent and review**:
 
-![pipeline.drawio.png](architecture/pipeline.drawio.png)
+- **Agents drive the lifecycle** — installing and applying templates, assembling repositories, adding microfrontends, and proposing upgrades through the ecosystem's contracted CLI and AI-tooling surfaces.
+- **Humans steer and approve** — Template Developers and Project Developers set intent, and every template upgrade lands as a **reviewable change set** approved before it touches repository files, with non-destructive rollback.
+- **Template-bundled AI capabilities activate automatically** — when a template that ships its own skills, workflows, and guidelines is installed, agents gain those capabilities with no manual wiring.
 
-### Stage 1: Drafts (AI-Driven)
+## What FrontX does not include
 
-- AI generates initial screen layouts from prompts, requirements and existing API specs (if any)
-- Multiple draft variants can be generated and compared
-- Drafts live in isolated folders and don't affect production code
-- **Typical time**: Minutes to hours (vs. days for manual development)
+FrontX is UI-framework-agnostic and ships **no application layer**. The
+following are owned by **templates** and the projects assembled from them, never
+by the ecosystem:
 
-### Stage 2: Mockups (AI-Assisted, Human-Refined)
+- UI component libraries, styling, and theming
+- Layout choices — which extension domains exist, what they are called, and what occupies them
+- State management, internationalization, and authentication
+- Build-tooling configuration, and application business logic of any kind
 
-- Designers and Product Managers refine drafts with visual and interaction details
-- AI assists with component selection and style consistency
-- Mockups can be previewed in-app via a screen-set switcher
-- **Typical time**: Hours to days (vs. weeks for manual development)
-
-### Stage 3: Production (Human-Polished)
-
-- Engineers integrate mockups with business logic and APIs
-- Engineers can review API suggestions and generate mock API servers automatically
-- Code review, cleanup, testing, and optimization
-- Production screens inherit all UI-Core capabilities (theming, i18n, RBAC, etc.)
-- **Typical time**: Days (vs. weeks for manual development)
-
-**Result**: 10x faster UI development with maintainable, enterprise-grade code.
+That boundary is what lets one runtime host any application shape while the CLI
+and AI Tooling Framework carry a project through its lifecycle.
 
 ## Getting Started
 
 ### Requirements
 
-- Node.js 18+
-- npm 9+
+- Node.js 24+
+- npm 10+
 
-### Quick Start
-
-#### Option 1: Create a new project with CLI (Recommended)
+### Install the CLI
 
 ```bash
-# Install FrontX CLI globally
-npm install -g @cyberfabric/cli
-
-# Create a new project (full app with UI)
-frontx create my-app
-
-# Navigate to project and start development
-cd my-app
-npm run dev
+npm install -g @gears-frontx/cli
 ```
 
-#### Creating Layer-Specific Packages
+The `frontx` CLI is your entry point to the ecosystem. It resolves templates
+from a source you name and manages them across a project's lifecycle; it ships
+no templates of its own — what an application *becomes* is defined by whichever
+template you apply.
 
-For building SDK packages that integrate with the FrontX ecosystem:
+### Scaffold and evolve a project
 
 ```bash
-# Create an SDK-layer package (no FrontX dependencies, no React)
-frontx create my-sdk-package --layer sdk
+# Install a template from a versioned source (host:owner/repo[//subtree]@ref)
+frontx install github:acme/starter-repo@v1.0.0
 
-# Create a framework-layer package (depends on SDK packages only)
-frontx create my-framework-package --layer framework
+# Install a template that occupies a subtree of a repository
+frontx install github:acme/templates//shell@v1.0.0
 
-# Create a React-layer package (depends on @cyberfabric/framework)
-frontx create my-react-package --layer react
+# List installed templates by the identity each manifest declares
+frontx list
+
+# Seed a new repository from an installed template, by that identity -
+# which is what the manifest declares, not the repository it came from.
+# Here github:acme/starter-repo declares "@acme/web-app" in its manifest.
+frontx seed @acme/web-app ./my-app
+
+# Or add a template into an existing repository — writes only the ground the
+# template declares, and refuses, naming the paths, where that ground already
+# holds content no provenance accounts for
+frontx add @acme/web-app ./existing-repo
+
+# Later, upgrade an applied template to a newer version (reviewable change set)
+frontx upgrade ./my-app 1.1.0
 ```
 
-Each layer package includes:
-- Layer-appropriate `.ai/GUIDELINES.md` with filtered routing rules
-- Layer-filtered `.ai/targets/` (only targets applicable to that layer)
-- Layer-specific AI commands (with variant selection fallback chain)
-- Pre-configured ESLint with layer restrictions (e.g., no React imports in SDK layer)
+`acme` above is a placeholder: any repository can publish templates. The FrontX
+templates are published from
+[`constructorfabric/gears-frontx-templates`](https://github.com/constructorfabric/gears-frontx-templates).
+See that repository's README for the templates it publishes and the source-spec
+to install one.
 
-#### Option 2: Clone this repository
+The CLI records each applied template's provenance under the project's
+`.frontx/` and can upgrade each independently. See [QUICK_START.md](QUICK_START.md)
+for the full command walkthrough and AI-tooling usage.
+
+### The FrontX CLI
+
+The `frontx` CLI resolves templates from a source you name and manages them
+within a project. It bundles no templates of its own.
+
+| Command | Purpose |
+|---------|---------|
+| `frontx install <spec>` | Install a template from a source-spec (`host:owner/repo[//subtree]@ref`) into the local inventory, tracked under the identity its manifest declares |
+| `frontx list [--json]` | List installed templates; `--json` emits one machine-readable record per entry, carrying its identity, pinned reference, source address and the description its manifest declares |
+| `frontx seed <templateRef> <targetDir>` | Seed a **new** repository from a template; `templateRef` is the identity shown by `frontx list`, not the repository name |
+| `frontx add <templateRef> <targetDir>` | Add a template into an **existing** repository; writes only the ground the template declares and refuses, naming the paths, where that ground already holds content no applied template's provenance accounts for |
+| `frontx upgrade <projectRoot> <version>` | Upgrade an applied template (reviewable change set) |
+| `frontx validate <templateDir>` | Validate a template manifest for publication |
+| `frontx update-local <identity> <spec>` | Refresh a locally installed template from its source |
+
+### AI Tooling
+
+The AI Tooling Framework is delivered as a **Constructor Studio kit**
+(`cyber-pilot-kit-frontx`) — the kit *is* the framework's public surface. It is
+installed/updated through the **Constructor Studio CLI** (`cfs`), not the
+`frontx` CLI and not as an npm dependency. The kit lives inside this monorepo,
+so it installs from the repository subdirectory:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Cyber Fabric/FrontX.git
-cd FrontX
+cfs kit install git/https://github.com/constructorfabric/gears-frontx//packages/cyber-pilot-kit-frontx
 
-# Install dependencies
+# or, from a local checkout of this repository
+cfs kit install path/packages/cyber-pilot-kit-frontx
+```
+
+On install, its `frontx_`-prefixed resources (KIT-1) register in the project's
+`.cf-studio/config/core.toml` and become available to agents at session start —
+no training step. As shipped today the kit provides four capabilities:
+
+- **Ecosystem fluency and request routing** — a top-level skill (`SKILL.md`), navigation rules (`AGENTS.md`), and boundary guidelines that let agents reason correctly about MFEs, extension domains, source-specs, and the ecosystem/template boundary. Its routing section states which capability serves each kind of FrontX request.
+- **Intent-driven project scaffolding** — the developer says what they want built rather than naming a template; the kit matches that intent against the descriptions installed templates declare, applies the chosen set by running `frontx seed`/`frontx add`, and then realizes each unit the intent names through the applied templates' own activated skills. The direct CLI path stays available unchanged for a developer who already holds a reference.
+- **Template-extension discovery & activation** — a template can ship its own skills, workflows, guidelines, and reference artifacts; on `frontx install`, the kit discovers and activates them in the consuming project, with no manual wiring.
+- **AI-driven upgrade orchestration** — the kit drives template upgrades over the CLI's machine-readable command surface (`frontx upgrade --json`), layering review gates, migration analysis, and downstream impact assessment onto the direct CLI path.
+
+Standalone skills such as creating a microfrontend or generating type
+definitions are PRD-declared (under the `project`/`mfe` namespaces) but not yet
+shipped as discrete skills. The framework is template-agnostic and ships zero
+template-specific content; template-specific capabilities arrive through
+template bundles.
+
+### Repository Structure
+
+This repository ships the **ecosystem** — the runtime, type system, API layer,
+CLI, and AI kit. What an application *becomes* is defined by templates, which
+live and version outside this repository, in the templates repository linked
+above.
+
+```bash
+FrontX/                              # Ecosystem repository root
+├── architecture/                   # Constructor Studio SDLC artifacts (PRD, DESIGN, ADR, features)
+├── packages/                       # Ecosystem packages (published to npm)
+│   ├── mfes/                       # Published library (core, standalone): MFE runtime — registration, loading, mounting, isolation
+│   ├── gts-plugin/                 # Published library (core, standalone): GTS default type-system provider plugin
+│   ├── api/                        # Published library (core, standalone): API communication protocols + service registry
+│   ├── telemetry/                  # Published library (core, standalone): browser telemetry SDK
+│   ├── ui-kit/                     # Published library (standalone): UI components (artifact chain is recorded debt)
+│   ├── cli/                        # Projects orchestration: template-resolution CLI (`frontx`)
+│   └── cyber-pilot-kit-frontx/     # Projects orchestration: AI Tooling Kit
+├── internal/                       # Internal build/lint config workspaces
+├── scripts/                        # Architecture, version-policy, and test tooling
+└── tsconfig.json                   # TypeScript config (ecosystem packages only)
+```
+
+### Developing the Ecosystem
+
+To work on the ecosystem packages themselves — the runtime, type system, API
+layer, CLI, and AI kit:
+
+```bash
+git clone https://github.com/constructorfabric/gears-frontx.git
+cd gears-frontx
 npm ci
-
-# Build packages
-npm run build:packages
-
-# Run the development server
-npm run dev
+npm run build:packages       # build all ecosystem packages
+npm run test:unit            # unit tests across packages/* and scripts/
+npm run arch:check           # architecture-boundary gates
+npm run arch:deps            # dependency-boundary rules
 ```
 
-### Project Structure
-
-```bash
-FrontX/                               # Repository root
-├── .ai/                            # AI prompting rules and GUIDELINES for generation
-├── architecture/                   # Cypilot architecture artifacts
-│   ├── PRD.md                      # Product requirements (from MANIFEST)
-│   ├── DESIGN.md                   # System design and domain model
-│   └── DECOMPOSITION.md           # Feature roadmap and decomposition
-├── index.html                      # Vite HTML entry
-├── packages/                       # Workspaces with reusable libraries
-│   ├── state/                      # SDK L1: Event bus, store, and slices
-│   ├── api/                        # SDK L1: API services and protocols
-│   ├── i18n/                       # SDK L1: Internationalization
-│   ├── screensets/                 # SDK L1: Screenset types and utilities
-│   ├── framework/                  # L2: Plugin system and registries
-│   ├── react/                      # L3: React bindings and hooks
-│   ├── studio/                     # Development overlay (optional)
-│   └── cli/                        # CLI tool for project scaffolding
-├── src/                            # App source code
-│   ├── App.tsx                     # Root React component
-│   ├── main.tsx                    # App entry; mounts React and providers
-│   ├── screensets/                 # Screensets (category in config)
-│   │   ├── demo/                   # Demo screenset
-│   │   ├── _blank/                 # Blank screenset template
-│   │   └── screensetRegistry.tsx   # Registry to switch screen-sets
-│   └── themes/                     # Theme tokens and registries
-├── tailwind.config.ts              # TailwindCSS configuration
-├── tsconfig.json                   # TypeScript config (root)
-├── tsconfig.node.json              # TS config for tooling/node
-└── vite.config.ts                  # Vite build/dev configuration
-```
-
-### SDK Architecture (4-Layer)
-
-FrontX follows a layered architecture for maximum flexibility:
-
-```
-L1 (SDK)        @cyberfabric/state, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/screensets
-                Zero cross-dependencies, no React, use anywhere
-                    ↓
-L2 (Framework)  @cyberfabric/framework
-                Plugin system, registries, composed from SDK
-                    ↓
-L3 (React)      @cyberfabric/react
-                React bindings, hooks, providers
-                    ↓
-L4 (App)        User application code
-                Screensets, themes, custom components
-```
-
-**Use Cases:**
-- **Full FrontX**: Import `@cyberfabric/react` for complete platform with UI
-- **Headless/External**: Import `@cyberfabric/framework` for screensets-only (no UI)
-- **Custom Integration**: Import SDK packages directly for maximum control
-
-### Creating a New Screen-Set
-
-Use the FrontX CLI to create screensets:
-
-```bash
-# Create a new screenset
-frontx screenset create my-screenset
-
-# Copy an existing screenset with transformed IDs
-frontx screenset copy demo myDemo
-```
-
-After creation:
-1. Add new screens using your favorite AI agent or IDE
-2. The screenset auto-registers via Vite glob pattern
-3. Run `npm run dev` and switch to the new screenset via the UI selector
-
-### Testing
-
-From the monorepo root, the canonical entry for all unit tests (host app, workspace packages, and nested MFEs) is:
-
-```bash
-npm run test:unit
-```
-
-Use `npm run test:unit:watch` for interactive runs. Conventions and monorepo-specific behavior are described in [`.ai/project/targets/UNIT_TESTING.md`](.ai/project/targets/UNIT_TESTING.md); contributors should also read the [Validation](CONTRIBUTING.md#validation) section in [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### Updating AI Configuration
-
-When FrontX updates are released, use the update command to sync your project:
-
-```bash
-# Update AI configuration and templates
-frontx update
-```
-
-For layer packages, the update respects your project's layer (stored in `frontx.config.json`) and only syncs layer-appropriate targets and commands.
-
-See [GUIDELINES.md](.ai/GUIDELINES.md) for detailed development guidelines.
-
-### Building a Plugin/Integration
-
-TODO
+`npm run test:unit` fans out to every ecosystem package under `packages/*` and to
+the repo-root `scripts/` toolchain; use
+`npm run test:unit:watch` while iterating. Contributors should read the
+[Validation](CONTRIBUTING.md#validation) section in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
 - **[DECOMPOSITION.md](architecture/DECOMPOSITION.md)**: Project roadmap and feature decomposition
 - **[PRD.md](architecture/PRD.md)**: Core philosophy, principles, and values
-- **[GUIDELINES.md](.ai/GUIDELINES.md)**: Development guidelines for AI and humans
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to contribute to the project (includes validation and unit-test commands)
-- **[UNIT_TESTING.md](.ai/project/targets/UNIT_TESTING.md)**: Unit-test contract and monorepo runner rules
 
 ## Community & Support
 
@@ -344,8 +270,9 @@ FrontX is available under the [Apache License 2.0](LICENSE).
 ## Credits
 
 Built with:
-- [React](https://react.dev/) - UI framework
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Tailwind CSS](https://tailwindcss.com/) - Styling system
-- [shadcn/ui](https://ui.shadcn.com/) - Component library
-- [Electron](https://www.electronjs.org/) - Desktop app framework
+- [TypeScript](https://www.typescriptlang.org/) - Type safety across the ecosystem
+- [Vitest](https://vitest.dev/) - Unit testing
+- [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) - Architecture-boundary enforcement
+
+UI framework, styling, component library, and build-target choices are made by
+each template — FrontX itself is UI-framework-agnostic.

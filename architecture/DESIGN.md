@@ -1,5 +1,10 @@
-# Technical Design — HAI3 Dev Kit
+---
+type: DESIGN
+system: frontx
+status: final
+---
 
+# Technical Design - FrontX Ecosystem
 
 <!-- toc -->
 
@@ -7,6 +12,8 @@
   - [1.1 Architectural Vision](#11-architectural-vision)
   - [1.2 Architecture Drivers](#12-architecture-drivers)
   - [1.3 Architecture Layers](#13-architecture-layers)
+  - [1.4 Ownership Matrix](#14-ownership-matrix)
+  - [1.5 Artifact Chain Policy](#15-artifact-chain-policy)
 - [2. Principles & Constraints](#2-principles--constraints)
   - [2.1 Design Principles](#21-design-principles)
   - [2.2 Constraints](#22-constraints)
@@ -18,884 +25,425 @@
   - [3.5 External Dependencies](#35-external-dependencies)
   - [3.6 Interactions & Sequences](#36-interactions--sequences)
   - [3.7 Database schemas & tables](#37-database-schemas--tables)
+  - [3.8 Deployment Topology](#38-deployment-topology)
 - [4. Additional context](#4-additional-context)
+  - [Technology stack alignment](#technology-stack-alignment)
+  - [Capacity and NFR thresholds](#capacity-and-nfr-thresholds)
+  - [Non-applicable checklist categories](#non-applicable-checklist-categories)
+  - [Member Pointers](#member-pointers)
 - [5. Traceability](#5-traceability)
 
 <!-- /toc -->
+
+- [ ] `p3` - **ID**: `cpt-frontx-design-ecosystem`
 
 ## 1. Architecture Overview
 
 ### 1.1 Architectural Vision
 
-HAI3 is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, and screen-set contracts. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@gears-frontx/studio`, `@gears-frontx/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
+The FrontX ecosystem is delivered as a set of independently published, independently versioned artifacts, each owning a single concern and integrating with the others only through narrow, explicit contracts. These artifacts are partitioned into three **layers**, each defined by the role its members fill rather than by which packages currently fill it: **published libraries** — units consumed as versioned dependencies; **templates** — units applied to produce or extend a project, delivering content the receiving project then owns, hosted outside this repository and resolved by versioned source-spec; and **projects orchestration** — units that act on a project's lifecycle across the other two layers, from first scaffold through upgrade, including the AI tooling that delivers ecosystem fluency to agents. The partition, each layer's membership property, and the federated ownership of the artifacts describing members are defined in §1.3; the current members are located through the member pointers in §4. Per-concern independent versioning lets each artifact evolve on its own semver line and cadence while consuming applications upgrade on theirs rather than in lockstep; the one compile-time coupling edge inside the published-libraries layer — the runtime's dependency on its default type-system provider — is bounded by a satisfiable semver range rather than a matched version number (`cpt-frontx-fr-versioned-platform-evolution`, `cpt-frontx-nfr-evolvability`).
 
-This layering enforces a strict dependency direction: higher layers depend on lower layers, never the reverse. L1 packages have zero cross-dependencies, meaning any SDK package can be used in isolation — in a Node.js CLI, a web worker, or a non-React rendering engine. The plugin architecture at L2 means the framework never needs modification to add capabilities; all extensions compose through `createHAI3().use(plugin).build()`.
+The technical approach keeps the core agnostic. The runtime works with microfrontends, type identifiers, and extension domains only through injected ports and opaque identifiers; it never depends on a concrete format or solution vocabulary. An application therefore composes against the same stable surface no matter which UI framework, type-definition specification, or layout vocabulary it chooses (`cpt-frontx-fr-ui-framework-agnostic`; registration and admission are owned by the [runtime's PRD and DESIGN](../packages/mfes/architecture/DESIGN.md)). The runtime admits units only after type validation, places them into governed extension domains, mediates host-microfrontend communication through a narrow capability bridge, and isolates loaded units — a default-deny posture whose requirements the runtime's own PRD states. The CLI resolves templates by versioned source-spec at runtime and bundles none, keeping the command surface fully decoupled from the content it scaffolds and applying project upgrades as reviewable, non-destructive change sets ([CLI's PRD and DESIGN](../packages/cli/architecture/DESIGN.md)). The AI Tooling Framework ships only base ecosystem capabilities and gains template-specific expertise through bundled extensions discovered and activated automatically ([kit's PRD and DESIGN](../packages/cyber-pilot-kit-frontx/architecture/DESIGN.md)).
 
-The architecture is event-driven throughout. Components communicate exclusively through a typed event bus. The data flow follows a fixed sequence — Action → Event → Effect → Reducer → Store — enforced by convention and tooling. This eliminates ad-hoc state mutations, makes the system traceable, and enables microfrontend isolation where each MFE has its own internal data flow that connects to the host only through declared shared properties and events.
+The system context is a composed FrontX application running in the browser, whose host loads independently developed microfrontends at runtime. External boundaries are: the consuming application and any microfrontends it composes (both depend on the published libraries; the UI framework is decided by the applied template, and a template may deliver a project with no microfrontends), a GitHub-hosted source registry and an npm package registry that distribute templates and packages, the back-end services that microfrontends call through the API Protocol Surface, and the AI Tooling CLI environment that installs and activates the AI Tooling kit. Within these boundaries the architecture satisfies the PRD by allocating each capability to exactly one owning artifact and placing no architectural ceiling on the microfrontends or type definitions an application integrates (`cpt-frontx-fr-no-architectural-ceiling`, `cpt-frontx-nfr-scalability-ceiling`).
 
 ### 1.2 Architecture Drivers
 
-Requirements that significantly influence architecture decisions.
-
-**ADRs**:
-`cpt-hai3-adr-four-layer-sdk-architecture`,
-`cpt-hai3-adr-event-driven-flux-dataflow`,
-`cpt-hai3-adr-plugin-based-framework-composition`,
-`cpt-hai3-adr-blob-url-mfe-isolation`,
-`cpt-hai3-adr-esm-first-module-format`,
-`cpt-hai3-adr-screenset-vertical-slice-isolation`,
-`cpt-hai3-adr-mandatory-screen-lazy-loading`,
-`cpt-hai3-adr-hybrid-namespace-localization`,
-`cpt-hai3-adr-standalone-studio-dev-conditional`,
-`cpt-hai3-adr-protocol-separated-api-architecture`,
-`cpt-hai3-adr-react-19-ref-as-prop`,
-`cpt-hai3-adr-automated-layer-ordered-publishing`,
-`cpt-hai3-adr-symbol-based-mock-plugin-identification`,
-`cpt-hai3-adr-global-shared-property-broadcast`,
-`cpt-hai3-adr-cli-template-based-code-generation`,
-`cpt-hai3-adr-two-tier-cli-e2e-verification`
+Requirements that significantly influence architecture decisions. Each driver below maps a PRD requirement to the design response that addresses it, citing the requirement by ID; requirement text is owned by the PRD and is not restated here. The Architecture Decision Records subsection records the decisions these drivers rest on.
 
 #### Functional Drivers
 
+Only the layer-level requirements drive this document. Each member's functional drivers are mapped in that member's DESIGN §1.2, against the requirements its own PRD owns.
+
 | Requirement | Design Response |
-|-------------|------------------|
-| `cpt-hai3-fr-sdk-flat-packages` | Four separate L1 packages with independent `package.json`; npm workspaces for monorepo orchestration |
-| `cpt-hai3-fr-sdk-layer-deps` | Strict layer dependency graph enforced by `dependency-cruiser` rules: L3→L2→L1 only |
-| `cpt-hai3-fr-sdk-plugin-arch` | `createHAI3()` builder at L2 with `use()` chaining; each plugin receives `HAI3PluginContext` |
-| `cpt-hai3-fr-sdk-action-pattern` | All mutations flow through `createAction()` → eventBus dispatch → effect handler → Redux reducer |
-| `cpt-hai3-fr-mfe-dynamic-registration` | Runtime MFE registration via `screensetsRegistryFactory.build()` with handler injection |
-| `cpt-hai3-fr-blob-fresh-eval` | Blob URL isolation: each MFE bundle fetched, rewritten, and evaluated in a fresh blob context |
-| `cpt-hai3-fr-blob-import-rewriting` | Import specifiers in MFE bundles rewritten to blob URLs via `importRewriter` before evaluation |
-| `cpt-hai3-fr-dataflow-no-redux` | MFEs use internal `useReducer`/`useState`; no access to host Redux store |
-| `cpt-hai3-fr-broadcast-write-api` | Shared properties bridge host↔MFE via `setSharedProperty()`/`useSharedProperty()` |
-| `cpt-hai3-fr-appconfig-event-api` | Application-level config changes propagated via `app/*` events, not direct store mutations |
-| `cpt-hai3-fr-sse-protocol` | `@gears-frontx/api` abstracts REST and SSE behind `createApiService()` with protocol-specific adapters |
-| `cpt-hai3-fr-i18n-lazy-chunks` | Namespace-based lazy loading: translation chunks loaded on demand per screen-set |
-| `cpt-hai3-fr-externalize-transform` | Vite plugin externalizes `@gears-frontx/*` imports in MFE builds; host provides shared scope at runtime |
-| `cpt-hai3-fr-mfe-plugin` | `microfrontends()` plugin integrates MFE lifecycle, theme propagation, i18n, and shared property bridging into framework |
-| `cpt-hai3-fr-mock-toggle` | `mock()` plugin with `toggleMockMode` action enabling runtime switch between real and mock API responses |
-| `cpt-hai3-fr-sdk-state-interface` | `@gears-frontx/state` exports EventBus, `createStore`, slice management APIs, and all associated types |
-| `cpt-hai3-fr-sdk-flux-terminology` | HAI3 Flux terms (Action, Event, Effect, Reducer, Slice) used consistently; Redux terms excluded from public API |
-| `cpt-hai3-fr-sdk-screensets-package` | `@gears-frontx/screensets` exports full MFE type system, registry, handler, bridge, and constants with zero `@gears-frontx/*` deps |
-| `cpt-hai3-fr-sdk-api-package` | `@gears-frontx/api` exports `BaseApiService`, REST/SSE protocols, mock plugins, `apiRegistry`, and type guards; only `axios` as peer dep |
-| `cpt-hai3-fr-sdk-i18n-package` | `@gears-frontx/i18n` exports I18nRegistry, Language enum, formatters, and metadata utilities with zero dependencies |
-| `cpt-hai3-fr-sdk-framework-layer` | `@gears-frontx/framework` wires SDK capabilities; depends only on SDK packages, provides `createHAI3()` and `createHAI3App()` |
-| `cpt-hai3-fr-sdk-react-layer` | `@gears-frontx/react` depends only on `@gears-frontx/framework`; provides `HAI3Provider` and typed hooks; no layout components |
-| `cpt-hai3-fr-sdk-module-augmentation` | TypeScript module augmentation for `EventPayloadMap` and `RootState` extensibility; custom events type-safe |
-| `cpt-hai3-fr-appconfig-tenant` | `Tenant` type with `{ id: string }`; tenant change events via event bus (`app/tenant/changed`, `app/tenant/cleared`) |
-| `cpt-hai3-fr-appconfig-router-config` | `HAI3Config.routerMode` supporting `'browser'`, `'hash'`, `'memory'` routing strategies |
-| `cpt-hai3-fr-appconfig-layout-visibility` | Imperative actions (`setFooterVisible`, `setMenuVisible`, `setSidebarVisible`) control layout region visibility |
-| `cpt-hai3-fr-sse-mock-mode` | `SseMockPlugin` short-circuits `EventSource` creation; returns `MockEventSource` for dev/test environments |
-| `cpt-hai3-fr-sse-protocol-registry` | `BaseApiService` uses protocol registry; protocols registered by constructor name via type-safe `protocol<T>()` |
-| `cpt-hai3-fr-sse-type-safe-events` | SSE events typed via `EventPayloadMap` module augmentation for compile-time safety |
-| `cpt-hai3-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
-| `cpt-hai3-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
-| `cpt-hai3-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
-| `cpt-hai3-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support |
-| `cpt-hai3-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
-| `cpt-hai3-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
-| `cpt-hai3-fr-blob-no-revoke` | Blob URLs kept alive for page lifetime; `URL.revokeObjectURL()` never called after `import()` resolves |
-| `cpt-hai3-fr-blob-source-cache` | In-memory cache of fetched source text keyed by chunk URL; at most one network fetch per chunk across all loads |
-| `cpt-hai3-fr-blob-recursive-chain` | `createBlobUrlChain` recursively creates blob URLs for chunk and all static dependencies |
-| `cpt-hai3-fr-blob-per-load-map` | `blobUrlMap` scoped per MFE load; different loads have independent instances preventing cross-load reuse |
-| `cpt-hai3-fr-externalize-filenames` | Shared dependency chunks use deterministic filenames without content hashes for stable MFE manifests |
-| `cpt-hai3-fr-externalize-build-only` | `hai3-mfe-externalize` plugin operates at `vite build` only; does not transform imports during `vite dev` |
-| `cpt-hai3-fr-dataflow-internal-app` | Each MFE creates isolated `HAI3App` via `createHAI3().use(effects()).use(mock()).build()` with `HAI3Provider` |
-| `cpt-hai3-fr-sharescope-construction` | `MfeHandlerMF` constructs `shareScope` from manifest, writes to `globalThis.__federation_shared__` |
-| `cpt-hai3-fr-sharescope-concurrent` | Concurrent MFE loads have independent `LoadBlobState`; at most one network fetch per chunk URL |
-| `cpt-hai3-fr-broadcast-matching` | `updateSharedProperty()` propagates only to domains declaring the property in their `sharedProperties` array |
-| `cpt-hai3-fr-broadcast-validate` | GTS validation occurs before propagation; invalid values never stored or broadcast to any domain |
-| `cpt-hai3-fr-validation-gts` | `typeSystem.register()` + `typeSystem.validateInstance()` pattern validates shared property values |
-| `cpt-hai3-fr-validation-reject` | `updateSharedProperty()` throws with validation details on failure; value not stored or propagated |
-| `cpt-hai3-fr-i18n-formatters` | Locale-aware formatters (`formatDate`, `formatNumber`, `formatCurrency`, etc.) using `Intl.*` APIs |
-| `cpt-hai3-fr-i18n-formatter-exports` | Formatters exported from `@gears-frontx/i18n`, re-exported from `@gears-frontx/framework`, accessible via `useFormatters()` |
-| `cpt-hai3-fr-i18n-graceful-invalid` | All formatters return `''` for null, undefined, or invalid inputs; never throw |
-| `cpt-hai3-fr-i18n-hybrid-namespace` | Two-tier namespaces: `screenset.<id>` for shared content, `screen.<setId>.<screenId>` for screen-specific |
-| `cpt-hai3-fr-studio-panel` | `StudioPanel` floating overlay: draggable, resizable, collapsible; visible only in dev mode; state in localStorage |
-| `cpt-hai3-fr-studio-controls` | StudioPanel provides: theme selector, MFE package selector, language selector, mock/real API toggle |
-| `cpt-hai3-fr-studio-persistence` | Theme, language, mock API state, GTS package persisted to localStorage; restored on Studio mount |
-| `cpt-hai3-fr-studio-viewport` | Studio button and panel clamped to viewport (20px margin) on load and window resize |
-| `cpt-hai3-fr-studio-independence` | `@gears-frontx/studio` standalone package; `"sideEffects": false`; excluded from production via `import.meta.env.DEV` |
-| `cpt-hai3-fr-cli-package` | `@gears-frontx/cli` workspace package with binary `hai3`; ESM (Node 18+) and programmatic API |
-| `cpt-hai3-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate |
-| `cpt-hai3-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned |
-| `cpt-hai3-fr-cli-skills` | CLI build generates IDE guidance files and command adapters for Claude, Cursor, Windsurf, and GitHub Copilot |
-| `cpt-hai3-fr-cli-e2e-verification` | Two-tier CI verification: required PR workflow (`cli-pr-e2e`) validates critical scaffold path; nightly workflow covers broader scenarios; shared scripted harness with artifact upload |
-| `cpt-hai3-fr-pub-metadata` | All `@gears-frontx/*` packages include complete NPM metadata: author, license, repository, engines, exports |
-| `cpt-hai3-fr-pub-versions` | All `@gears-frontx/*` packages use aligned (same) version numbers |
-| `cpt-hai3-fr-pub-esm` | ESM-first module format: `"type": "module"`, dual exports (ESM + CJS), TypeScript declarations |
-| `cpt-hai3-fr-pub-ci` | CI auto-publishes affected packages to NPM in layer order on version change merge; stops on first failure |
+|-------------|-----------------|
+| `cpt-frontx-fr-ui-framework-agnostic` | Core-package boundaries keep the runtime free of UI-framework coupling, leaving UI-stack choice to applications and microfrontends (`cpt-frontx-adr-core-package-boundaries`). |
+| `cpt-frontx-fr-versioned-platform-evolution` | The per-concern independent artifact-distribution policy isolates breaking changes behind semantic versioning, bounding each breaking change to a single artifact's own major-version line (`cpt-frontx-adr-artifact-versioning-and-distribution`). |
+| `cpt-frontx-fr-no-architectural-ceiling` | The same distribution and boundary policy imposes no architectural cap on integrated units, governing growth by performance thresholds rather than structure (`cpt-frontx-adr-artifact-versioning-and-distribution`). |
+| `cpt-frontx-fr-layer-member-governance` | Root governance machinery classifies workspace packages into the layer model and gates each member's artifact-chain registration (root FEATURE [ecosystem-governance](./features/ecosystem-governance/FEATURE.md)). |
 
 #### NFR Allocation
 
+This table maps non-functional requirements from the PRD to specific design/architecture responses, demonstrating how quality attributes are realized.
+
 | NFR ID | NFR Summary | Allocated To | Design Response | Verification Approach |
-|--------|-------------|--------------|-----------------|----------------------|
-| `cpt-hai3-nfr-perf-lazy-loading` | Screensets and MFE code loaded on demand | `cpt-hai3-component-screensets`, `cpt-hai3-component-framework` | Dynamic `import()` per screen-set; MFE bundles fetched at registration time | Bundle analysis; network waterfall in DevTools |
-| `cpt-hai3-nfr-perf-treeshake` | Unused SDK exports eliminated at build | `cpt-hai3-component-state`, all L1 packages | ESM-only output via tsup; no side-effect barrel files | `knip` unused-export detection in CI |
-| `cpt-hai3-nfr-perf-blob-overhead` | Blob URL creation < 50ms for typical MFE | `cpt-hai3-component-screensets` | Source text cached after first fetch; import rewriting operates on string, not AST | Performance benchmark in test suite |
-| `cpt-hai3-nfr-perf-action-timeout` | Actions complete or timeout within defined bounds | `cpt-hai3-component-state` | Effect handlers responsible for timeout; framework does not enforce global timeout | Unit tests with async action scenarios |
-| `cpt-hai3-nfr-rel-error-handling` | Plugin/MFE errors do not crash host | `cpt-hai3-component-framework`, `cpt-hai3-component-react` | React error boundaries per MFE; plugin `init()` failures logged, not thrown | Integration tests with failing plugins |
-| `cpt-hai3-nfr-rel-api-retry` | API calls support retry with backoff | `cpt-hai3-component-api` | Axios interceptor layer; retry configuration per service instance | Unit tests with mock server |
-| `cpt-hai3-nfr-rel-serialization` | State serializable for persistence/debugging | `cpt-hai3-component-state` | Redux Toolkit enforces serializable state by default; custom middleware logs violations | Redux DevTools inspection |
-| `cpt-hai3-nfr-sec-shadow-dom` | MFE CSS isolated from host | `cpt-hai3-component-react` | Shadow DOM wrapper for MFE render containers | Visual regression tests |
-| `cpt-hai3-nfr-sec-csp-blob` | Blob URLs compatible with CSP policies | `cpt-hai3-component-screensets` | `blob:` scheme added to `script-src`; no `eval()` or `new Function()` used | CSP violation reporting in staging |
-| `cpt-hai3-nfr-sec-type-validation` | Shared properties validated at boundary | `cpt-hai3-component-framework` | GTS plugin validates shared property values against declared schemas | Unit tests with invalid payloads |
-| `cpt-hai3-nfr-compat-node` | Packages installable on Node ≥ 18 | All packages | `engines` field in each `package.json`; CI matrix tests Node 18/20/22 | CI build matrix |
-| `cpt-hai3-nfr-compat-typescript` | TypeScript ≥ 5.5 | All packages | `tsconfig.json` targets ES2022; strict mode enabled | CI type-check step |
-| `cpt-hai3-nfr-compat-esm` | ESM-first output | All packages | tsup configured with `format: ['esm']`; `"type": "module"` in `package.json` | Import resolution tests |
-| `cpt-hai3-nfr-compat-react` | Compatible with React 19 | `cpt-hai3-component-react` | React 19 as peer dependency; `ref` as prop (no `forwardRef`) | CI tests against React 19 |
-| `cpt-hai3-nfr-maint-zero-crossdeps` | L1 packages have zero cross-dependencies | All L1 packages | Each L1 `package.json` lists no `@gears-frontx/*` dependencies; `dependency-cruiser` rule blocks violations | CI dependency-cruiser check |
-| `cpt-hai3-nfr-maint-event-driven` | Cross-domain communication via events only | `cpt-hai3-component-state`, `cpt-hai3-component-framework` | `eventBus` is the sole cross-domain channel; no direct store imports across domains | Architecture lint rules |
-| `cpt-hai3-nfr-maint-arch-enforcement` | Layer violations detected automatically | Build system | `dependency-cruiser` config with forbidden dependency rules; `knip` for unused exports | CI gate on lint failure |
+|--------|-------------|--------------|-----------------|-----------------------|
+| `cpt-frontx-nfr-evolvability` | Versioned releases without lockstep upgrades | Per-concern independent versioning across all artifacts | Independently published, per-concern versioned artifacts, each on its own semver line and cadence; a breaking change is bounded to that artifact's own major version, and cross-artifact compatibility on the single coupled edge (`mfes → gts-plugin`) is expressed as a satisfiable semver range rather than a matched version number (`cpt-frontx-adr-artifact-versioning-and-distribution`). | Per-artifact semver discipline; a compatibility check asserting the `mfes → gts-plugin` range is satisfiable and not exact-pinned (no duplicate-runtime skew); a registry-side deprecation cycle (published notice + minimum window) before any removal. |
+| `cpt-frontx-nfr-scalability-ceiling` | No architectural cap on integrated units | Per-concern independent versioning; runtime boundaries | The distribution and boundary architecture imposes no structural ceiling, so integration scales to the PRD operational floors governed only by performance thresholds (`cpt-frontx-adr-artifact-versioning-and-distribution`). | Load test registering the PRD operational floors of microfrontends and type definitions against one application without architectural failure. |
+| `cpt-frontx-nfr-evolvability` | Versioned releases without lockstep upgrades | The CLI's change-set & upgrade engine, owned by the [CLI's member DESIGN](../packages/cli/architecture/DESIGN.md) | The single authoritative change-set engine applies a template-version transition as a reviewed, approvable, non-destructive and reversible change set computed against that applied template's own provenance record, so each applied template in a repository adopts a newer version on its own cadence without a forced, destructive rewrite; the reviewed change equals the applied change (`cpt-frontx-adr-project-upgrade-mechanism`, `cpt-frontx-adr-cli-internal-decomposition`). | End-to-end upgrade test asserting the applied file set equals the approved change set, that a declined upgrade writes nothing, and that an applied upgrade is reversible. |
+| `cpt-frontx-nfr-evolvability` | Versioned releases without lockstep upgrades | The AI Tooling Framework's base kit and extension host, owned by the [kit's member DESIGN](../packages/cyber-pilot-kit-frontx/architecture/DESIGN.md) | Template-sourced expertise plus automatic discovery-and-activation lets each template's AI capabilities evolve and ship on the template's own line while the base kit stays solution-agnostic, so agent capability tracks installed-template versions rather than a lockstep framework release (`cpt-frontx-adr-solution-ai-content-placement`, `cpt-frontx-adr-extension-discovery-activation`, `cpt-frontx-adr-ai-tooling-internal-decomposition`). | Discovery test asserting a newly installed template version activates its bundled extension without a base-kit release, and that removing the template deactivates only its extension. |
+
+#### Architecture Decision Records
+
+The ecosystem's architecture is shaped by the following decision records, grouped by the concern each one governs. Each record documents one decision in full; this subsection lists the inventory by ID and one-line intent.
+
+Foundational:
+
+* `cpt-frontx-adr-artifact-versioning-and-distribution` — Distributes the ecosystem as independently published, per-concern, independently versioned artifacts.
+* `cpt-frontx-adr-core-package-boundaries` — Partitions the published libraries into boundary-governed concerns (runtime, type-system provider, protocol surface), and binds the routing capability's delivery as an engine-agnostic navigation substrate plus a separate engine-provider package.
+* `cpt-frontx-adr-contract-schema-ownership` — Ends the circular DESIGN↔ADR schema deferral by assigning each owned contract's role to DESIGN, its decision rationale to the ADR, and its concrete field-level schema to the owning FEATURE.
+* `cpt-frontx-adr-template-territory-traceability` — Fixes this artifact tree's subject as the ecosystem's own artifacts, leaves template payload unspecified by it, and declares a `@cpt-` marker found in template territory non-authoritative residue that binds nothing, wherever that territory lives.
+
+Published libraries:
+
+* `cpt-frontx-adr-mfe-runtime-public-surface` — Exposes microfrontend registration and loading through an abstract registry facade.
+* `cpt-frontx-adr-runtime-type-system-coupling` — Keeps the runtime's schema surface opaque, with format-specific shape behind the type-system plugin.
+* `cpt-frontx-adr-default-type-substrate-provider` — Supplies the ecosystem's default type system as an injectable provider of the runtime's type-substrate port.
+* `cpt-frontx-adr-mfe-handler-resolution` — Abstracts the microfrontend handler and resolves it through the registry.
+* `cpt-frontx-adr-action-dispatch-and-chaining` — Routes host–microfrontend communication through an actions-chains mediator.
+* `cpt-frontx-adr-child-mfe-host-access` — Defines a narrow parent–child capability bridge between host and microfrontend.
+* `cpt-frontx-adr-extension-domain-occupancy` — Governs extension-domain occupancy through mount strategies and cardinality rules, and binds the addressed-action channel as the sole channel of an occupancy change, restoration included: the injected router translates a cold load, reload, or history step into `mount_ext` and `unmount_ext` action chains, while unregistration and terminal disposal release occupants only as resource cleanup.
+* `cpt-frontx-adr-domain-extension-compatibility` — Admits extensions into domains by contract matching.
+* `cpt-frontx-adr-mfe-load-isolation` — Isolates loaded microfrontends at runtime.
+* `cpt-frontx-adr-lazy-import-resolution` — Separates the runtime ABI from the template-bound build through lazy import.
+* `cpt-frontx-adr-mfe-asset-discovery` — Discovers microfrontends through their manifest contract.
+* `cpt-frontx-adr-shared-dep-dedup-key` — Keys cross-microfrontend shared-dependency reuse to the identity of the producing build.
+* `cpt-frontx-adr-shared-dep-cache-reach` — Extends that reuse to one bounded, version-namespaced source-text cache per realm, shared by compatible independently loaded copies of the runtime without sharing module graphs.
+* `cpt-frontx-adr-api-surface-organization` — Separates request/response and streaming behind a common protocol surface.
+* `cpt-frontx-adr-api-transport-bypass-and-fetch-sharing` — Provides a plugin short-circuit and a realm-shared fetch cache.
+* `cpt-frontx-adr-extension-routing-port` — The runtime depends on an optional abstract router port supplied by injection, through which the injected router admits routed registrations, receives one report per settled `mount_ext` or `unmount_ext` execution, and keeps the URL and the mounts in agreement; occupant values are exchanged privately between runtime copies and the injected router, never through any interface handed to extension or host code.
+* `cpt-frontx-routing-adr-occupant-reference-boundary` — Names and carries occupant identity through route resolution and reporting without depending on the runtime's concrete extension type - owned by the routing member tree, `packages/routing/architecture/ADR/`.
+* `cpt-frontx-routing-adr-mount-trigger-ownership` — Shapes the navigation substrate's own surface under that rule as three publication acts — resolve, report, reflect — with nothing a consumer can wire as an instruction to mount - owned by the routing member tree, `packages/routing/architecture/ADR/`.
+* `cpt-frontx-routing-adr-domain-occupancy-addressing-granularity` — Addresses every domain, at any depth and any occupant count, through one uniform query-string entry grammar, with the pathname reserved to the shell - owned by the routing member tree, `packages/routing/architecture/ADR/`.
+* `cpt-frontx-routing-adr-occupant-identity-stability` — Draws an entry's extension token from the extension's own normalized route identity rather than from its versioned type id, so a redeploy does not break a bookmarked link - owned by the routing member tree, `packages/routing/architecture/ADR/`.
+
+CLI (projects orchestration):
+
+* `cpt-frontx-adr-template-acquisition-and-location` — Externalizes templates and resolves them by source-spec at runtime, and publishes them from a templates repository of their own rather than from this one, so no template and nothing serving one is held here.
+* `cpt-frontx-adr-source-spec-syntax` — Defines the versioned source-spec syntax for template acquisition, including the optional subtree segment that lets one repository publish several addressable templates.
+* `cpt-frontx-adr-template-classification` — Establishes one uniform mechanism that operates over any template, each template declaring what it produces.
+* `cpt-frontx-adr-template-manifest-contract` — Defines the template manifest publication contract declaring identity, version, ownership boundaries, and referenced templates.
+* `cpt-frontx-adr-template-ownership-boundary-declaration` — Defines the two-tier ownership-boundary declaration (exclusive subtrees plus shared-file region ownership with a declared merge) - owned by the CLI member tree, `packages/cli/architecture/ADR/`.
+* `cpt-frontx-adr-assembly-conflict-prevention` — Detects and refuses conflicting assembly before any write via a pre-flight intersection check and a post-materialization boundary-honesty guard.
+* `cpt-frontx-adr-composed-template-resolution` — Assembles a repository from one or more templates and resolves a preset's referenced templates transitively in one operation.
+* `cpt-frontx-adr-project-provenance-record` — Records provenance per applied template, one record per applied template with no single whole-repository origin.
+* `cpt-frontx-adr-project-upgrade-mechanism` — Upgrades each applied template independently as a reviewable, non-destructive change set.
+* `cpt-frontx-adr-cli-internal-decomposition` — Decomposes the single `@gears-frontx/cli` package into internal template-resolver, pre-publish-validator, assembler, conflict-checker, provenance-recorder, and change-set-&-upgrade-engine components.
+
+AI Tooling (projects orchestration):
+
+* `cpt-frontx-adr-ai-tooling-framework-packaging` — Packages base AI capabilities as a Constructor Studio kit with prefixed resource identifiers; the same kit mechanism is independently adopted by `@gears-frontx/ui-kit` for its own package-scoped skill and rule resources.
+* `cpt-frontx-adr-template-ai-extension-contract` — Defines the extension contract a template's AI bundle conforms to.
+* `cpt-frontx-adr-extension-discovery-activation` — Discovers and activates installed-template AI extensions without manual wiring.
+* `cpt-frontx-adr-solution-ai-content-placement` — Separates base ecosystem AI content from solution-specific content.
+* `cpt-frontx-adr-ai-driven-upgrade-orchestration` — Orchestrates AI-driven template upgrades over the CLI change-set engine.
+* `cpt-frontx-adr-ai-tooling-internal-decomposition` — Decomposes the single `cyber-pilot-kit-frontx` package into internal base-kit, extension-host, and upgrade-orchestration components.
 
 ### 1.3 Architecture Layers
 
-- [x] `p1` - **ID**: `cpt-hai3-tech-layer-architecture`
+The ecosystem is partitioned into three layers — **published libraries**, **templates**, and **projects orchestration** — and the word *layer* names this partition and no other grouping of the same system. Ordinary technical usage that names no partition of this system — a transport layer, a persistence layer, a layer of indirection — is unaffected by that reservation. The delivered set at any moment is a repository-derived fact, not an architectural statement: the durable architecture is the layer partition and its membership properties, not a member count or roster. The current members are located through the member pointers in §4.
 
+**Membership is a property, not a list.** A candidate belongs to a layer if it satisfies that layer's stated property; where a mechanical check derives a concrete list of current members, that list is a derived artifact of the check and never the authoritative statement of membership. This is what admits members this repository does not own: the architecture states the role and the contract, and does not hold the member's artifacts. The three properties:
+
+* **Published libraries** — a unit is a member if it is published for independent consumption under its own version, and its consumers integrate it by declaring a dependency on it. A member of this layer is consumed as a dependency; it is not copied, and it does not drive a project's lifecycle.
+* **Templates** — a unit is a member if it is applied to produce or extend a project, delivering content the receiving project then owns. A member of this layer is copied rather than depended upon, and what it claims is declared in its manifest (`cpt-frontx-adr-template-manifest-contract`).
+* **Projects orchestration** — a unit is a member if it acts on a project's lifecycle across the other two layers: creating, assembling, upgrading, or reasoning about a project rather than being part of the artifact a project ships.
+
+A candidate satisfying more than one of these is a defect in the candidate, not an ambiguity in the partition: the three roles are how a unit reaches a consumer, and a unit that both ships as a dependency and is copied as content should be split.
+
+**Within published libraries, two independent properties.** A library is **core** if it must remain UI-framework-agnostic; a library is **standalone** if it declares no intra-ecosystem package dependency, with the single exception of the type-substrate port. A library may hold either, both, or neither. Keeping them separate lets the agnostic-substrate guarantee (`cpt-frontx-principle-agnostic-core`, `cpt-frontx-fr-ui-framework-agnostic`) apply to a library that legitimately depends on another library, and permits a member bound to a concrete UI framework or engine to still be a full layer member that is simply not core.
+
+The two properties combine differently across the current members. The `mfes` runtime depends on `@gears-frontx/gts-plugin` through the type-substrate port — the one edge the standalone definition's stated exception covers (`cpt-frontx-adr-runtime-type-system-coupling`) — so it holds both properties. The runtime also declares an optional abstract router port, filled by injection in the same way as the type-substrate port; the concrete router implementing it is provided by the template framework, outside the published-libraries layer, so the port adds no package dependency, no edge runs between `mfes` and either routing member in either direction, and the runtime keeps both properties (`cpt-frontx-adr-extension-routing-port`). The navigation substrate (`@gears-frontx/routing`) is core and standalone at once: it declares no intra-ecosystem package dependency, and it carries no dependency on any UI framework or router engine — every such dependency is confined to a separate published member. That member, `@gears-frontx/routing-tanstack`, is the one that is not core, and also not standalone: it is bound to a concrete UI framework and a concrete routing engine, so it fails the core property, and it depends on `@gears-frontx/routing`, so it fails the standalone property too — a member can fail both properties at once, which is exactly why the two are kept independent rather than collapsed into a single "not core" label.
+
+**Two categories outside the layers, both stated positively.** **Build internals** are packages that exist only to configure the build, are never published, and belong to no layer; they remain subject to the dependency-edge guard and are exempt from the member artifact chain and the publication gate. **Non-package code** — repository scripts and in-package demonstrations — has no package identity to carry layer membership; it remains scanned for traceability and holds no layer membership. Both are exemptions with a stated scope, not ignores.
+
+**Federated artifact ownership.** The root artifacts own the orchestration of the ecosystem and the contracts between layers — this document, the [PRD](./PRD.md), and the [DECOMPOSITION](./DECOMPOSITION.md) hold layer-level content only. The root also owns the FEATUREs for ecosystem-level behaviour no member may own — the distribution policy and the partition's own governance machinery — in its `architecture/features/` tree. Each member owns the artifacts describing itself, in its package's `architecture/` tree: a PRD explaining its own requirements, a DESIGN, and at least one FEATURE — always all three; never a DECOMPOSITION. The root PRD describes the 3-layer approach and keeps only the requirements that bind every member equally. The feature-entry identifier kind belongs to a DECOMPOSITION, so a member's FEATURE gets its identity from its feature-status identifier alone. A FEATURE authored after the federation defines no feature-entry identifier; the FEATUREs that moved during it still cite their root DECOMPOSITION entries, an upward citation that is allowed. A member's artifacts may cite root requirement and design identifiers; the root PRD and DESIGN do not cite a member's `cpt-` identifiers, which would recouple the root to its members (see LAYER-4 in §2.2 for the one recorded exception, the DECOMPOSITION's compatibility anchors). Admission of a member the architecture does not own is deliberately not decided here: an external candidate must be classifiable and its layer's contract checkable against it, but the mechanism is a separate decision, so total classification binds only members inside this repository and an external member's compliance rests on review.
+
+**Identifier namespace.** FrontX is a top-level system in the artifacts registry and its identifiers carry the *cpt-frontx-* prefix with no parent segment. Reparenting under a Constructor Fabric parent tree would rewrite every identifier occurrence — thousands of them, most being traceability markers in source — and the validator makes a partial rename fail, so the rename is all-or-nothing; nothing today needs it, and the cost is accepted as a one-time full rename if a parent tree ever appears and must resolve FrontX identifiers. The cost grows with every member tree added in the meantime, which is recorded here so the position does not silently become "reparent later". A member-owned identifier likewise never renames because of where its element is described: an element recorded by a member DESIGN rather than by this document keeps the identifier it carries, so citations and code markers resolve the same either way.
+
+```mermaid
+graph TD
+    subgraph Orch[Projects orchestration layer]
+        KIT["AI Tooling Framework (cyber-pilot-kit-frontx)"]
+        CLI["CLI (@gears-frontx/cli)"]
+    end
+    subgraph Libs[Published libraries layer]
+        API["API Protocol Surface (@gears-frontx/api)"]
+        GTS["Type System provider (@gears-frontx/gts-plugin)"]
+        MFES["MFE Runtime substrate (@gears-frontx/mfes)"]
+        TEL["Telemetry SDK (@gears-frontx/telemetry)"]
+        ROUTING["Routing substrate (@gears-frontx/routing)"]
+        ROUTINGTS["Routing TanStack provider (@gears-frontx/routing-tanstack)"]
+    end
+    subgraph Tmpl[Templates layer]
+        T["externally hosted templates (resolved by source-spec)"]
+    end
+    KIT -- "orchestrates command surface" --> CLI
+    GTS -- "type-substrate port" --> MFES
+    ROUTINGTS -- "engine-provider port of" --> ROUTING
+    CLI -. "applies / upgrades" .-> T
+    T -. "produce projects composing" .-> Libs
+    T -. "template framework implements optional router port of" .-> MFES
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Application                       │
-│          (Host app using @gears-frontx/* packages)           │
-├─────────────────────────────────────────────────────┤
-│ L3  @gears-frontx/react                                      │
-│     HAI3Provider · hooks · MFE components            │
-├─────────────────────────────────────────────────────┤
-│ L2  @gears-frontx/framework                                  │
-│     createHAI3() · plugins · layout slices           │
-├────────┬────────┬──────────┬────────────────────────┤
-│ L1     │ L1     │ L1       │ L1                      │
-│ state  │ screen │ api      │ i18n                    │
-│        │ sets   │          │                         │
-├────────┴────────┴──────────┴────────────────────────┤
-│ Standalone: @gears-frontx/studio · @gears-frontx/cli                            │
-└─────────────────────────────────────────────────────┘
-```
+
+- [ ] `p3` - **ID**: `cpt-frontx-tech-ecosystem-stack`
 
 | Layer | Responsibility | Technology |
 |-------|---------------|------------|
-| L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure | TypeScript, Redux Toolkit, Axios, i18next |
-| L2 Framework | Plugin composition, layout orchestration, configuration management, re-exports SDK surface | TypeScript, Redux Toolkit (slices) |
-| L3 React | React bindings, provider tree, hooks, MFE rendering components | React 19, Shadow DOM |
-| Standalone — Studio | Development overlay for theme/i18n/state inspection | React 19, localStorage |
-| Tooling — CLI | Scaffolding, code generation, AI skill integration | Node.js, Commander |
+| Published libraries | Runtime substrate, type-system provider, protocol surface, telemetry, a navigation substrate with a pluggable routing-engine-provider port, and its default routing-engine provider — consumed as versioned dependencies; the core subset stays UI-framework- and type-format-agnostic | TypeScript npm packages; module-federation runtime with lazy import (`@gears-frontx/mfes`); concrete type-definition specification confined to `@gears-frontx/gts-plugin`; transport as a peer dependency of `@gears-frontx/api`; navigation substrate declaring an engine-provider port with no concrete engine dependency of its own (`@gears-frontx/routing`); concrete routing-engine dependency confined to its default provider (`@gears-frontx/routing-tanstack`) |
+| Templates | Producing and extending project content the receiving project owns | Externally hosted template repositories resolved by versioned source-spec; manifest publication contract |
+| Projects orchestration | Template and repository lifecycle (install, apply, assemble, upgrade) and AI-agent orchestration over it | Node.js CLI (`@gears-frontx/cli`); Constructor Studio kit (`cyber-pilot-kit-frontx`); GitHub source registry; npm package registry |
+| Outside the layers | Build internals (never published) and non-package repository code | Private `@gears-frontx/*` configuration packages; `scripts/` tooling |
 
-**Build order**: SDK (L1) → Framework (L2) → React (L3) → Studio → CLI (`npm run build:packages`)
+Applications and microfrontends composed on top of the published libraries choose their UI technology freely — any UI framework (React, Vue, Svelte, vanilla JavaScript) over TypeScript; the platform constrains none of that choice. Each layer's technology choices align with the boundary constraints owned by the member DESIGNs and the NFRs: the runtime substrate stays UI-framework- and type-format-agnostic (MFES-1..MFES-5, owned by the [runtime's member DESIGN](../packages/mfes/architecture/DESIGN.md)) so it supports any UI stack, and the type-system provider is the only core library permitted a concrete type-definition specification (GTS-PLUGIN-1 and GTS-PLUGIN-2, owned by the [plugin's member DESIGN](../packages/gts-plugin/architecture/DESIGN.md)).
+
+### 1.4 Ownership Matrix
+
+| Artifact location | Owns | Does not own |
+|-------------------|------|--------------|
+| Root PRD | Layer intent, shared actors, universal requirements, package-registry distribution, governance intent. | Member requirements, member APIs, member behavior, member algorithms. |
+| Root DESIGN | Layer structure, membership rules, cross-layer contracts, root governance, root-owned policy components. | Member component models, internal flows, package-specific dependency rules. |
+| Root DECOMPOSITION | Root-owned work packages and temporary compatibility anchors required by the installed SDLC kit. | Member feature detail, member requirements, member flows or member acceptance evidence. |
+| Root FEATUREs | Ecosystem distribution and layer-partition governance. | Member implementation behavior. |
+| Member artifacts | The member's PRD, DESIGN and FEATURE behavior. | Root layer model and ecosystem-wide governance. |
+
+### 1.5 Artifact Chain Policy
+
+Each FrontX-owned member must own a local PRD, DESIGN and at least one FEATURE. Members do not own a DECOMPOSITION in the approved federation model.
+
+The installed SDLC kit currently requires member feature identifiers to remain visible as root DECOMPOSITION compatibility anchors. Those anchors are limited to ID and owner pointer; member behavior remains owned by member FEATURE files.
 
 ## 2. Principles & Constraints
 
 ### 2.1 Design Principles
 
-#### Event-Driven Architecture
+#### Federated ownership
 
-- [x] `p1` - **ID**: `cpt-hai3-principle-event-driven-architecture`
+- [ ] `p2` - **ID**: `cpt-frontx-principle-federated-artifacts`
 
-**ADRs**: `cpt-hai3-adr-event-driven-flux-dataflow`
+Each member owns the artifacts that describe its own behavior. Root artifacts stay at layer altitude and avoid becoming a central index of member requirements or feature work.
 
-All cross-domain communication flows through a typed event bus (`eventBus` in `@gears-frontx/state`). No component may directly call methods on or import internal state from another domain. This ensures loose coupling, enables replay/debugging of all system interactions, and allows MFE extensions to participate in host events without tight integration.
+#### Per-concern independent versioning
 
-The event bus uses a publish/subscribe model with typed event names and payloads. Framework plugins subscribe to events during initialization. Effects listen for specific events and dispatch state changes through reducers.
+- [x] `p2` - **ID**: `cpt-frontx-principle-per-concern-versioning`
 
-#### Layer Isolation
+Each published concern evolves on its own version line. Compatibility is expressed through semantic-versioning commitments and explicit dependency ranges, not by forcing all members to release together.
 
-- [x] `p1` - **ID**: `cpt-hai3-principle-layer-isolation`
+#### Property-based membership
 
-**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
+- [ ] `p2` - **ID**: `cpt-frontx-principle-property-based-membership`
 
-Dependencies flow strictly downward: L3 → L2 → L1. No upward or lateral dependencies are permitted within the layer hierarchy. L1 packages have zero `@gears-frontx/*` dependencies. L2 depends only on L1 packages. L3 depends only on L2 (which re-exports L1 surface). This enables each layer to be tested, built, and versioned independently.
-
-Standalone packages (`@gears-frontx/studio`, `@gears-frontx/cli`) exist outside the layer hierarchy and do not depend on framework or SDK packages, ensuring they can evolve independently. UI components are generated into or authored within application code rather than shipped as a shared workspace package.
-
-#### Plugin-First Composition
-
-- [x] `p1` - **ID**: `cpt-hai3-principle-plugin-first-composition`
-
-**ADRs**: `cpt-hai3-adr-plugin-based-framework-composition`
-
-All framework capabilities are delivered through plugins. The framework core (`createHAI3()`) is a minimal builder that assembles a plugin chain. Each plugin implements the `HAI3Plugin` interface with an `init(context: HAI3PluginContext)` method. Plugins register slices, effects, event listeners, and UI extensions through the context object.
-
-The host application composes its feature set by chaining `.use()` calls: `createHAI3().use(microfrontends()).use(myDomainPlugin()).build()`. No framework source code needs modification to add capabilities.
-
-#### Self-Registering Registries
-
-- [x] `p2` - **ID**: `cpt-hai3-principle-self-registering-registries`
-
-Registries (screensets, themes, API services, routes, i18n namespaces) populate themselves at import time through side-effect registrations. Consumers never edit a central registry file to add entries. Each screen-set, component, or service registers itself in its own module. The registry root file only provides the registry factory/accessor — it never contains an item list.
-
-This eliminates merge conflicts on registry files and enables tree-shaking of unused registrations.
-
-#### Action → Event → Effect → Reducer Flux
-
-- [x] `p1` - **ID**: `cpt-hai3-principle-action-event-effect-reducer-flux`
-
-**ADRs**: `cpt-hai3-adr-event-driven-flux-dataflow`
-
-All state mutations follow a fixed sequence: (1) Component calls `createAction()`, (2) action dispatches an event via `eventBus`, (3) registered effects handle the event (API calls, validation, side effects), (4) effects dispatch Redux actions, (5) reducers produce new state. Components never dispatch Redux actions directly. This ensures every state change is traceable and debuggable.
-
-The terminology follows Redux Toolkit conventions: slices, reducers, selectors, thunks — but wrapped in HAI3's action/event abstraction to enforce the data flow pattern.
-
-#### MFE Isolation
-
-- [x] `p1` - **ID**: `cpt-hai3-principle-mfe-isolation`
-
-**ADRs**: `cpt-hai3-adr-blob-url-mfe-isolation`
-
-Microfrontend extensions execute in an isolated context. JavaScript isolation is achieved through blob URL evaluation: each MFE bundle is fetched, its import specifiers are rewritten to point to blob URLs of shared dependencies, and the rewritten bundle is evaluated in a new module scope. CSS isolation uses Shadow DOM containers. MFEs have no access to the host Redux store; they communicate with the host exclusively through shared properties and the event bus.
+Layer membership follows the role a unit plays. A member is not omitted from the architecture just because its artifact chain is deferred.
 
 ### 2.2 Constraints
 
-#### No React Below L3
+#### LAYER-1 - Total classification of ecosystem candidates
 
-- [x] `p1` - **ID**: `cpt-hai3-constraint-no-react-below-l3`
+- [x] `p2` - **ID**: `cpt-frontx-constraint-layer-total-classification`
 
-**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
+Every FrontX-owned workspace package resolves to exactly one layer or to an explicit non-layer category. An unclassified workspace package fails governance instead of being skipped.
 
-L1 SDK and L2 Framework packages SHALL NOT import React or any React-specific APIs. This ensures the SDK and framework are usable in non-React environments (Node.js scripts, web workers, alternative renderers). React appears only in L3 (`@gears-frontx/react`) and standalone packages (`@gears-frontx/studio`).
+The template-manifest half of total classification remains review-held because this repository does not own external template artifacts. Packages inside the content a template delivers are not candidates: on application they become content the receiving project owns, and the template delivering them is the candidate that answers for them.
 
-**Enforcement**: `dependency-cruiser` rules flag any `react` import in `packages/state/`, `packages/screensets/`, `packages/api/`, `packages/i18n/`, or `packages/framework/`.
+#### LAYER-2 - Member artifact chain
 
-#### Zero Cross-Dependencies at L1
+- [x] `p2` - **ID**: `cpt-frontx-constraint-member-artifact-chain`
 
-- [x] `p1` - **ID**: `cpt-hai3-constraint-zero-cross-deps-at-l1`
+Every FrontX-owned layer member owns a local artifact chain: PRD, DESIGN and at least one FEATURE. A missing chain must be recorded as path-scoped architecture debt with a removal criterion.
 
-**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
+Every FrontX-owned member now owns its chain: the last package-wide exemption, `ui-kit`'s, was lifted when that package registered as its own child system with a PRD, a DESIGN and a FEATURE. What remains for that member is narrower than a missing chain and is recorded as such - a path-scoped exemption covering its component sources alone, whose removal criterion is a member FEATURE giving the component surface numbered instructions for a marker to point at. No member is carried as a missing chain.
 
-No L1 SDK package may depend on another L1 SDK package. `@gears-frontx/state` SHALL NOT import from `@gears-frontx/api`, `@gears-frontx/i18n`, or `@gears-frontx/screensets`, and vice versa. This keeps each SDK package independently deployable and prevents coupling between orthogonal concerns.
+#### LAYER-3 - Root-to-member citation direction
 
-**Enforcement**: Each L1 `package.json` is verified in CI to contain zero `@gears-frontx/*` entries in `dependencies` or `devDependencies`.
+- [x] `p2` - **ID**: `cpt-frontx-constraint-root-cites-no-member`
 
-#### No Package Internals Imports
+Root PRD and DESIGN point readers to member artifact files by path and package name, but they do not use member-owned `cpt-` identifiers as trace targets. Member artifacts may cite root requirements and constraints when they implement cross-layer contracts. Human-readable labels such as MFES-1 or CLI-7 are not identifiers under this constraint: the root may name them to point a reader at a member-owned rule, and must name the owning member DESIGN next to them.
 
-- [x] `p2` - **ID**: `cpt-hai3-constraint-no-package-internals-imports`
+This constraint is review-held. The validator cannot fully scope citation direction across registered systems.
 
-Consumers SHALL NOT import from sub-paths of workspace packages (e.g., `@gears-frontx/state/src/eventBus`). All public API is exported through the package entry point. Internal module structure is an implementation detail that may change without notice.
+#### LAYER-4 - Temporary feature-entry compatibility anchors
 
-**Enforcement**: ESLint rule + `dependency-cruiser` forbidden path pattern `@gears-frontx/*/src/*`.
+- [ ] `p2` - **ID**: `cpt-frontx-constraint-validator-warning-debt`
 
-#### No Barrel Exports for Registries
-
-- [x] `p2` - **ID**: `cpt-hai3-constraint-no-barrel-exports-for-registries`
-
-Registry root files SHALL NOT re-export individual registry items. Each registered item (screen-set, component, service) self-registers via side-effect import. The registry file provides only the factory, accessor, or type — never the item list. This prevents barrel files from defeating tree-shaking and eliminates merge conflicts on central export lists.
-
-#### TypeScript Strict Mode
-
-- [x] `p1` - **ID**: `cpt-hai3-constraint-typescript-strict-mode`
-
-All packages compile with `"strict": true` in `tsconfig.json`. Use of `any`, `as unknown as`, or `@ts-ignore` is forbidden. Type safety is enforced at compile time across all layers. Module augmentation (`declare module`) is the approved mechanism for extending framework types from plugins.
-
-**Enforcement**: CI type-check step with `tsc --noEmit`; ESLint `@typescript-eslint/no-explicit-any` rule.
-
-#### ESM-First Module Format
-
-- [x] `p1` - **ID**: `cpt-hai3-constraint-esm-first-module-format`
-
-**ADRs**: `cpt-hai3-adr-esm-first-module-format`
-
-All packages output ESM as the primary module format. `package.json` files include `"type": "module"` and `"exports"` field with ESM entry points. CJS is not supported. This ensures compatibility with modern bundlers, enables tree-shaking, and aligns with the platform direction of Node.js and browsers.
-
-**Enforcement**: tsup build configuration with `format: ['esm']`; `package.json` validation in CI.
+The installed SDLC kit requires feature-entry definitions in root DECOMPOSITION and routes DESIGN coverage through DECOMPOSITION. Root DECOMPOSITION may therefore carry compatibility anchors limited to feature IDs, owner pointers and compact ID-only component/constraint/principle coverage references, with no member purpose, scope, prose, flows, dependencies, algorithms, acceptance criteria or design decisions. Removal criterion: upstream or project-installed SDLC kit supports member-scoped DECOMPOSITION coverage and member-owned FEATURE identity.
 
 ## 3. Technical Architecture
 
 ### 3.1 Domain Model
 
-**Technology**: TypeScript interfaces and types
-
-**Core Entities**:
-
-| Entity | Description | Location |
-|--------|-------------|----------|
-| ScreenSet | A named collection of screens registered at runtime; the primary unit of UI composition | `packages/screensets/src/types.ts` |
-| Screen | A single view within a screen-set; may contain components and MFE slots | `packages/screensets/src/types.ts` |
-| Component | A React UI element authored in app-owned UI folders such as `components/ui/` | Per-MFE/screenset or generated app source |
-| Microfrontend | An externally-built UI bundle loaded at runtime via blob URL isolation | `packages/screensets/src/mfe/` |
-| State (Store) | Redux Toolkit store composed from plugin-registered slices | `packages/state/src/store.ts` |
-| Event | A typed message on the event bus; carries a name and payload | `packages/state/src/eventBus.ts` |
-| Action | A domain operation that dispatches events; created via `createAction()` | `packages/state/src/actions.ts` |
-| Effect | An event handler that performs side effects and dispatches reducers | `packages/state/src/effects.ts` |
-| Plugin | A framework extension implementing `HAI3Plugin` interface | `packages/framework/src/plugin.ts` |
-| SharedProperty | A typed value bridging host and MFE state; validated at boundaries | `packages/framework/src/sharedProperty.ts` |
-
-**Relationships**:
-- ScreenSet → Screen: contains one or more
-- Screen → Component: renders zero or more
-- Screen → Microfrontend: hosts zero or more as extension slots
-- Plugin → State: registers slices and effects during init
-- Plugin → Event: subscribes to and publishes events
-- Microfrontend → SharedProperty: reads/writes declared shared values
-- Action → Event → Effect → State: fixed data flow sequence
+| Entity | Description | Owner |
+|--------|-------------|-------|
+| Layer | A role in the ecosystem: published library, template, or projects orchestration. | Root |
+| Member | A FrontX-owned unit classified into one layer. | Root for classification; member for behavior |
+| Artifact chain | A member PRD, DESIGN and FEATURE set. | Member |
+| Package registry publication | A versioned package release consumed by projects. | Root contract; member release |
+| Template | A source-hosted generator of project content. | External template artifacts; CLI contract |
+| Project | A receiving repository assembled and maintained by developers. | Consuming project |
 
 ### 3.2 Component Model
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                      Host Application                      │
-│                                                           │
-│  ┌─────────┐  ┌──────────────┐  ┌──────────────────────┐ │
-│  │ @gears-frontx/  │  │  @gears-frontx/react │  │  app-owned UI        │ │
-│  │ studio  │  │  HAI3Provider │  │  components          │ │
-│  └─────────┘  │  hooks        │  └──────────────────────┘ │
-│               │  MfeContainer │                           │
-│               └──────┬───────┘                            │
-│                      │ depends on                         │
-│               ┌──────▼───────┐                            │
-│               │ @gears-frontx/       │                            │
-│               │ framework    │                            │
-│               │ createHAI3() │                            │
-│               │ plugins      │                            │
-│               └──┬──┬──┬──┬─┘                            │
-│           depends│  │  │  │on                             │
-│     ┌────────┬──┘  │  │  └──┬────────┐                   │
-│     ▼        ▼     ▼  ▼     ▼        │                   │
-│  ┌──────┐ ┌──────┐ ┌────┐ ┌─────┐   │                   │
-│  │state │ │screen│ │api │ │i18n │   │                   │
-│  │      │ │sets  │ │    │ │     │   │                   │
-│  └──────┘ └──────┘ └────┘ └─────┘   │                   │
-│    L1       L1       L1     L1       │                   │
-│  (no cross-dependencies)      ┌──────▼─┐                 │
-│                               │@gears-frontx/  │                 │
-│                               │cli     │                 │
-│                               └────────┘                 │
-└───────────────────────────────────────────────────────────┘
+The ecosystem is composed of independently published, independently versioned artifacts partitioned into the three layers of §1.3. Under federated artifact ownership each member's component model is owned by its member DESIGN: the [MFE Runtime](../packages/mfes/architecture/DESIGN.md), the [Type System plugin](../packages/gts-plugin/architecture/DESIGN.md), the [API Protocol Surface](../packages/api/architecture/DESIGN.md), the [Telemetry SDK](../packages/telemetry/architecture/DESIGN.md), the [Routing substrate](../packages/routing/architecture/DESIGN.md), and the [Routing TanStack provider](../packages/routing-tanstack/architecture/DESIGN.md) in the published-libraries layer; the [CLI](../packages/cli/architecture/DESIGN.md) and the [AI Tooling Framework](../packages/cyber-pilot-kit-frontx/architecture/DESIGN.md) in the projects-orchestration layer. Templates are hosted outside this repository and own their artifacts there. What this section holds are the two components the root itself owns — the cross-member distribution and version policy, and the ecosystem governance guard — which belong to no single member because they bind the edges and the membership rules between members.
+
+```mermaid
+graph TD
+    subgraph Orch[Projects orchestration layer]
+        CLI["CLI (gears-frontx/cli)"]
+        KIT["AI Tooling Framework (cyber-pilot-kit-frontx)"]
+    end
+    subgraph Libs[Published libraries layer]
+        MFES[gears-frontx/mfes]
+        GTS[gears-frontx/gts-plugin]
+        API[gears-frontx/api]
+        TEL[gears-frontx/telemetry]
+        ROUTING[gears-frontx/routing]
+        ROUTINGTS[gears-frontx/routing-tanstack]
+    end
+    POL[ecosystem version policy - root-owned]
+    TFW["template framework router - template territory"]
+    GTS -- "implements type-substrate port of" --> MFES
+    TFW -. "implements optional router port of" .-> MFES
+    ROUTINGTS -- "implements engine-provider port of" --> ROUTING
+    KIT -- "orchestrates command surface of" --> CLI
+    POL -. "governs every published edge and release line" .-> Libs
+    POL -. "governs" .-> Orch
 ```
 
-#### @gears-frontx/state (L1)
+#### Ecosystem Version Policy
 
-- [x] `p1` - **ID**: `cpt-hai3-component-state`
-
-##### Why this component exists
-
-Provides the foundational state management and event infrastructure that all other packages build upon. Without a shared event bus and store abstraction, each package would implement its own state patterns, leading to fragmented debugging and untraceable data flow.
-
-##### Responsibility scope
-
-- **Event bus**: Typed publish/subscribe messaging (`eventBus.publish()`, `eventBus.subscribe()`) for all cross-domain communication
-- **Store factory**: Creates and configures Redux Toolkit store with dynamically registered slices
-- **Action factory**: `createAction()` produces typed action creators that dispatch events
-- **Effect system**: Registers effect handlers that respond to events and produce state changes
-- **Flux terminology**: Enforces Action → Event → Effect → Reducer naming and flow conventions
-- **Module augmentation**: Supports `declare module '@gears-frontx/state'` for type-safe slice extensions
-
-##### Responsibility boundaries
-
-- Does NOT provide UI bindings (React hooks, components) — delegated to `cpt-hai3-component-react`
-- Does NOT define domain-specific slices — each plugin registers its own slices
-- Does NOT depend on any other `@gears-frontx/*` package
-- Does NOT implement persistence or devtools — relies on Redux Toolkit's built-in middleware
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-framework` — depends on: framework registers slices and effects via plugin context
-- `cpt-hai3-component-react` — depends on: provides hooks (`useSelector`, `useDispatch`) over this store
-
-#### @gears-frontx/screensets (L1)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-screensets`
+- [x] `p2` - **ID**: `cpt-frontx-component-ecosystem-version-policy`
 
 ##### Why this component exists
 
-Defines the contract between the host application and microfrontend extensions. Manages the screen-set registry, MFE lifecycle, and blob URL isolation mechanism. Separating this from `@gears-frontx/state` keeps MFE concerns (loading, isolation, source caching) orthogonal to state management.
+Owns versioning and compatibility rules that bind published members. It governs release-line independence, allowed dependency edges and deprecation discipline.
 
 ##### Responsibility scope
 
-- **Screen-set registry**: `screensetsRegistryFactory` for registering/querying screen-sets with handler injection
-- **MFE type contracts**: Entry types (component, screen, extension), domain declarations, shared property schemas, action type definitions
-- **Blob URL isolation**: Fetches MFE bundles, rewrites import specifiers to blob URLs, caches source text, manages per-load import maps
-- **Import rewriting**: Transforms bare `@gears-frontx/*` specifiers in MFE bundles to blob URL references for runtime resolution
-- **Recursive chain loading**: Resolves transitive dependencies by recursively blob-loading imported modules
+- Define release-line and compatibility expectations for published members.
+- Keep cross-member dependency policy explicit.
+- Support deprecation discipline before removals.
 
 ##### Responsibility boundaries
 
-- Does NOT render MFE content (React mounting) — delegated to `cpt-hai3-component-react`
-- Does NOT manage theme or i18n propagation into MFEs — delegated to `cpt-hai3-component-framework`
-- Does NOT depend on any other `@gears-frontx/*` package
-- Does NOT handle CSS isolation (Shadow DOM) — delegated to rendering layer
+- Does not define member APIs or member internals.
+- Does not own template resolution or project mutation behavior.
 
 ##### Related components (by ID)
 
-- `cpt-hai3-component-framework` — depends on: framework's `microfrontends()` plugin orchestrates MFE lifecycle using screensets API
-- `cpt-hai3-component-react` — depends on: `MfeContainer` component renders loaded MFE content
+- None.
 
-#### @gears-frontx/api (L1)
+#### Ecosystem Governance Guard
 
-- [x] `p1` - **ID**: `cpt-hai3-component-api`
+- [x] `p2` - **ID**: `cpt-frontx-component-ecosystem-governance-guard`
 
 ##### Why this component exists
 
-Provides a unified API service layer that abstracts protocol differences (REST, SSE) behind a consistent interface. Developers create services without coupling to a specific transport; the protocol adapter handles serialization, connection management, and error recovery.
+Owns checks that classify workspace packages and account for member artifact chains. The guard may accept a path-scoped ignore as debt, but only when the debt and its removal criterion are visible to owners.
 
 ##### Responsibility scope
 
-- **Service factory**: `createApiService()` produces typed API service instances
-- **Protocol registry**: Registers protocol adapters (REST via Axios, SSE via EventSource) that can be switched at runtime
-- **REST adapter**: Standard HTTP operations with Axios; interceptors for auth, retry, error mapping
-- **SSE adapter**: Server-Sent Events connection management with typed event streams
-- **Mock mode**: `RestMockPlugin` and `SseMockPlugin` provide mock responses; `toggleMockMode` action switches at runtime
-- **Type-safe events**: SSE event types are generic-parameterized for compile-time safety
+- Classify every FrontX-owned workspace package.
+- Check member artifact registration or path-scoped debt.
+- Fail CI-visible checks when classification or artifact accounting is missing.
 
 ##### Responsibility boundaries
 
-- Does NOT define business-domain API endpoints — each domain plugin defines its own services
-- Does NOT manage authentication tokens — relies on interceptors configured by the consumer
-- Does NOT depend on any other `@gears-frontx/*` package
-- Axios is a peer dependency, not bundled
+- Does not validate member behavior.
+- Does not enforce cross-system citation direction beyond the review-held constraint.
 
 ##### Related components (by ID)
 
-- `cpt-hai3-component-framework` — depends on: framework plugins use `createApiService()` to register domain APIs
-- `cpt-hai3-component-state` — publishes to: API effects dispatch events on the event bus for state updates
-
-#### @gears-frontx/i18n (L1)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-i18n`
-
-##### Why this component exists
-
-Provides internationalization infrastructure with support for 36 languages, locale-aware formatting, and namespace-based lazy loading. Centralizes i18n concerns so that screen-sets, MFEs, and host app share consistent translation patterns without monolithic language bundles.
-
-##### Responsibility scope
-
-- **Language support**: 36 built-in language configurations with locale metadata
-- **Formatter exports**: Date, number, currency, relative-time formatters exported individually for tree-shaking
-- **Namespace management**: Hybrid namespace model — global keys for shared translations, screen-set-scoped keys for domain-specific content
-- **Lazy chunk loading**: Translation files loaded on demand per namespace; reduces initial bundle size
-- **Graceful fallback**: Invalid format inputs return fallback strings rather than throwing
-
-##### Responsibility boundaries
-
-- Does NOT provide React hooks for translation — delegated to `cpt-hai3-component-react` (which wraps i18next React bindings)
-- Does NOT contain translation content — only infrastructure; content provided by consuming applications
-- Does NOT depend on any other `@gears-frontx/*` package
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-framework` — depends on: framework initializes i18n and propagates language changes to MFEs
-- `cpt-hai3-component-react` — depends on: provides `useTranslation()` hook wrapping i18n infrastructure
-
-#### @gears-frontx/framework (L2)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-framework`
-
-##### Why this component exists
-
-Composes L1 SDK packages into a cohesive application framework through a plugin architecture. Without this layer, each application would need to manually wire state, API, i18n, and screensets together — a complex, error-prone process that would lead to inconsistent patterns across projects.
-
-##### Responsibility scope
-
-- **Builder API**: `createHAI3()` returns a builder with `.use(plugin)` chaining and `.build()` finalization
-- **Plugin system**: `HAI3Plugin` interface with `init(context: HAI3PluginContext)`; context provides access to store, event bus, registries
-- **Layout orchestration**: Layout slices (menu, header, footer, sidebars, overlay, popups) managed as Redux state
-- **Configuration management**: `AppConfig` with tenant settings, router config, layout visibility, theme — propagated via `app/*` events
-- **MFE lifecycle plugin**: `microfrontends()` plugin handles MFE registration, theme propagation, i18n forwarding, shared property bridge
-- **Shared property system**: `setSharedProperty()` / `getSharedProperty()` with validation via GTS plugin
-- **SDK re-exports**: Re-exports L1 public API so consumers can import from `@gears-frontx/framework` as a convenience
-
-##### Responsibility boundaries
-
-- Does NOT provide React components or hooks — delegated to `cpt-hai3-component-react`
-- Does NOT define UI components — delegated to application/screenset local UI
-- Does NOT implement blob URL isolation — uses `cpt-hai3-component-screensets` API
-- Does NOT bundle L1 packages — re-exports only; each L1 remains independently installable
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-state` — depends on: uses store, event bus, action/effect system
-- `cpt-hai3-component-screensets` — depends on: uses registry factory and MFE contracts
-- `cpt-hai3-component-api` — depends on: initializes API services and protocol adapters
-- `cpt-hai3-component-i18n` — depends on: initializes i18n and manages language lifecycle
-- `cpt-hai3-component-react` — depended on by: React layer consumes framework's builder output
-
-#### @gears-frontx/react (L3)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-react`
-
-##### Why this component exists
-
-Bridges the framework layer to React 19, providing the provider tree, hooks, and MFE rendering components that application developers use directly. Separating React bindings into L3 allows the framework and SDK to remain framework-agnostic.
-
-##### Responsibility scope
-
-- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, and framework context
-- **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
-- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation
-- **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
-- **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
-
-##### Responsibility boundaries
-
-- Does NOT define the store, event bus, or action system — uses `cpt-hai3-component-framework`
-- Does NOT define UI component implementations — uses application/screenset local UI
-- Does NOT manage MFE loading or blob URL creation — uses `cpt-hai3-component-screensets` via framework
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-framework` — depends on: consumes builder output and plugin registrations
-- `cpt-hai3-component-studio` — used by: studio panel renders inside the provider tree
-
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-react` — used by: application renders UI within HAI3Provider
-- `cpt-hai3-component-studio` — uses: studio panel uses local UI primitives for its controls
-
-#### @gears-frontx/studio (Standalone)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-studio`
-
-##### Why this component exists
-
-Provides a development-time overlay for inspecting and tweaking theme, i18n, viewport, and state without leaving the running application. Accelerates the design iteration loop for screen-set authors.
-
-##### Responsibility scope
-
-- **Dev panel**: Toggleable overlay with sections for theme, i18n, state, and viewport inspection
-- **Controls**: Theme switching, language selection, viewport size simulation
-- **Persistence**: Panel state (open/closed, section visibility, preferences) stored in `localStorage`
-- **Viewport simulation**: Responsive preview at configurable breakpoints
-- **Build independence**: Excluded from production builds; no impact on production bundle
-
-##### Responsibility boundaries
-
-- Does NOT modify framework state directly — dispatches actions through the standard event flow
-- Does NOT affect production builds — tree-shaken out when `process.env.NODE_ENV === 'production'`
-- Minimal coupling: reads from store selectors, does not import framework internals
-
-##### Related components (by ID)
-
-- `cpt-hai3-component-react` — used by: renders inside HAI3Provider context
-
-#### @gears-frontx/cli (Tooling)
-
-- [x] `p2` - **ID**: `cpt-hai3-component-cli`
-
-##### Why this component exists
-
-Reduces boilerplate and enforces conventions by generating screen-sets, MFE packages, components, and configuration through interactive scaffolding commands. Integrates AI skills for assisted code generation.
-
-##### Responsibility scope
-
-- **Package**: Standalone npm package with `hai3` binary entry point
-- **Commands**: `create` (project), `generate` (screen-set, MFE, component), `dev` (development server)
-- **Templates**: EJS-based templates for screen-sets, MFE packages, components — each follows HAI3 conventions
-- **AI skills**: Embedded skill definitions for Claude Code / AI assistants to scaffold domain code
-
-##### Responsibility boundaries
-
-- Does NOT depend on runtime `@gears-frontx/*` packages — generates code that imports them
-- Does NOT run at application runtime — CLI tool only
-- Does NOT manage build or deployment — delegates to Vite and npm scripts
-
-##### Related components (by ID)
-
-- All packages — generates for: CLI templates produce code that imports from L1/L2/L3 packages
+- `cpt-frontx-component-ecosystem-version-policy` - sibling root component; it owns release policy, not member accounting.
 
 ### 3.3 API Contracts
 
-HAI3 is a frontend framework; all API contracts are TypeScript interfaces consumed at build time. There are no REST/GraphQL server endpoints defined by HAI3 itself.
+#### Package-registry distribution
 
-- [x] `p1` - **ID**: `cpt-hai3-interface-plugin`
-- **Contract**: cpt-hai3-contract-hai3-plugin
-- **Technology**: TypeScript interface
-- **Location**: `packages/framework/src/plugin.ts`
+- [ ] `p2` - **ID**: `cpt-frontx-interface-package-registry-distribution`
 
-```typescript
-interface HAI3Plugin {
-  name: string;
-  init(context: HAI3PluginContext): void | Promise<void>;
-}
+FrontX packages are published to and installed from an npm-compatible package registry. Compatibility follows the root versioned-evolution requirement and member release policy.
 
-interface HAI3PluginContext {
-  store: HAI3Store;
-  eventBus: EventBus;
-  registerSlice(slice: Slice): void;
-  registerEffect(effect: Effect): void;
-}
-```
-
-- [x] `p1` - **ID**: `cpt-hai3-interface-event-bus`
-- **Contract**: cpt-hai3-contract-event-bus
-- **Technology**: TypeScript interface
-- **Location**: `packages/state/src/eventBus.ts`
-
-```typescript
-interface EventBus {
-  publish<T>(event: string, payload: T): void;
-  subscribe<T>(event: string, handler: (payload: T) => void): Unsubscribe;
-}
-```
-
-- [x] `p1` - **ID**: `cpt-hai3-interface-screenset-registry`
-- **Contract**: cpt-hai3-contract-screenset-registry
-- **Technology**: TypeScript interface
-- **Location**: `packages/screensets/src/registry.ts`
-
-```typescript
-interface ScreensetsRegistry {
-  register(screenSet: ScreenSetDefinition): void;
-  get(name: string): ScreenSetDefinition | undefined;
-  getAll(): ScreenSetDefinition[];
-}
-```
-
-- [x] `p1` - **ID**: `cpt-hai3-interface-api-service`
-- **Contract**: cpt-hai3-contract-api-service
-- **Technology**: TypeScript interface
-- **Location**: `packages/api/src/service.ts`
-
-```typescript
-interface ApiService<T> {
-  get(url: string, config?: RequestConfig): Promise<T>;
-  post(url: string, data: unknown, config?: RequestConfig): Promise<T>;
-  stream(url: string, config?: SseConfig): EventSource;
-}
-```
-
-- [x] `p1` - **ID**: `cpt-hai3-interface-shared-property`
-- **Contract**: cpt-hai3-contract-shared-property
-- **Technology**: TypeScript interface
-- **Location**: `packages/framework/src/sharedProperty.ts`
-
-```typescript
-interface SharedPropertyBridge {
-  setSharedProperty(key: string, value: unknown): void;
-  getSharedProperty<T>(key: string): T | undefined;
-  onSharedPropertyChange<T>(key: string, handler: (value: T) => void): Unsubscribe;
-}
-```
-
-**Public Package Interfaces**
-
-| Interface | Package | Description |
-|-----------|---------|-------------|
-| `cpt-hai3-interface-state` | `@gears-frontx/state` | Event-driven state management with EventBus, Redux-backed store, dynamic slice registration, and type-safe module augmentation |
-| `cpt-hai3-interface-screensets` | `@gears-frontx/screensets` | MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
-| `cpt-hai3-interface-api` | `@gears-frontx/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards |
-| `cpt-hai3-interface-i18n` | `@gears-frontx/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
-| `cpt-hai3-interface-framework` | `@gears-frontx/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
-| `cpt-hai3-interface-react` | `@gears-frontx/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
-| `cpt-hai3-interface-studio` | `@gears-frontx/studio` | Dev-only floating overlay with MFE package selector, theme/language/mock controls, persistence, viewport clamping |
-| `cpt-hai3-interface-cli` | `@gears-frontx/cli` | Project scaffolding, code generation, migration runners, AI tool configuration sync |
-
-**External Integration Contracts**
-
-| Contract | Description |
-|----------|-------------|
-| `cpt-hai3-contract-mfe-manifest` | MFE packages provide a manifest (JSON) declaring remoteEntry, exposedModules, and sharedDependencies with optional chunkPath |
-| `cpt-hai3-contract-federation-runtime` | Federation runtime's `importShared()` resolves from `globalThis.__federation_shared__` (compatible with vite-plugin-federation v1.4.x) |
+Member public APIs are not repeated here. They are owned by each member's PRD and DESIGN.
 
 ### 3.4 Internal Dependencies
 
-| Source Package | Target Package | Interface Used | Purpose |
-|----------------|----------------|----------------|----------|
-| `@gears-frontx/framework` | `@gears-frontx/state` | Store, EventBus, Action, Effect APIs | State management and event-driven communication |
-| `@gears-frontx/framework` | `@gears-frontx/screensets` | ScreensetsRegistry, MFE contracts | MFE registration and lifecycle management |
-| `@gears-frontx/framework` | `@gears-frontx/api` | ApiService factory, protocol registry | API service initialization and protocol adapter setup |
-| `@gears-frontx/framework` | `@gears-frontx/i18n` | i18n init, namespace loader, formatters | Internationalization setup and language management |
-| `@gears-frontx/react` | `@gears-frontx/framework` | Builder output, plugin context, layout slices | Provider tree construction and hook bindings |
+The root design records only cross-member dependency policy:
 
-**Dependency Rules**:
-- No circular dependencies (enforced by `dependency-cruiser`)
-- L1 packages have zero `@gears-frontx/*` dependencies
-- L2 depends only on L1; L3 depends only on L2
-- Standalone packages (`@gears-frontx/studio`, `@gears-frontx/cli`) sit outside the L1/L2/L3 dependency chain
-- Cross-package imports use workspace names (`@gears-frontx/…`), never `../packages/*/src/*`
+- Members integrate through public contracts, not through sibling internals.
+- Compile-time package edges must be explicitly allowed by the boundary model.
+- Projects orchestration may operate on project files or command surfaces without creating a package dependency.
+- Build internals are allowed only for build-time support and remain outside the member artifact chain.
 
 ### 3.5 External Dependencies
 
-#### React Ecosystem
-
-| Dependency | Version | Used By | Purpose |
-|-----------|---------|---------|---------|
-| `react` | ^19.0.0 | `@gears-frontx/react`, `@gears-frontx/studio` | UI rendering, hooks, concurrent features |
-| `react-dom` | ^19.0.0 | `@gears-frontx/react` | DOM mounting, Shadow DOM for MFE isolation |
-
-#### State Management
-
-| Dependency | Version | Used By | Purpose |
-|-----------|---------|---------|---------|
-| `@reduxjs/toolkit` | ^2.x | `@gears-frontx/state`, `@gears-frontx/framework` | Store creation, slice management, middleware |
-| `react-redux` | ^9.x | `@gears-frontx/react` | React bindings for Redux store |
-
-#### Build Toolchain
-
-| Dependency | Version | Used By | Purpose |
-|-----------|---------|---------|---------|
-| `vite` | ^6.x | Build system | Development server, production bundling |
-| `tsup` | ^8.x | All packages | TypeScript compilation to ESM |
-| `typescript` | ^5.5 | All packages | Type checking, declaration generation |
-| `tailwindcss` | ^3.x | Local MFE/screenset | Utility-first CSS |
-
-#### UI Foundation
-
-| Dependency | Version | Used By | Purpose |
-|-----------|---------|---------|---------|
-| `@radix-ui/*` | various | Local UI | Accessible headless UI primitives |
-| `lucide-react` | ^0.x | Local UI | Icon system |
-| `recharts` | ^2.x | Local UI | Chart components |
-| `i18next` | ^23.x | `@gears-frontx/i18n` | Translation runtime |
-
-#### HTTP & Networking
-
-| Dependency | Version | Used By | Purpose |
-|-----------|---------|---------|---------|
-| `axios` | ^1.x | `@gears-frontx/api` (peer) | HTTP client for REST protocol adapter |
+| Dependency | Purpose | Root responsibility |
+|------------|---------|---------------------|
+| Package registry | Publishes and installs versioned packages. | Distribution contract and compatibility expectations. |
+| GitHub source registry | Hosts source references used by templates and tooling. | Layer-level dependency statement only. |
+| AI agent host | Runs agents that consume project-visible resources. | Actor and boundary statement only. |
 
 ### 3.6 Interactions & Sequences
 
-#### Application Bootstrap
+#### Member admission and artifact accounting
 
-**ID**: `cpt-hai3-seq-app-bootstrap`
+- [ ] `p2` - **ID**: `cpt-frontx-seq-member-admission-accounting`
 
-**Use cases**: `cpt-hai3-usecase-mfe-load`
+**Use cases**: `cpt-frontx-usecase-classify-new-member`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
-
-```mermaid
-sequenceDiagram
-    participant App as Host App
-    participant Builder as createHAI3()
-    participant Plugin as Plugins
-    participant Registry as Registries
-    participant Provider as HAI3Provider
-
-    App->>Builder: createHAI3()
-    App->>Builder: .use(microfrontends())
-    App->>Builder: .use(domainPlugin())
-    App->>Builder: .build()
-    Builder->>Plugin: plugin.init(context)
-    Plugin->>Registry: registerSlice(), registerEffect()
-    Plugin->>Registry: screensetsRegistry.register()
-    Builder-->>App: { store, config, registries }
-    App->>Provider: <HAI3Provider config={...}>
-    Provider->>Registry: themeRegistry init
-    Provider->>Registry: screensetsRegistryFactory.build()
-    Provider-->>App: Application rendered
-```
-
-**Description**: The host application creates a framework instance via the builder, chains plugins, and calls `.build()`. Each plugin initializes by registering its slices, effects, and registry entries through the context. The built configuration is passed to `HAI3Provider`, which orchestrates the initialization sequence: theme registry → screen-sets registry (with MFE handlers) → domain registration → render.
-
-#### Screen-Set Data Flow
-
-**ID**: `cpt-hai3-seq-screenset-data-flow`
-
-**Use cases**: `cpt-hai3-usecase-mfe-load`
-
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-project-developer`
 
 ```mermaid
 sequenceDiagram
-    participant C as Component
-    participant A as Action
-    participant EB as EventBus
-    participant E as Effect
-    participant R as Reducer
-    participant S as Store
-    participant V as View
-
-    C->>A: createAction(payload)
-    A->>EB: publish(eventName, payload)
-    EB->>E: notify subscriber
-    E->>E: Side effects (API, validation)
-    E->>R: dispatch(reducerAction)
-    R->>S: new state
-    S->>V: useSelector() re-render
-```
-
-**Description**: A component triggers an action via `createAction()`. The action publishes a typed event on the event bus. Registered effects handle the event, perform side effects (API calls, validation), and dispatch Redux actions. Reducers produce new state, which triggers re-renders in subscribed components via `useSelector()`.
-
-#### MFE Extension Loading
-
-**ID**: `cpt-hai3-seq-mfe-loading`
-
-**Use cases**: `cpt-hai3-usecase-mfe-load`
-
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-microfrontend`
-
-```mermaid
-sequenceDiagram
-    participant Host as Host App
-    participant FW as Framework
-    participant SS as Screensets
-    participant Blob as Blob Loader
-    participant MFE as MFE Bundle
-
-    Host->>FW: microfrontends() plugin init
-    FW->>SS: register MFE handler
-    Host->>SS: load MFE by name
-    SS->>Blob: fetch(bundleUrl)
-    Blob->>Blob: cache source text
-    Blob->>Blob: rewrite imports → blob URLs
-    Blob->>Blob: recursive chain load deps
-    Blob-->>SS: blob URL module
-    SS-->>FW: MFE module loaded
-    FW->>FW: propagate theme
-    FW->>FW: propagate i18n
-    FW->>Host: MFE ready
-    Host->>Host: MfeContainer renders in Shadow DOM
-```
-
-**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@gears-frontx/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer renders the MFE content inside a Shadow DOM container for CSS isolation.
-
-#### Shared Property Broadcast
-
-**ID**: `cpt-hai3-seq-shared-property-broadcast`
-
-**Use cases**: `cpt-hai3-usecase-mfe-load`
-
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-microfrontend`, `cpt-hai3-actor-gts-plugin`
-
-```mermaid
-sequenceDiagram
-    participant Host as Host Plugin
-    participant SP as SharedProperty Bridge
-    participant GTS as GTS Validator
-    participant MFE as MFE Component
-
-    Host->>SP: setSharedProperty(key, value)
-    SP->>GTS: validate(key, value, schema)
-    alt valid
-        GTS-->>SP: OK
-        SP->>SP: store value
-        SP->>MFE: notify onChange(key, value)
-        MFE->>MFE: useSharedProperty(key) re-render
-    else invalid
-        GTS-->>SP: reject(reason)
-        SP->>SP: log warning, discard value
+    participant Dev as Developer
+    participant Model as Layer model
+    participant Registry as Artifact registry
+    participant Guard as Governance guard
+    Dev->>Model: add or change workspace package classification
+    Guard->>Model: classify every workspace package
+    Guard->>Registry: inspect member artifact accounting
+    alt member has local chain
+        Registry-->>Guard: PRD, DESIGN, FEATURE enforced
+        Guard-->>Dev: pass
+    else member has path-scoped debt
+        Registry-->>Guard: debt and removal criterion visible
+        Guard-->>Dev: pass with debt
+    else missing accounting
+        Guard-->>Dev: fail naming member
     end
 ```
 
-**Description**: When a host plugin sets a shared property, the value passes through GTS validation against the declared schema. Valid values are stored and broadcast to all subscribed MFE components via change notifications. Invalid values are rejected with a logged warning. MFE components read shared properties through `useSharedProperty()` which re-renders on changes.
+**Description**: A new or changed workspace package must be classified and accounted for. A debt ignore may keep the repository moving, but it remains visible and removable.
 
 ### 3.7 Database schemas & tables
 
-Not applicable — HAI3 is a frontend framework with no server-side database.
+Not applicable. The root ecosystem design owns no runtime database or data store.
+
+### 3.8 Deployment Topology
+
+The root ecosystem owns no server topology. Published packages are distributed through a package registry, templates are hosted through source references, and projects run in their own deployment environments.
 
 ## 4. Additional context
 
-**Initialization Sequence Detail**: The initialization follows a strict order to ensure registries are populated before consumers access them:
+### Technology stack alignment
 
-1. `themeRegistry` — theme tokens resolved
-2. `screensetsRegistryFactory.build()` — screen-set definitions with MFE handlers wired
-3. Domain registration — domain plugins register `ContainerProviders` for their screen-sets
-4. Extension registration — MFE extensions registered and loaded
-5. `HAI3Provider` mounts — React tree renders with all contexts available
+The technology stack per layer is recorded in §1.3 (`cpt-frontx-tech-ecosystem-stack`). Finer technology decisions are owned by the member DESIGN files listed under Member Pointers below.
 
-**Module Augmentation Pattern**: Plugins extend framework types without modifying source files:
+### Capacity and NFR thresholds
 
-```typescript
-declare module '@gears-frontx/state' {
-  interface StoreState {
-    myDomain: MyDomainState;
-  }
-}
-```
+Root capacity is expressed as an absence of structural caps. Concrete runtime or SDK thresholds belong to the member PRD that owns the behavior.
 
-This provides type-safe access to `store.getState().myDomain` across the entire application while keeping the state package unaware of domain-specific slices.
+### Non-applicable checklist categories
 
-**Build Orchestration**: The monorepo uses npm workspaces. Build order matters because higher layers import from lower layers' built output: `npm run build:packages` executes SDK → Framework → React → Studio → CLI sequentially.
+- Database and data architecture are not applicable at root altitude.
+- Hosted infrastructure operations are not applicable at root altitude.
+- Security and privacy behavior are owned by members and consuming applications unless a root contract explicitly states otherwise.
+
+### Member Pointers
+
+| Member | Layer | Artifact pointer |
+|--------|-------|------------------|
+| `@gears-frontx/mfes` | Published libraries | [packages/mfes/architecture/DESIGN.md](../packages/mfes/architecture/DESIGN.md) |
+| `@gears-frontx/gts-plugin` | Published libraries | [packages/gts-plugin/architecture/DESIGN.md](../packages/gts-plugin/architecture/DESIGN.md) |
+| `@gears-frontx/api` | Published libraries | [packages/api/architecture/DESIGN.md](../packages/api/architecture/DESIGN.md) |
+| `@gears-frontx/telemetry` | Published libraries | [packages/telemetry/architecture/DESIGN.md](../packages/telemetry/architecture/DESIGN.md) |
+| `@gears-frontx/routing` | Published libraries | [packages/routing/architecture/DESIGN.md](../packages/routing/architecture/DESIGN.md) |
+| `@gears-frontx/routing-tanstack` | Published libraries | [packages/routing-tanstack/architecture/DESIGN.md](../packages/routing-tanstack/architecture/DESIGN.md) |
+| `@gears-frontx/ui-kit` | Published libraries | [packages/ui-kit/architecture/DESIGN.md](../packages/ui-kit/architecture/DESIGN.md) |
+| `@gears-frontx/cli` | Projects orchestration | [packages/cli/architecture/DESIGN.md](../packages/cli/architecture/DESIGN.md) |
+| `cyber-pilot-kit-frontx` | Projects orchestration | [packages/cyber-pilot-kit-frontx/architecture/DESIGN.md](../packages/cyber-pilot-kit-frontx/architecture/DESIGN.md) |
 
 ## 5. Traceability
 
 - **PRD**: [PRD.md](./PRD.md)
 - **ADRs**: [ADR/](./ADR/)
-- **Features**: [features/](./features/)
+- **Root decomposition**: [DECOMPOSITION.md](./DECOMPOSITION.md)
+- **Root features**: [features/](./features/)

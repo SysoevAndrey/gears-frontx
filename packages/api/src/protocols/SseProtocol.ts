@@ -5,12 +5,8 @@
  * SDK Layer: L1 (Zero @gears-frontx dependencies)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-sse-protocol:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-sse-connection:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-sse-disconnect:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-sse-plugin-chain:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
-// @cpt-state:cpt-hai3-state-api-communication-sse-connection:p1
+// @cpt-flow:cpt-frontx-flow-api-protocol-surface-service-call:p1
+// @cpt-dod:cpt-frontx-dod-api-protocol-surface-protocol-dispatch:p1
 
 import assign from 'lodash/assign.js';
 import {
@@ -23,7 +19,7 @@ import {
   type PluginClass,
 } from '../types';
 import { isSseShortCircuit } from '../types';
-import { apiRegistry } from '../apiRegistry';
+import { protocolPluginRegistry } from '../protocolPluginRegistry';
 
 /**
  * SSE Protocol Implementation
@@ -84,10 +80,12 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
     baseConfig: Readonly<ApiServiceConfig>,
     getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void {
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
     this.baseConfig = baseConfig;
     if (getExcludedClasses) {
       this._getExcludedClasses = getExcludedClasses;
     }
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
   }
 
   /**
@@ -101,7 +99,9 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
     this.connections.clear();
 
     // Cleanup instance plugins
-    this._instancePlugins.forEach((plugin) => plugin.destroy());
+    this._instancePlugins.forEach((plugin) => {
+      plugin.destroy();
+    });
     this._instancePlugins.clear();
   }
 
@@ -109,9 +109,9 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    * Get global plugins from apiRegistry, filtering out excluded classes.
    * @private
    */
-  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
   private getGlobalPlugins(): readonly SsePluginHooks[] {
-    const allGlobalPlugins = apiRegistry.plugins.getAll(SseProtocol);
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
+    const allGlobalPlugins = protocolPluginRegistry.getAll(SseProtocol);
     const excludedClasses = this._getExcludedClasses();
 
     if (excludedClasses.size === 0) {
@@ -121,12 +121,13 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
     // Filter out excluded plugin classes
     return allGlobalPlugins.filter((plugin) => {
       for (const excludedClass of excludedClasses) {
-        if ((plugin as object) instanceof excludedClass) {
+        if ((plugin as unknown) instanceof excludedClass) {
           return false;
         }
       }
       return true;
     });
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
   }
 
   /**
@@ -134,12 +135,13 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    * Required by ApiProtocol interface for ProtocolPluginType inference.
    */
   getPluginsInOrder(): SsePluginHooks[] {
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
     return [
       ...this.getGlobalPlugins(),
       ...Array.from(this._instancePlugins),
     ];
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
   }
-  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
 
   /**
    * Execute SSE plugin chain for connection lifecycle
@@ -148,7 +150,6 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    * @param context - SSE connection context
    * @returns Modified context or short-circuit response
    */
-  // @cpt-begin:cpt-hai3-algo-api-communication-sse-plugin-chain:p1:inst-1
   private async executePluginChainAsync(
     context: SseConnectContext
   ): Promise<SseConnectContext | { shortCircuit: EventSourceLike }> {
@@ -156,11 +157,15 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
 
     for (const plugin of this.getPluginsInOrder()) {
       if (plugin.onConnect) {
+        // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
         const result = await plugin.onConnect(currentContext);
+        // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
 
+        // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
         if (isSseShortCircuit(result)) {
           return result;
         }
+        // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
 
         currentContext = result;
       }
@@ -168,7 +173,6 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
 
     return currentContext;
   }
-  // @cpt-end:cpt-hai3-algo-api-communication-sse-plugin-chain:p1:inst-1
 
   /**
    * Connect to SSE stream
@@ -179,8 +183,7 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    * @param onComplete - Optional callback when stream completes
    * @returns Connection ID for disconnecting
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-sse-connection:p1:inst-1
-  // @cpt-begin:cpt-hai3-state-api-communication-sse-connection:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-branch-sse
   async connect(
     url: string,
     onMessage: (event: MessageEvent) => void,
@@ -194,33 +197,48 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
       : url;
 
     // 1. Build SSE connection context for plugin chain
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-build-sse-ctx
     const context: SseConnectContext = {
       url: fullUrl,
       headers: {},
     };
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-build-sse-ctx
 
     // 2. Execute plugin chain - allows plugins to short-circuit with mock EventSource
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
     const result = await this.executePluginChainAsync(context);
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-run-sse-plugins
 
     // 3. Determine which EventSource to use
     let eventSource: EventSourceLike;
 
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
     if (isSseShortCircuit(result)) {
+      // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-use-mock-es
       // Plugin provided mock EventSource
       eventSource = result.shortCircuit;
+      // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-use-mock-es
     } else {
+      // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-real-es
       // Create real EventSource
       const withCredentials = this.config.withCredentials ?? true;
       eventSource = new EventSource(fullUrl, { withCredentials });
+      // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-real-es
     }
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
 
     // 4. Attach handlers - same code path for both mock and real
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-receive-events
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-attach-handlers
     this.attachHandlers(connectionId, eventSource, onMessage, onComplete);
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-attach-handlers
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-receive-events
 
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-return-conn-id
     return connectionId;
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-return-conn-id
+  // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-branch-sse
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-sse-connection:p1:inst-1
-  // @cpt-end:cpt-hai3-state-api-communication-sse-connection:p1:inst-1
 
   /**
    * Attach event handlers to EventSource (mock or real)
@@ -237,6 +255,7 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
     onMessage: (event: MessageEvent) => void,
     onComplete?: () => void
   ): void {
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-attach-handlers
     // Store connection
     this.connections.set(connectionId, eventSource as EventSource);
 
@@ -254,6 +273,7 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
       if (onComplete) onComplete();
       this.disconnect(connectionId);
     });
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-attach-handlers
   }
 
   /**
@@ -261,15 +281,15 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    *
    * @param connectionId - Connection ID returned from connect()
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-sse-disconnect:p1:inst-1
   disconnect(connectionId: string): void {
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-receive-events
     const connection = this.connections.get(connectionId);
     if (connection) {
       connection.close();
       this.connections.delete(connectionId);
     }
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-receive-events
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-sse-disconnect:p1:inst-1
 
   /**
    * Generate unique connection ID

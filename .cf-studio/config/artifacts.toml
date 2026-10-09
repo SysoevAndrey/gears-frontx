@@ -1,0 +1,425 @@
+# Studio artifacts registry
+
+[[ignore]]
+reason = "Build artifacts and dependencies"
+patterns = ["*/dist/*", "*/node_modules/*"]
+
+[[ignore]]
+reason = "Test files use scenario IDs, not CDSL begin/end markers"
+patterns = ["*.test.*", "*.spec.*", "*/__tests__/*"]
+
+[[ignore]]
+reason = "Build/bundler configuration files have no CDSL backing. packages/ui-kit/scripts/buildPlugin.ts is the same category though not name-matched by the other globs here: a Vite plugin factory (externals, per-entry CSS injection, the client-directive passthrough, declaration emission) consumed only by the package's own vite.config, implementing no ecosystem behaviour a numbered instruction specifies. It reaches the scan through packages/ui-kit's own registered scripts codebase entry (and would anyway through the root packages/ + .ts catch-all), unlike scripts/contracts/*.ts beside it, which carry @cpt- markers into the FEATURE's numbered instructions and stay scanned."
+patterns = ["*/tsup.config.*", "*/vite.config.*", "*/vitest.config.*", "*/postcss.config.*", "*/tailwind.config.*", "packages/ui-kit/scripts/buildPlugin.ts"]
+
+[[ignore]]
+reason = "In-package demos exercise a package's public surface rather than implementing a requirement, so no instruction exists for a marker to point at. Structural and permanent — this is not a placeholder for missing artifacts and must never be given an expiry."
+patterns = ["*/demo/*"]
+
+[[ignore]]
+reason = "Extractor fixtures are inputs to a test, not implementable source: each one is a deliberately shaped component written so the extractor's own suite can assert what it reads out of it, so no instruction exists for a marker to point at. They are .tsx and reach the scan through the packages/ + .tsx catch-all rather than through ui-kit's own scripts entry, which is .ts only. Structural and permanent - this is not a placeholder for missing artifacts and must never be given an expiry."
+patterns = ["packages/ui-kit/scripts/contracts/__fixtures__/*"]
+
+[[ignore]]
+reason = "Unmarked build/test tooling has no CDSL backing. Three CI guards added after this entry was last enumerated belong to the same category and are registered here: scripts/version-bump-on-change-check.mjs (#575) diffs a PR against its merge base and fails any governed package whose substantive changes came without a version bump; scripts/mfes-import-boundary-check.mjs (#540) reads the mfes barrel and its consumers to fail concrete-implementation exports and deep imports across the ADR-0003 boundary; packages/mfes/scripts/verify-dist-import-pragmas.mjs (#504) greps the two built dist formats to fail a build that dropped the webpackIgnore / @vite-ignore comments off the blob-module dynamic import. All three read the tree or the build output and exit non-zero. None of them implements ecosystem behaviour a numbered instruction specifies, so no marker has an instruction to point at. verify-dist-import-pragmas is listed as its own pattern rather than under scripts/ because it lives beside the package it guards and reaches the scan through the root system's packages/ + .mjs catch-all, not through the scripts/ codebase entry. NOTE: scripts/ecosystem-version-policy.mjs (ecosystem-distribution), scripts/package-edge-tests.ts and scripts/verify-guard-configs.ts (ecosystem-governance), and scripts/test-architecture.ts carry @cpt markers and MUST stay scanned — they are deliberately NOT ignored here."
+patterns = ["scripts/test-runner/*", "scripts/check-test-dependency-versions.mjs", "scripts/run-monorepo-unit-tests.mjs", "scripts/version-bump-on-change-check.mjs", "scripts/mfes-import-boundary-check.mjs", "packages/mfes/scripts/verify-dist-import-pragmas.mjs"]
+
+[[ignore]]
+reason = "A kit skill's helper script is tooling the kit installs for an agent to run, not ecosystem behaviour a numbered instruction specifies, so no marker has an instruction to point at. The registry already says as much: the kit's own registered codebase is packages/cyber-pilot-kit-frontx/src with .ts only (see its [[systems.children.codebase]] below), and these .mjs helpers reach the scan solely through the root system's packages/ + .mjs catch-all. Removal criterion: this entry is lifted once the kit registers a skills/ path in its own [[systems.children.codebase]] and a kit FEATURE gives the script numbered instructions to carry. NOT satisfied by adding skills/ to the root system's codebase - that is the catch-all this entry corrects. Scoped to skills/*/scripts/* rather than the package or all of skills/, so the kit's src/ stays scanned and its SKILL.md and checklist assets keep their current treatment."
+patterns = ["packages/cyber-pilot-kit-frontx/skills/*/scripts/*"]
+
+[[ignore]]
+reason = "scripts/fs-types.mjs is a type-only shared @typedef module (no runtime behavior, no @cpt marker) consumed via JSDoc import by check-test-dependency-versions.mjs and test-runner/discovery.mjs. Deliberately unregistered: it implements no ecosystem behaviour a numbered instruction specifies, so no marker has an instruction to point at."
+patterns = ["scripts/fs-types.mjs"]
+
+[[ignore]]
+reason = "The component sources under packages/ui-kit/src carry no @cpt- marker because no FEATURE yet gives the component surface numbered instructions to point a marker at, so no artifact backs one there. The package's own artifact chain exists (PRD, DESIGN, FEATURE component-contracts) and the member is registered above with PRD/DESIGN/FEATURE required, so this is narrower than the former package-wide packages/ui-kit/** ignore it replaces - only src is recorded as debt, scripts stays scanned. Removal criterion: a ui-kit FEATURE lands with numbered instructions for the component surface and packages/ui-kit/src is registered as the child's own [[systems.children.codebase]] entry. NOT satisfied by marking a handful of components - the FEATURE must give instructions for the surface as a whole before the path is registered."
+patterns = ["packages/ui-kit/src/**"]
+
+[[systems]]
+name = "FrontX Dev Kit"
+slug = "frontx"
+kit = "sdlc"
+artifacts_dir = "architecture"
+
+[[systems.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "architecture"
+
+[systems.autodetect.artifacts]
+[systems.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.DECOMPOSITION]
+pattern = "DECOMPOSITION.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[systems.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = false
+
+[[systems.codebase]]
+path = "packages/"
+extensions = [".ts", ".tsx", ".mjs"]
+
+[[systems.codebase]]
+path = "src/"
+extensions = [".ts"]
+
+[[systems.codebase]]
+path = "scripts/"
+extensions = [".mjs", ".ts"]
+
+# Telemetry owns the artifacts that describe it, per the ecosystem layer-partition and
+# artifact-federation decision. The autodetect form is deliberate: `required` flags do not inherit
+# from the parent, and the explicit-artifact-list form validates while enforcing nothing at all —
+# which would leave the member artifact chain an honour system. DECOMPOSITION and ADR are omitted
+# rather than declared optional: a member never owns a DECOMPOSITION, whose purpose is organizing a
+# large design into features.
+[[systems.children]]
+name = "Telemetry"
+slug = "telemetry"
+kit = "sdlc"
+artifacts_dir = "packages/telemetry/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/telemetry/architecture"
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+# Every member owns a PRD per the 3-layer model: each member explains its own reqs;
+# the root PRD describes the layers.
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/telemetry/src"
+extensions = [".ts"]
+
+# Routing owns the PRD, DESIGN and FEATURE that describe the navigation substrate, same
+# shape and rationale as telemetry above.
+[[systems.children]]
+name = "Routing"
+slug = "routing"
+kit = "sdlc"
+artifacts_dir = "packages/routing/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/routing/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[[systems.children.codebase]]
+path = "packages/routing/src"
+extensions = [".ts"]
+
+# Routing TanStack Provider owns the PRD, DESIGN and FEATURE that describe the default
+# engine-provider package split out of routing (cpt-frontx-adr-core-package-boundaries): it
+# implements the navigation substrate's engine-provider port over TanStack Router.
+[[systems.children]]
+name = "Routing TanStack Provider"
+slug = "routing-tanstack"
+kit = "sdlc"
+artifacts_dir = "packages/routing-tanstack/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/routing-tanstack/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[[systems.children.codebase]]
+path = "packages/routing-tanstack/src"
+extensions = [".ts"]
+
+# GTS plugin owns the PRD, FEATURE and DESIGN that describe it, moved here from the root
+# tree as part of the federation refactoring. The PRD owns the package's requirements per
+# the 3-layer model: each member explains its own reqs; the root PRD describes the layers.
+# The flags do not inherit, and an undeclared kind is unenforced.
+[[systems.children]]
+name = "GTS Plugin"
+slug = "gts-plugin"
+kit = "sdlc"
+artifacts_dir = "packages/gts-plugin/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/gts-plugin/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/gts-plugin/src"
+extensions = [".ts"]
+
+# API owns the FEATURE and DESIGN that describe it, same shape and rationale as gts-plugin
+# above. The PRD owns the package's requirements per the 3-layer model.
+[[systems.children]]
+name = "API"
+slug = "api"
+kit = "sdlc"
+artifacts_dir = "packages/api/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/api/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/api/src"
+extensions = [".ts"]
+
+# MFE runtime substrate owns the PRD, the DESIGN, and the six FEATUREs that describe it,
+# same shape and rationale as gts-plugin above. type-substrate-port files here because
+# this package defines the port. The PRD owns the runtime's requirements per the
+# 3-layer model: each member explains its own reqs; the root PRD describes the layers.
+[[systems.children]]
+name = "MFEs"
+slug = "mfes"
+kit = "sdlc"
+artifacts_dir = "packages/mfes/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/mfes/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/mfes/src"
+extensions = [".ts"]
+
+# CLI owns the FEATUREs and the DESIGN that describe scaffolding and the template
+# lifecycle, same shape and rationale as gts-plugin above. ecosystem-distribution is NOT
+# here: it is ecosystem-wide policy the root owns (cpt-frontx-component-ecosystem-version-policy),
+# with its spec in the root features/ tree next to the root-owned enforcement code in
+# scripts/. The PRD owns the package's requirements per the 3-layer model.
+[[systems.children]]
+name = "CLI"
+slug = "cli"
+kit = "sdlc"
+artifacts_dir = "packages/cli/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/cli/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+# The CLI is the first member to own an ADR of its own: a decision about how a
+# template declares the ground it owns is the CLI's, not the ecosystem's, and
+# ADR-0031 was moved under this system for that reason. Declared `required =
+# false` because owning an ADR is a member's option, not its obligation. The
+# omission of ADR from the members above is not a rule against it - only
+# DECOMPOSITION is structurally forbidden to a member - and without this pattern
+# the moved file is discovered by nothing, leaving 25 references to
+# `cpt-frontx-adr-template-ownership-boundary-declaration` dangling.
+[systems.children.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[[systems.children.codebase]]
+path = "packages/cli/src"
+extensions = [".ts"]
+
+# The AI tooling kit owns the DESIGN and the three FEATUREs that describe AI-assisted
+# packaging, upgrade orchestration and template AI extensions, same shape and rationale
+# as gts-plugin above. The PRD owns the package's requirements per the 3-layer model.
+[[systems.children]]
+name = "Cyber Pilot Kit"
+slug = "cyber-pilot-kit-frontx"
+kit = "sdlc"
+artifacts_dir = "packages/cyber-pilot-kit-frontx/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/cyber-pilot-kit-frontx/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/cyber-pilot-kit-frontx/src"
+extensions = [".ts"]
+
+# UI Kit owns the PRD, the DESIGN and the FEATURE that describe it, same shape and rationale as
+# gts-plugin above. This entry is what lifted the package-wide `packages/ui-kit/**` [[ignore]]: the
+# ignore's own removal criterion was this registration, in the autodetect form with PRD, DESIGN and
+# FEATURE required, because `required` flags do not inherit and the explicit-artifact-list form
+# validates while enforcing nothing. DECOMPOSITION and ADR are omitted rather than declared
+# optional: a member never owns a DECOMPOSITION, and this member owns no decision of its own yet.
+# One codebase path: `scripts` holds the contract harness, which carries the markers today. `src`
+# holds the components those contracts describe and is deliberately NOT registered here - nothing
+# under it is marked, and no FEATURE yet gives the component surface numbered instructions for a
+# marker to point at. Registering it anyway would put ~200 unmarked component-source files under
+# scan with no instruction to satisfy, which is exactly the debt the former package-wide ignore
+# recorded, only narrower now that the package's own PRD/DESIGN/FEATURE chain exists and the member
+# is registered. That debt is recorded instead by its own path-anchored [[ignore]] for
+# packages/ui-kit/src/** below (with its removal criterion), rather than by registering the path
+# and leaving every file in it an unmarked, uncounted gap. `scripts` is declared here anyway so this
+# member's scanned surface is stated by its own registration rather than inherited from the root
+# system's packages/ + .ts/.tsx/.mjs catch-all, which would also reach it now that the package-wide
+# ignore is gone.
+[[systems.children]]
+name = "UI Kit"
+slug = "ui-kit"
+kit = "sdlc"
+artifacts_dir = "packages/ui-kit/architecture"
+
+[[systems.children.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "packages/ui-kit/architecture"
+
+[systems.children.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.children.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = true
+
+[[systems.children.codebase]]
+path = "packages/ui-kit/scripts"
+extensions = [".ts"]

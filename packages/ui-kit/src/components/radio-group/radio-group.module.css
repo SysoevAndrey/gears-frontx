@@ -1,0 +1,112 @@
+/*
+ * Radio group styles, translated from shadcn/ui (MIT) to CSS Modules.
+ * Consumes only theme.css variables — no raw colors.
+ */
+
+.group {
+  display: grid;
+  width: 100%;
+  gap: var(--space-3);
+}
+
+.item {
+  /*
+   * Substitutes for the preflight the kit lacks: without it, content-box
+   * (this kit's ambient default) piles the border on top of the declared
+   * width/height, rendering a 22x22 circle instead of 20x20 — same acute
+   * case as tabs.module.css/badge.module.css, scoped the same way (this
+   * class only).
+   */
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  /* The mockups' Selection Control spec (frame 195:409): a 20px circle. */
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-full);
+  background-color: var(--surface-elevated);
+  outline: none;
+  /* Colour and box-shadow crossfades only, no transform/geometry — not motion under
+     WCAG 2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* Enlarged touch target beyond the 1.25rem circle. */
+.item::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-2)) calc(-1 * var(--space-3));
+}
+
+/*
+ * Checked per the drawn control (its SVG: the circle keeps the raised
+ * surface, gains a 2px --primary ring, and the dot fills --primary) — not
+ * the shadcn filled-disc look. The box is fixed-size border-box, so the
+ * width bump can't move anything.
+ */
+.item[data-checked] {
+  border-width: var(--border-width-focus);
+  border-color: var(--primary);
+}
+
+.item:focus-visible {
+  /* Fixed-geometry control — same outline idiom as checkbox.module.css. */
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The ring above is already an outline, not a box-shadow — forced-colors
+ * mode still flattens its author --ring color, so pin it to the system's
+ * Highlight color explicitly (same reasoning as button.module.css's own
+ * ring, restated here rather than delegated to it). */
+@media (forced-colors: active) {
+  .item:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* Base UI renders the item as a <span role="radio">, so :disabled can
+ * never match — the stamped data-disabled attribute is the disabled state. */
+/* disabled opacity: see input.module.css */
+.item[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* Declared after :focus-visible so the invalid border wins while focused. */
+.item[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+
+/* Invalid but checked: the checked ring keeps its primary border. */
+.item[aria-invalid='true'][data-checked] {
+  border-color: var(--primary);
+}
+
+.indicator {
+  display: flex;
+  width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-full);
+  /* --primary, not --primary-foreground: the drawn dot is the accent on a
+   * raised surface, not a knockout on a filled disc. */
+  background-color: var(--primary);
+}

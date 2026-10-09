@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea for HAI3
+about: Suggest an idea for FrontX
 title: "[FEATURE] "
 labels: enhancement
 assignees: ''
@@ -23,10 +23,10 @@ Provide concrete examples of how this feature would be used:
 - Use case 3
 
 ## Affected Package(s)
-Which HAI3 package(s) would this impact?
+Which FrontX package(s) would this impact?
 - [ ] @gears-frontx/framework
 - [ ] @gears-frontx/react
-- [ ] @gears-frontx/screensets
+- [ ] @gears-frontx/mfes
 - [ ] @gears-frontx/cli
 - [ ] @gears-frontx/i18n
 - [ ] @gears-frontx/state

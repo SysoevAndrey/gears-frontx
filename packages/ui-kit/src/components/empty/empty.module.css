@@ -1,0 +1,176 @@
+/*
+ * Empty styles, translated from shadcn/ui base (registry/bases/base/ui/
+ * empty.tsx, style-vega.css's .cn-empty rules) to CSS Modules. Consumes
+ * only theme.css variables — no raw colors.
+ */
+
+.empty {
+  display: flex;
+  width: 100%;
+  max-width: 32rem; /* the drawn card (512px); a dimension, not guarded */
+  min-width: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6); /* upstream gap-6 (24px) - exact scale step, unlike padding below */
+  border-radius: var(--radius-xl);
+  border: var(--border-width) dashed var(--border);
+  /* The drawn card insets by 32 - an exact scale step, unlike upstream's
+     own p-12 (48px, previously kept here as calc(--space-8 + --space-4)
+     for the same reason). */
+  padding: var(--space-8);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.emptyHeader {
+  display: flex;
+  max-width: 24rem; /* upstream max-w-sm; a dimension, not guarded */
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emptyMedia {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+}
+
+.emptyMedia svg {
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.variantDefault {
+  background-color: transparent;
+}
+
+.variantIcon {
+  width: 3rem; /* the drawn plate (48px, upstream's own size-10/40px is not
+    what the catalogue draws here); no scale step this specific, kept as
+    a literal (dimensions aren't guarded — see tokens.test.ts) */
+  height: 3rem;
+  border-radius: var(--radius-xl);
+  /* The drawn plate is the selection wash, not the de-emphasised surface:
+   * --secondary is the role this kit paints a held/chosen surface with
+   * (Toggle's pressed fill, Tabs' active trigger), and the plate behind
+   * the glyph is that, not a muted one. The two roles carry the same value
+   * in dark, so today this separates only in light - binding the right
+   * role is what makes a later re-split of the dark pair come out
+   * correct, the same reasoning theme.css gives for card vs
+   * surface-elevated. */
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.variantIcon svg {
+  /* upstream size-6 (24px) inside the size-10 box; same size-10/size-6 pairing
+     item.module.css's leading icon already uses - icon-size-md (20px) was
+     the wrong role here. */
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.emptyTitle {
+  /*
+   * The drawn title is 18/24, weight 500 - between Heading 1 (20/28) and
+   * Body (14/20), landing on neither's line-height either, so no ramp role
+   * covers it (unlike the earlier "closest role" reading, which only had
+   * the weight to override). Both metrics are literal here; the matching
+   * tokens.test.ts exceptions and empty.test.tsx pin the pair. Weight
+   * still borrows Label's 500 for the drawn "medium" emphasis, and
+   * tracking still borrows Heading 1's - every role's own tracking is 0px,
+   * so there is nothing role-specific to disagree with.
+   */
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-heading-1-tracking);
+}
+
+.emptyDescription {
+  /* Upstream's text-sm/leading-relaxed has no ramp role at that line-height
+     ratio (line-height must be a token, not a literal ratio — see
+     tokens.test.ts); Studio/Body is the closest available role, same
+     mapping Alert/Card use for their own body copy. */
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-body-tracking);
+  color: var(--muted-foreground);
+}
+
+.emptyDescription a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.emptyDescription a:hover {
+  color: var(--link-foreground);
+}
+
+/*
+ * The drawn detail line: a secondary note under the description, on the
+ * meta role (12/16 regular) so it reads below the body copy it explains.
+ */
+.emptyDetail {
+  min-width: 0;
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-line-height);
+  font-weight: var(--text-meta-weight);
+  letter-spacing: var(--text-meta-tracking);
+  color: var(--muted-foreground);
+}
+
+/*
+ * The drawn 16 above the detail, expressed where it is actually true: the
+ * header is a gap-spaced column, so its own --space-2 plus this --space-2
+ * is what puts the detail 16 under the description. Scoped to the header
+ * deliberately - a detail placed anywhere else takes that parent's own
+ * spacing rather than carrying a stray 8 into it.
+ */
+.emptyHeader .emptyDetail {
+  margin-top: var(--space-2);
+}
+
+/*
+ * The drawn action row: buttons side by side, 8 apart, centred under the
+ * text. No margin of its own - the root is a gap-spaced column at
+ * --space-6, which is already the drawn 24 above the actions, and a margin
+ * here would add to it rather than replace it.
+ *
+ * A row, unlike .emptyContent's column: that part holds arbitrary content
+ * (a search field, a form), this one is the button strip.
+ */
+.emptyActions {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.emptyContent {
+  display: flex;
+  width: 100%;
+  max-width: 24rem; /* matches .emptyHeader's max-w-sm */
+  min-width: 0;
+  flex-direction: column;
+  /* Upstream items-center; without it a flex column's default cross-axis
+     stretch pulls a lone button to the full 24rem width and left-anchors a
+     narrower InputGroup instead of centering it under the title. */
+  align-items: center;
+  gap: var(--space-4);
+  text-wrap: balance;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-body-tracking);
+}

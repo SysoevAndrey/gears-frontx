@@ -1,0 +1,100 @@
+---
+# Codacy configuration
+# See: https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+
+# Exclude non-production code from security/quality analysis.
+# These paths legitimately use patterns that static scanners flag as security
+# risks (dynamic fs operations, unbound methods in test mocks, non-literal
+# regex patterns) but are controlled by internal config or test fixtures.
+exclude_paths:
+  # Test files — test fixtures use dynamic keys, non-null assertions on
+  # tested values, and unbound method references on mocked prototypes.
+  - "packages/**/__tests__/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+
+  # Test-utility fixtures — Vitest fixture helpers (mock bridges, mock
+  # registries) trip Playwright lint rules (e.g. "Non-serializable
+  # expression must be wrapped with $(...)") that don't apply outside of
+  # `page.evaluate()` contexts. These files contain no Playwright code.
+  - "**/__test-utils__/**"
+  - "packages/**/__test-utils__/**"
+
+  # Dev-only scripts — spawn() and fs operations take paths from the
+  # monorepo's own config, not user input. Not exposed to runtime.
+  # (#597 cleanup removed .semgrepignore's duplicate exclusion for this
+  # path; Codacy's exclusion here is unrelated to, not a stand-in for,
+  # whatever exclusion mechanism the corporate Semgrep scanner applies.)
+  - "scripts/**"
+
+  # Root Vitest plumbing — `vitest.shared.ts` is a build-time test-config
+  # module loaded by `tsx`. It calls `readFileSync` on paths derived from
+  # `import.meta.url` (no external input) and embeds a `'[sharedSetupFile]'`
+  # template token that trips Codacy's "potential secret" pattern.
+  - "vitest.shared.ts"
+
+  # Generated MFE manifest (build artifact).
+  - "src/app/mfe/generated-mfe-manifests.json"
+
+  # Architecture artifacts (PRD/ADR/DESIGN/FEATURE/etc.) — studio owns
+  # markdown validation for these via its own validator (TOC anchors,
+  # cross-refs, traceability). Codacy's markdownlint rules (notably
+  # MD051 link-fragment validity) use GitHub-style slugification that
+  # disagrees with studio's slug rule on edge cases (e.g. headings
+  # starting with `_`), producing duplicate-but-conflicting findings.
+  # studio is the authoritative validator for this tree.
+  - "architecture/**"
+
+  # Audited trust kernel — this file concentrates patterns that static
+  # analyzers flag as unsafe (non-literal RegExp with escaped inputs,
+  # dynamic import of blob URLs). An ESLint `no-restricted-syntax` rule
+  # (eslint.config.js) confines `ImportExpression` and the identifier
+  # `RegExp` or its string spellings (in code or JSX tag position) to this
+  # file alone under packages/mfes/src/** — via `Identifier[name='RegExp']`
+  # (matching a bare reference, a member/property access, an argument, or an
+  # alias's initializer alike, since each is an Identifier node named
+  # `RegExp`), `JSXIdentifier[name='RegExp']` (the same name as a JSX tag),
+  # and `Literal`/`TemplateElement` selectors for the computed-string
+  # spellings — complete over how the word can be written, not an
+  # enumerated list of construction forms to maintain; deliberately
+  # over-broad, since it also rejects a legitimate local/import/property
+  # name or type-only reference named `RegExp` unrelated to the global
+  # constructor. Comments are not AST nodes, so prose mentioning "RegExp" is
+  # never flagged. That whole source tree stays in ESLint's file discovery
+  # via a negation in the global `ignores` array, so a file named like a
+  # config (e.g. `regexp.config.ts`) cannot escape this rule by name alone.
+  # scripts/check-trust-kernel-annotations.mjs (run via `npm run arch:check`,
+  # AST-based via `ts.getJSDocTags`) classifies every exported declaration
+  # here as function-valued (requiring a real, own-line `@safety-reviewed`
+  # and `@why` JSDoc tag with non-empty content), provably not
+  # function-valued (a `const` literal or type/interface/enum — skipped), or
+  # unsupported (FAILS the check — including a mutable `let`/`var` export,
+  # an `export =` assignment, an `export as namespace` declaration, or a
+  # file that does not parse cleanly; nothing is silently skipped). None of
+  # these reach module-state purity, host-capability imports, semantic
+  # indirection that constructs the word `RegExp` without ever writing it
+  # (e.g. `globalThis[/RegExp/.source]('x')`, character codes), or
+  # dynamic-code text embedded in a string/template literal —
+  # those remain security-review concerns (see
+  # cpt-frontx-adr-mfe-load-isolation). Editing
+  # this file requires security review.
+  - "packages/mfes/src/handler/mfe-handler-mf/mf-dynamic-module-ops.ts"
+
+  # Monorepo package manifests.
+  #
+  # Codacy's Semgrep rule `npm.security.package-dependencies-check` flags
+  # every non-exact version spec in peerDependencies (>=, hyphen-range, ^, ~
+  # all trigger it). But range syntax is exactly what npm's peerDependencies
+  # spec requires — a library declares a compatible range, and the consuming
+  # app pins the actual version. Exact pinning in peer deps would force
+  # consumers to match our installed version, defeating the peer mechanism.
+  #
+  # Every @gears-frontx/* package in this repo uses ranged peer deps (>= or ^)
+  # consistently — the rule fires on all of them and the exclusion is applied
+  # repo-wide so all packages are treated uniformly. Loss: this specific rule
+  # no longer audits our package.json files. Kept: all other Codacy checks
+  # still run on these files; real dependency security (vulnerable versions,
+  # malicious packages) is covered by other tools (Aikido, npm audit, Snyk).
+  - "packages/*/package.json"

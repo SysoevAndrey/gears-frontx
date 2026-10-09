@@ -7,11 +7,6 @@
  * SDK Layer: L1 (Only peer dependency on axios)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-base-service:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-service-registration:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-service-cleanup:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-plugin-exclusion:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
 
 import type {
   ApiServiceConfig,
@@ -30,15 +25,18 @@ import type {
  * ```typescript
  * class AccountsApiService extends BaseApiService {
  *   constructor() {
+ *     const rest = new RestProtocol();
+ *     const restEndpoints = new RestEndpointProtocol(rest);
+ *
  *     super(
  *       { baseURL: '/api/accounts' },
- *       new RestProtocol()
+ *       rest,
+ *       restEndpoints
  *     );
  *   }
  *
- *   async getCurrentUser(): Promise<User> {
- *     return this.protocol(RestProtocol).get('/user/current');
- *   }
+ *   readonly getCurrentUser = this.protocol(RestEndpointProtocol)
+ *     .query<User>('/user/current');
  * }
  * ```
  */
@@ -58,11 +56,11 @@ export abstract class BaseApiService {
   /** Registered plugins for framework management (generic storage - not mock-specific) */
   private registeredPluginsMap: Map<ApiProtocol, Set<ApiPluginBase>> = new Map();
 
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
   constructor(config: ApiServiceConfig, ...protocols: ApiProtocol[]) {
     this.config = Object.freeze({ ...config });
 
     // Initialize each protocol with config and excluded classes callback
+    // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
     protocols.forEach((protocol) => {
       protocol.initialize(
         this.config,
@@ -70,8 +68,8 @@ export abstract class BaseApiService {
       );
       this.protocols.set(protocol.constructor.name, protocol);
     });
+    // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
 
   // ============================================================================
   // Namespaced Plugin API (Service-Level)
@@ -124,11 +122,9 @@ export abstract class BaseApiService {
      * }
      * ```
      */
-    // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-1
     exclude: (...pluginClasses: PluginClass[]): void => {
       pluginClasses.forEach((cls) => this.excludedPluginClasses.add(cls));
     },
-    // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-1
 
     /**
      * Get all excluded plugin classes.
@@ -221,7 +217,9 @@ export abstract class BaseApiService {
    * @internal
    */
   protected getExcludedPluginClasses(): ReadonlySet<PluginClass> {
+    // @cpt-begin:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-collect-plugins
     return this.excludedPluginClasses;
+    // @cpt-end:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-collect-plugins
   }
 
   /**
@@ -265,9 +263,9 @@ export abstract class BaseApiService {
    * }
    * ```
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
   registerPlugin(protocol: ApiProtocol, plugin: ApiPluginBase): void {
-    if (!this.protocols.has(protocol.constructor.name)) {
+    const registered = this.protocols.get(protocol.constructor.name);
+    if (registered !== protocol) {
       throw new Error(
         `Protocol "${protocol.constructor.name}" not registered on this service`
       );
@@ -278,7 +276,6 @@ export abstract class BaseApiService {
     }
     this.registeredPluginsMap.get(protocol)!.add(plugin);
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
 
   /**
    * Get all registered plugins (GENERIC - returns all plugins).
@@ -317,6 +314,8 @@ export abstract class BaseApiService {
    * @returns The protocol instance
    * @throws Error if protocol not registered
    */
+  // @cpt-flow:cpt-frontx-flow-api-protocol-surface-service-call:p1
+  // @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
   protected protocol<T extends ApiProtocol>(
     type: new (...args: never[]) => T
   ): T {
@@ -330,6 +329,7 @@ export abstract class BaseApiService {
 
     return protocol as T;
   }
+  // @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-obtain-protocol
 
   // ============================================================================
   // Cleanup
@@ -339,11 +339,9 @@ export abstract class BaseApiService {
    * Cleanup service resources.
    * Called when service is destroyed.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-cleanup:p1:inst-1
   cleanup(): void {
     // Cleanup all protocols
     this.protocols.forEach((protocol) => protocol.cleanup());
     this.protocols.clear();
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-cleanup:p1:inst-1
 }

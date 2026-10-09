@@ -1,13 +1,11 @@
 /**
  * @gears-frontx/api - Type Definitions
  *
- * Core types for HAI3 API communication.
+ * Core types for FrontX API communication.
  * Supports REST, SSE, and mock protocols.
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-plugin-types:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-is-mock-plugin:p2
-// @cpt-state:cpt-hai3-state-api-communication-mock-mode:p2
+// @cpt-dod:cpt-frontx-dod-api-protocol-surface-protocol-dispatch:p1
 
 import type { BaseApiService } from './BaseApiService';
 
@@ -38,6 +36,7 @@ export type JsonObject = { [key: string]: JsonValue };
  * Broader than JsonValue to accept objects without index signatures.
  * Intentionally permissive to avoid type errors while maintaining runtime JSON-serializability.
  */
+// eslint-disable-next-line @typescript-eslint/no-restricted-types -- intentionally accepts any non-primitive shape, including objects without index signatures
 export type JsonCompatible = JsonValue | object;
 
 // ============================================================================
@@ -56,7 +55,7 @@ export type JsonCompatible = JsonValue | object;
  * }
  * ```
  */
-export const MOCK_PLUGIN = Symbol.for('hai3:plugin:mock');
+export const MOCK_PLUGIN = Symbol.for('frontx:plugin:mock');
 
 /**
  * Mock Plugin Type Guard
@@ -74,13 +73,14 @@ export const MOCK_PLUGIN = Symbol.for('hai3:plugin:mock');
  * }
  * ```
  */
-// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-1
 export function isMockPlugin(plugin: unknown): boolean {
   if (!plugin || typeof plugin !== 'object') return false;
-  const constructor = (plugin as object).constructor;
+  const constructor = plugin.constructor;
+  if (constructor === null || (typeof constructor !== 'object' && typeof constructor !== 'function')) {
+    return false;
+  }
   return MOCK_PLUGIN in constructor;
 }
-// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-1
 
 /**
  * Mock Response Factory Function
@@ -149,6 +149,10 @@ export interface ApiServicesConfig {
  * class SseProtocol extends ApiProtocol<SsePluginHooks> { ... }
  * ```
  */
+// @cpt-flow:cpt-frontx-flow-api-protocol-surface-service-call:p1
+// @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-invoke-protocol
+// Protocol invocation entry point
+// @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-invoke-protocol
 export abstract class ApiProtocol<TPlugin extends BasePluginHooks = BasePluginHooks> {
   /**
    * Initialize the protocol with configuration.
@@ -210,6 +214,12 @@ export interface SseProtocolConfig {
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 /**
+ * HTTP methods allowed for declarative REST mutation descriptors.
+ * POST, PUT, PATCH, and DELETE forward variables through the REST layer as the request body when provided.
+ */
+export type MutationMethod = 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
  * API Request Context
  * Pure request data passed to plugins during request lifecycle.
  * Contains only request information - no service-specific metadata.
@@ -224,6 +234,10 @@ export interface ApiRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** Whether to include credentials (cookies) for this request */
+  readonly withCredentials?: boolean;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -252,7 +266,7 @@ export interface ApiResponseContext {
  *       return {
  *         shortCircuit: {
  *           status: 200,
- *           headers: { 'x-hai3-short-circuit': 'true' },
+ *           headers: { 'x-frontx-short-circuit': 'true' },
  *           data: mockData
  *         }
  *       };
@@ -400,7 +414,9 @@ export type PluginClass<T extends ApiPluginBase = ApiPluginBase> = abstract new 
 export function isShortCircuit(
   result: ApiRequestContext | ShortCircuitResponse | undefined
 ): result is ShortCircuitResponse {
+  // @cpt-begin:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-detect-sc
   return result !== undefined && 'shortCircuit' in result;
+  // @cpt-end:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-detect-sc
 }
 
 // ============================================================================
@@ -420,6 +436,25 @@ export interface RestRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** Whether to include credentials (cookies) for this request */
+  readonly withCredentials?: boolean;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * REST Request Options
+ * Per-request options for REST protocol HTTP methods.
+ * Enables request cancellation via AbortSignal and query parameter passing
+ * without mixing concerns into the method signature directly.
+ */
+export interface RestRequestOptions {
+  /** AbortSignal for request cancellation */
+  signal?: AbortSignal;
+  /** Query parameters */
+  params?: Record<string, string>;
+  /** Whether to include credentials for this specific request (overrides protocol default) */
+  withCredentials?: boolean;
 }
 
 /**
@@ -563,6 +598,8 @@ export interface ApiPluginErrorContext {
   readonly error: Error;
   /** Request context at time of error */
   readonly request: RestRequestContext;
+  /** Optional response context (when the transport produced a response) */
+  readonly response?: RestResponseContext;
   /** Current retry depth (0 for original request) */
   readonly retryCount: number;
   /**
@@ -625,11 +662,13 @@ export interface SseShortCircuitResponse {
  * @param result - Plugin onRequest result
  * @returns True if result is a REST short-circuit response
  */
+// @cpt-begin:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-detect-sc
 export function isRestShortCircuit(
   result: RestRequestContext | RestShortCircuitResponse | undefined
 ): result is RestShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as RestShortCircuitResponse).shortCircuit === 'object' && 'status' in (result as RestShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-frontx-algo-api-protocol-surface-protocol-dispatch:p1:inst-detect-sc
 
 /**
  * SSE Short Circuit Type Guard
@@ -638,11 +677,13 @@ export function isRestShortCircuit(
  * @param result - Plugin onConnect result
  * @returns True if result is an SSE short-circuit response
  */
+// @cpt-begin:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
 export function isSseShortCircuit(
   result: SseConnectContext | SseShortCircuitResponse | undefined
 ): result is SseShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as SseShortCircuitResponse).shortCircuit === 'object' && 'close' in (result as SseShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-frontx-flow-api-protocol-surface-service-call:p1:inst-sse-short-circuit
 
 // ============================================================================
 // Protocol-Specific Plugin Convenience Classes
@@ -810,6 +851,110 @@ export type ProtocolPluginType<T extends ApiProtocol> =
  */
 export type ServiceConstructor<T = BaseApiService> = new () => T;
 
+// ============================================================================
+// Endpoint Descriptor Types
+// ============================================================================
+
+/**
+ * Cache hint options for endpoint descriptors.
+ * These map directly to TanStack Query cache settings at the consumer layer (L2+),
+ * but @gears-frontx/api has no dependency on TanStack — descriptors are plain objects.
+ */
+export interface EndpointOptions {
+  /** How long (ms) data is considered fresh before a background refetch. */
+  staleTime?: number;
+  /** How long (ms) unused cache entries are retained after all observers unmount. */
+  gcTime?: number;
+}
+
+/**
+ * Static read endpoint descriptor.
+ * Produced by `RestEndpointProtocol.query()`. Carries a stable cache key derived from
+ * `[baseURL, method, path]` and a fetch function that forwards AbortSignal.
+ *
+ * @template TData - Shape of the resolved response data.
+ */
+export interface EndpointDescriptor<TData> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Execute the HTTP request.
+   * Signal is forwarded to the underlying protocol and staleTime lets higher
+   * layers align protocol-level reuse with the resolved query cache freshness.
+   */
+  fetch(options?: { signal?: AbortSignal; staleTime?: number }): Promise<TData>;
+  /** Optional cache freshness override (milliseconds). */
+  readonly staleTime?: number;
+  /** Optional garbage-collection time override (milliseconds). */
+  readonly gcTime?: number;
+}
+
+/**
+ * Parameterized read endpoint descriptor factory.
+ * Produced by `RestEndpointProtocol.queryWith()`. When called with params the factory
+ * returns a concrete `EndpointDescriptor` whose cache key includes the resolved
+ * path and the params object: `[baseURL, method, resolvedPath, params]`.
+ *
+ * @template TData   - Shape of the resolved response data.
+ * @template TParams - Shape of the runtime parameters object.
+ */
+export type ParameterizedEndpointDescriptor<TData, TParams> =
+  (params: TParams) => EndpointDescriptor<TData>;
+
+/**
+ * Write endpoint descriptor.
+ * Produced by `RestEndpointProtocol.mutation()`. Carries a stable cache key derived
+ * from `[baseURL, method, path]` and a fetch function that passes variables as
+ * the request body (including DELETE when the server expects a body).
+ *
+ * @template TData      - Shape of the resolved response data.
+ * @template TVariables - Shape of the mutation variables / request body.
+ */
+export interface MutationDescriptor<TData, TVariables> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Execute the mutation. Variables are sent as the request body for POST, PUT, PATCH, and DELETE.
+   * Optional `signal` is forwarded to the underlying REST protocol (axios).
+   */
+  fetch(variables: TVariables, options?: { signal?: AbortSignal }): Promise<TData>;
+}
+
+// ============================================================================
+// Stream Descriptor Types
+// ============================================================================
+
+/**
+ * Stream connection status.
+ */
+export type StreamStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
+
+/**
+ * SSE stream endpoint descriptor.
+ * Produced by `SseStreamProtocol.stream()`. Carries a stable key derived from
+ * `[baseURL, 'SSE', path]` and connect/disconnect functions that route
+ * through SseProtocol's plugin chain.
+ *
+ * @template TEvent - Shape of each parsed SSE event payload.
+ */
+export interface StreamDescriptor<TEvent> {
+  /** Stable key: `[baseURL, 'SSE', path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Open the SSE connection. Returns a connectionId for later disconnect.
+   * @param onEvent  - Called for each SSE message with the parsed payload.
+   * @param onComplete - Optional callback when the stream signals completion.
+   */
+  connect(
+    onEvent: (event: TEvent) => void,
+    onComplete?: () => void,
+  ): Promise<string>;
+  /**
+   * Close an active SSE connection by ID.
+   */
+  disconnect(connectionId: string): void;
+}
+
 /**
  * API Registry Interface
  * Central registry for all API service instances.
@@ -865,4 +1010,38 @@ export interface ApiRegistry {
    * @returns Current API configuration
    */
   getConfig(): Readonly<ApiServicesConfig>;
+
+  /**
+   * Protocol plugin management namespace.
+   * Exposed on the public registry instance for global cross-cutting concerns
+   * (auth, logging, tracing, etc).
+   */
+  readonly plugins: {
+    add: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      plugin: ProtocolPluginType<T>
+    ) => void;
+    remove: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: PluginClass
+    ) => void;
+    has: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: PluginClass
+    ) => boolean;
+    getAll: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ) => readonly ProtocolPluginType<T>[];
+    clear: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ) => void;
+  };
+
+  /**
+   * Reset registry state.
+   * Primarily used for testing.
+   *
+   * @internal
+   */
+  reset(): void;
 }
