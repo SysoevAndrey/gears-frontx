@@ -1,0 +1,10 @@
+.icon {
+  display: inline-flex;
+  color: var(--muted-foreground);
+}
+
+.iconExpanded {
+  display: inline-flex;
+  color: var(--foreground);
+  transform: rotate(90deg);
+}

@@ -1,0 +1,24 @@
+/*
+ * The indentation, in steps. Each directory level pushes its children in by one `directory-delta`,
+ * and a leaf sits `items-offset` further in so that its label lines up with a directory's label,
+ * which follows the expand button. The other stylesheets of the tree read these through
+ * inheritance (the `--_data-grid-tree-*` variables are private to the grid), so a nested
+ * directory only has to restate `padding-children`.
+ */
+.treeMain {
+  /*
+   * The first level starts flush. It must not be a calculation that can go negative: padding
+   * clamps at zero, so a first level at a negative inset would sit at 0 and the next one at the
+   * remainder, a step shorter than the rest.
+   */
+  --_data-grid-tree-padding-children: 0px;
+  /* What each directory level adds: the expand button (24px) and a 4px gap. */
+  --_data-grid-tree-directory-delta: calc(var(--space-6) + var(--space-1));
+  /* The extra inset of a leaf over a directory. */
+  --_data-grid-tree-items-offset: var(--space-6);
+  position: relative;
+  display: flex;
+  overflow: auto;
+  flex-direction: column;
+  flex-grow: 1;
+}

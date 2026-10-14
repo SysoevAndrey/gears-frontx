@@ -1,0 +1,14 @@
+/*
+ * A disabled menu item reads as dimmed text; the placeholder is a message, not a control, so it
+ * keeps the muted text colour without the dimming. The attribute raises the selector above the
+ * menu item's own padding, whichever stylesheet reaches the page first.
+ */
+.treePlaceholder[data-disabled] {
+  --_data-grid-tree-padding-children: inherit;
+  --_data-grid-tree-items-offset: inherit;
+  padding-inline-start: calc(
+    var(--_data-grid-tree-padding-children) + var(--_data-grid-tree-items-offset)
+  );
+  color: var(--muted-foreground);
+  opacity: 1;
+}

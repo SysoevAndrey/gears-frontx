@@ -41,4 +41,9 @@ export const messages = {
     pageInfo: (page: number, totalPages: number, total: number) =>
       `Page ${page} of ${totalPages} (${total} items)`,
   },
+  tree: {
+    noItems: 'No items',
+    collapse: 'Collapse',
+    expand: 'Expand',
+  },
 };

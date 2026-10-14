@@ -1,0 +1,9 @@
+.treeLeftSlot {
+  display: grid;
+  justify-content: center;
+
+  /* width should be equal to delta for each row to align vertically */
+  grid-auto-columns: var(--_data-grid-tree-directory-delta, auto);
+  grid-auto-flow: column;
+  place-items: center;
+}

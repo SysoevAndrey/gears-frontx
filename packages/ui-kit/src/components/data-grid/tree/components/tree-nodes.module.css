@@ -1,0 +1,14 @@
+.treeNodeDirectory {
+  --_data-grid-tree-padding-parent: calc(
+    var(--_data-grid-tree-padding-children, 0px) + var(--_data-grid-tree-directory-delta, 0px)
+  );
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.treeNodeDirectoryChildren {
+  --_data-grid-tree-padding-children: var(--_data-grid-tree-padding-parent, 0px);
+  display: flex;
+  flex-direction: column;
+}
