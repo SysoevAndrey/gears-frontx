@@ -1,0 +1,72 @@
+/*
+ * The chip is what the select trigger's `filter` variant looks like (see select.md): a field-like
+ * pill at the md control height whose label stays muted. It is not a select, so it carries no
+ * chevron, and it has a state of its own, `active`, for a filter that holds a value.
+ */
+.chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-height-md);
+  padding-block: 0;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-elevated);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line-height);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+  /* Colour crossfades only, no transform or geometry. */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.chip svg {
+  flex-shrink: 0;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.chip:hover,
+.hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* After the hover rule: an active chip keeps its fill under the pointer. */
+.active,
+.active:hover {
+  border-color: var(--border-strong);
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.chip:focus-visible,
+.chip:has(input:focus-visible) {
+  outline: var(--border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .chip:focus-visible,
+  .chip:has(input:focus-visible) {
+    outline-color: Highlight;
+  }
+}
+
+.chip:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}

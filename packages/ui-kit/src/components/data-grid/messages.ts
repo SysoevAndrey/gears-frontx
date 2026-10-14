@@ -41,6 +41,15 @@ export const messages = {
     pageInfo: (page: number, totalPages: number, total: number) =>
       `Page ${page} of ${totalPages} (${total} items)`,
   },
+  filters: {
+    allFilters: 'All filters',
+    allFiltersTitle: 'All filters',
+    apply: 'Apply',
+    reset: 'Reset',
+    searchPlaceholder: 'Search...',
+    noOptionsFound: 'No options found',
+    close: 'Close',
+  },
   tree: {
     noItems: 'No items',
     collapse: 'Collapse',
