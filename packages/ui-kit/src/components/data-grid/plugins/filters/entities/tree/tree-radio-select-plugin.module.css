@@ -1,0 +1,17 @@
+/*
+ * The kit's radio group is a full-width grid, which is right for a list of radios and wrong for the
+ * group of one a tree row holds: it would take the whole row and push the label to the far edge.
+ * Here it is as wide as its radio, so the label follows it. The selectors are doubled over the
+ * kit's class so that they win whichever stylesheet reaches the page last.
+ */
+.radioGroup.radioGroup {
+  display: flex;
+  flex: none;
+  width: auto;
+}
+
+/* A label with no break to wrap at would run out of the row and be clipped by it. */
+.text {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}

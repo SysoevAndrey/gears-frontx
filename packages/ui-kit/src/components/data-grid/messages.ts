@@ -49,6 +49,7 @@ export const messages = {
     searchPlaceholder: 'Search...',
     noOptionsFound: 'No options found',
     close: 'Close',
+    closeDialog: 'Close dialog',
   },
   tree: {
     noItems: 'No items',

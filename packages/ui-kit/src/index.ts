@@ -48,6 +48,7 @@ export * from './components/combobox/public.js';
 export * from './components/command/public.js';
 export * from './components/context-menu/public.js';
 export * from './components/data-grid/plugins/empty-state/public.js';
+export * from './components/data-grid/plugins/filters/public.js';
 export * from './components/data-grid/plugins/order/public.js';
 export * from './components/data-grid/plugins/pagination/public.js';
 export * from './components/data-grid/plugins/text-search/public.js';

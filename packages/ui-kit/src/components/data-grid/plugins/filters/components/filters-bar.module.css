@@ -1,0 +1,22 @@
+.filterOptions {
+  display: flex;
+  /* More chips than the toolbar is wide go on to further lines instead of out of the grid. */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-1);
+  min-inline-size: 0;
+}
+
+/*
+ * The last quick filter and the All filters chip, which wrap as one. The gap between them is wider
+ * than the one between the other chips, and it is a gap, not a margin on the chip, so it is only
+ * there when the two share a line: the chip is flush with the chips above when it wraps to the
+ * start of one, in either direction of writing.
+ */
+.tail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-inline-size: 0;
+}

@@ -1,0 +1,8 @@
+/* A chip's marker for a filter that holds a value which has no count to show. */
+.dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+}

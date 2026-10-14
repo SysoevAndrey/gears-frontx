@@ -61,3 +61,27 @@ describe('storageService hasActiveFilters', () => {
     expect(storage.useStore.getState().hasActiveFilters).toBe(false);
   });
 });
+
+describe('storageService hasActiveFilters, by what a filter holds', () => {
+  // Which values count as an applied filter. The filters plugin has a definition of its own (it
+  // counts 0), and data-grid.md states both, so a change to either shows here.
+  it.each([
+    { label: 'undefined', value: undefined, expected: false },
+    { label: 'null', value: null, expected: false },
+    { label: 'an empty string', value: '', expected: false },
+    { label: 'an empty list', value: [], expected: false },
+    { label: 'zero', value: 0, expected: false },
+    { label: 'false', value: false, expected: true },
+    { label: 'true', value: true, expected: true },
+    { label: 'a non-empty string', value: 'x', expected: true },
+    { label: 'a number', value: 5, expected: true },
+    { label: 'a list', value: ['a'], expected: true },
+    { label: 'a range', value: { from: '2026-01-01' }, expected: true },
+  ])('a filter holding $label makes hasActiveFilters $expected', ({ label, value, expected }) => {
+    const storage = createStorage(`test_storage_value_${label.replace(/ /g, '_')}`);
+
+    storage.createSection({ loadContext: { filters: { f: { value } } } }, []);
+
+    expect(storage.useStore.getState().hasActiveFilters).toBe(expected);
+  });
+});
