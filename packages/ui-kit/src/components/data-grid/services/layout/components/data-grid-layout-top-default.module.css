@@ -1,6 +1,14 @@
 .dataGridTopDefault {
   display: flex;
+  /*
+   * The end slots go on to a line of their own, at the end of it, when the start slots would
+   * otherwise have to give up width to sit beside them. A toolbar that fits stays on one line,
+   * with everything centred on it.
+   */
+  flex-wrap: wrap;
   align-items: center;
+  /* Only between lines: beside each other the two sides keep the spacing they have always had. */
+  row-gap: var(--space-2);
   margin-block-end: var(--space-2);
   min-inline-size: 0;
 }
@@ -8,6 +16,13 @@
 .topStartSlots {
   display: flex;
   flex: 1 1 auto;
+  /*
+   * What the start slots hold (a search box, a bar of filters) goes on to a further line when the
+   * toolbar is too narrow for it all, rather than shrinking to nothing or running over the end
+   * slots. The side can still shrink below its content (`min-inline-size`), which is what makes
+   * it wrap.
+   */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   min-inline-size: 0;
