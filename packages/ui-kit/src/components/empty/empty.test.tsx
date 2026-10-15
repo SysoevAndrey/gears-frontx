@@ -156,6 +156,10 @@ describe('Empty drawn geometry', () => {
     return rule ? declarationMap(rule.body).get(prop) : undefined;
   }
 
+  it('keeps its padding and border inside its width, so it never outgrows its container', () => {
+    expect(declared('.empty', 'box-sizing')).toBe('border-box');
+  });
+
   it('caps the root card at the drawn 512 and insets it by the drawn 32', () => {
     expect(declared('.empty', 'max-width')).toBe('32rem');
     expect(declared('.empty', 'padding')).toBe('var(--space-8)');
