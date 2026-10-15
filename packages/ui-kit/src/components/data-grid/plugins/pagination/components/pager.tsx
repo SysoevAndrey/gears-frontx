@@ -105,7 +105,7 @@ export const Pager = memo(function Pager({
 
       <span className={styles.info}>{messages.pagination.pageInfo(page, totalPages, total)}</span>
 
-      <PaginationContent>
+      <PaginationContent className={styles.pages}>
         <PaginationItem>
           <PaginationPreviousButton
             aria-label={messages.pagination.previousPage}
