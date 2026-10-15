@@ -522,7 +522,8 @@ filterTree({ id: 'department', tree, treeLabel: 'name', filterValue: 'code' });
 
 `createDataGridTreeStructure` makes the same thing outside a component; either
 returns a structure you can fill later with `tree.setItems(items)` or reshape with
-`tree.move(...)`, and an open filter follows. `treeLabel` is a property name or a
+`tree.move(...)` (which throws for a move under the node itself or one of its
+descendants), and an open filter follows. `treeLabel` is a property name or a
 function returning the node's text; search matches on it, keeps the matching
 nodes, the path down to each one and the nodes under it, and starts 300 ms after
 typing stops. By default `load` receives the id of the chosen node; `filterValue`
@@ -734,8 +735,6 @@ columns' minimum content widths.
 - `filterTree` reads each item's `id` property for its search and its radios. With
   an `itemKey` other than `id` every radio shows as checked, a click selects
   nothing, and a search hides every node.
-- `tree.move` does not refuse a move that puts a node under its own descendant:
-  the tree then has no root left, and asking that node's level never returns.
 - A key in `filters` that no entity owns any more, and any stored value of the
   wrong shape (see Persistence), still reach `load`.
 - There is no plugin unregister.

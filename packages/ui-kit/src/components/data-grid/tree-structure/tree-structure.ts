@@ -112,6 +112,11 @@ export function createDataGridTreeStructure<Item extends DataGridTreeItem>(
     if (!node) {
       throw new Error(`Node with id "${target.id}" not found`);
     }
+    // Under itself or its own descendant the node would cut its branch off from the roots,
+    // and walking up from it (getLevel, getPath) would never end.
+    if (target.parentId !== null && (target.parentId === target.id || isDescendantOf(target.parentId, target.id))) {
+      throw new Error(`Node with id "${target.id}" cannot move under itself or its descendant "${target.parentId}"`);
+    }
 
     // Create new maps for immutability
     const newChildrenMap = new Map(state.childrenMap);

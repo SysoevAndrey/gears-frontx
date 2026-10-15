@@ -184,6 +184,21 @@ describe('move', () => {
 
     expect(() => tree.move({ id: 'nope', parentId: null })).toThrow('Node with id "nope" not found');
   });
+
+  it('refuses to move a node under itself or its own descendant, and leaves the tree as it was', () => {
+    const tree = createDataGridTreeStructure<Dept>({ items: flat });
+
+    expect(() => tree.move({ id: 'eng', parentId: 'ui' })).toThrow(
+      'Node with id "eng" cannot move under itself or its descendant "ui"',
+    );
+    expect(() => tree.move({ id: 'web', parentId: 'web' })).toThrow(
+      'Node with id "web" cannot move under itself or its descendant "web"',
+    );
+
+    expect(ids(tree.getRootNodes())).toEqual(['eng', 'ops']);
+    expect(ids(tree.getChildren('web'))).toEqual(['ui']);
+    expect(tree.getLevel('ui')).toBe(3);
+  });
 });
 
 describe('the hooks of a tree structure', () => {
