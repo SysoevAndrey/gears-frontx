@@ -310,6 +310,13 @@ further lines when it is too wide for one, and `top-end` goes on to a line of it
 own, at its end, when it would not fit beside `top-start` on a single line. A
 toolbar that fits on one line has everything centred on it.
 
+A slot registered in `top` and made active replaces the toolbar's two halves. While the toolbar
+is on one line, the grid gives the slot at least the height the toolbar had and centres what it
+holds in that height, so the table under it does not move when the slot takes the toolbar's place
+(the row select bar does). A toolbar that has wrapped onto several lines, as a row of quick
+filters does on a narrow screen, is not kept: the slot takes its own height and the table moves
+up with it.
+
 With two or more `main` views (for example the table and a cards view) the grid
 adds a view switch to `top-end` by itself. Read or set the active view with
 `useDataGridActiveView()` and `DATA_GRID_VIEW`:
