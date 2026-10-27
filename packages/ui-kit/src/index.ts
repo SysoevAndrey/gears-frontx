@@ -52,6 +52,7 @@ export * from './components/data-grid/plugins/empty-state/public.js';
 export * from './components/data-grid/plugins/filters/public.js';
 export * from './components/data-grid/plugins/order/public.js';
 export * from './components/data-grid/plugins/pagination/public.js';
+export * from './components/data-grid/plugins/row-actions/public.js';
 export * from './components/data-grid/plugins/row-click/public.js';
 export * from './components/data-grid/plugins/row-number/public.js';
 export * from './components/data-grid/plugins/text-search/public.js';

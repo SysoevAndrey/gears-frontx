@@ -8,7 +8,7 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click and actions, each its own entry (see below).
+click, actions and row actions, each its own entry (see below).
 
 ## When to use
 
@@ -40,6 +40,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/row-number` | `DataGridRowNumberPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
 | `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -653,6 +654,51 @@ function AddUserButton({ onAdd }: { onAdd: () => void }) {
 The wrapper lays its content out in a row with a small gap. The component renders as a
 child of the grid, so `useDataGrid()` works inside it.
 
+### `DataGridRowActionsPlugin`
+
+Adds a last column that renders your component in every row, given the row's `item`:
+the place for a row's edit and delete buttons or its "more" menu.
+
+| Prop | Type | Default |
+|------|------|---------|
+| `component` | `ComponentType<{ item }>` | required |
+| `order` | `number` | `100`, its place among the columns at the end |
+| `className` | `string` | none; goes on the wrapper around your component |
+| `sticky` | `boolean` | `false`; pins the column to the inline-end edge |
+
+```tsx
+import { DataGridRowActionsPlugin } from '@gears-frontx/ui-kit/data-grid/row-actions';
+
+function UserActions({ item }: { item: User }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="sm" icon={<MoreHorizontal />} aria-label={`Actions for ${item.name}`} />}
+      />
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => edit(item)}>Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => remove(item)}>Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowActionsPlugin<User> component={UserActions} sticky />
+</DataGrid>;
+```
+
+The column has no header text and is as wide as the widest actions it holds. The wrapper is
+marked `data-grid-row-ignore-click`, so with the row click plugin a click on your buttons does
+not also click the row. A menu your component opens renders in a portal, outside that
+wrapper: see Known limitations.
+
+`sticky` keeps the actions in view on a table wide enough to scroll sideways: the column sticks
+to the inline-end edge, in left-to-right and right-to-left alike, and its cells are opaque, so
+the rows scroll under it. A pinned cell is painted with its row's own fill over `--card`, so
+it follows hover, selection and the other row states; set `--data-grid-pinned-background` (see
+CSS customization) when the grid sits on `--background`.
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -811,6 +857,21 @@ columns' minimum content widths.
   refresh runs after the grid is gone, and its load's `signal` is not aborted.
 - The loading overlay blocks the pointer only, not the keyboard.
 - No `aria-sort`; Previous and Next drop keyboard focus at the ends of the range.
+- With the row click plugin, activating an item of a menu that a row action opens fires the row
+  click, and fires it twice: with the mouse, and with Enter on the item (Space does not, a row
+  ignores it). The menu renders in a portal, so the item is not inside the element marked to
+  ignore row clicks, and a React event still bubbles from it to the row, where it arrives twice.
+  Stop both in the menu's content, which leaves the item's own `onClick`, Escape and the arrow
+  keys as they were:
+
+  ```tsx
+  <DropdownMenuContent
+    onClick={(event) => event.stopPropagation()}
+    onKeyDown={(event) => {
+      if (event.key === 'Enter') event.stopPropagation();
+    }}
+  >
+  ```
 - Renderer overrides (`registerComponent`) are last registered wins.
 - `registerComponent` accepts `'header-cell'` and `'header-group'`, but the header
   always renders its own cell and group components, so those two overrides have no
