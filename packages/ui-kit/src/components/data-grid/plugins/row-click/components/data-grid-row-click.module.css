@@ -1,0 +1,46 @@
+/* The kit's Table has no row-cursor hook, so the pointer is this row's own. */
+.clickableRow {
+  cursor: pointer;
+}
+
+/*
+ * Keyboard focus is drawn the way the kit draws it, a ring on --ring at --border-width-focus, but
+ * on the row's cells and not on the row. A row's own outline is cut by what sits over it: the
+ * pinned cells at either edge are opaque and stack above the row, so they hide that side of the
+ * ring. Each cell draws its share instead, the top and the bottom on all of them and the sides on
+ * the first and the last, inside its own box, so a pinned cell shows its part of the ring above
+ * its own fill. The cells that do not scroll away from the row's edges are always one of the two.
+ *
+ * A cell that is not pinned has to be positioned for the ring to sit in it. It is zero
+ * specificity, so a pinned cell keeps its own `position: sticky`.
+ */
+.clickableRow:focus-visible {
+  outline: none;
+}
+
+:where(.clickableRow:focus-visible) > td {
+  position: relative;
+}
+
+.clickableRow:focus-visible > *::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-block: var(--border-width-focus) solid var(--ring);
+  pointer-events: none;
+}
+
+.clickableRow:focus-visible > :first-child::after {
+  border-inline-start: var(--border-width-focus) solid var(--ring);
+}
+
+.clickableRow:focus-visible > :last-child::after {
+  border-inline-end: var(--border-width-focus) solid var(--ring);
+}
+
+/* An author colour is flattened in forced-colors mode, so the ring takes the system's. */
+@media (forced-colors: active) {
+  .clickableRow:focus-visible > *::after {
+    border-color: Highlight;
+  }
+}

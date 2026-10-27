@@ -7,9 +7,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 (load, layout, table, storage, persistence) is a service with its own store, and
 a plugin reaches all of them through one context object.
 
-Built-in plugins: pagination, text search, order, filters, empty state, row number, each its
-own entry (see below).
-its own entry (see below).
+Built-in plugins: pagination, text search, order, filters, empty state, row number and row
+click, each its own entry (see below).
 
 ## When to use
 
@@ -39,6 +38,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/filters` | `DataGridFiltersPlugin`, the entity factories `filterSearch`, `filterToggle`, `filterCheckboxGroup`, `filterTagGroup`, `filterTree` and `filterDateRange`, `createDataGridTreeStructure` and `useDataGridTreeStructure` (the tree `filterTree` takes), and the types |
 | `@gears-frontx/ui-kit/data-grid/empty-state` | `DataGridEmptyStatePlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-number` | `DataGridRowNumberPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -584,6 +584,48 @@ The number is `limit * (page - 1) + index + 1`, so with the pagination plugin th
 of 20 starts at 21; without it the number is the row's position. The column has no header
 text, starts at 32px and grows to the widest number on the page.
 
+### `DataGridRowClickPlugin`
+
+Calls back with the row's item when a row is clicked, double-clicked, or has Enter pressed
+on it. It replaces the `row` renderer, so it takes the whole row.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `click` | `(item) => void` | A click, and Enter on a focused row |
+| `dblclick` | `(item) => void` | A double click, which also fires `click` twice first, as in a browser |
+
+```tsx
+import { DataGridRowClickPlugin } from '@gears-frontx/ui-kit/data-grid/row-click';
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowClickPlugin<User> click={(user) => navigate(`/users/${user.id}`)} />
+</DataGrid>;
+```
+
+Every body row gets `tabIndex={0}` and a pointer cursor. The callbacks are read when the event
+fires, so a new function each render is fine.
+
+A click anywhere in the row counts, including on a control inside a cell, so a button, link or
+checkbox in a cell would fire the row click as well. Mark such an element with
+`data-grid-row-ignore-click`, or any ancestor of it in the cell: clicks, double clicks and
+Enter that start inside it are skipped. An extra column marks its whole cell with the
+`ignoreRowClick` option of `registerExtraColumn`.
+
+```tsx
+const columns: DataGridTableColumn<User>[] = [
+  { id: 'name', label: 'Name' },
+  {
+    id: 'actions',
+    label: 'Actions',
+    component: ({ item }) => (
+      <Button data-grid-row-ignore-click onClick={() => remove(item.id)}>
+        Delete
+      </Button>
+    ),
+  },
+];
+```
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -720,6 +762,8 @@ columns' minimum content widths.
   or by Tab to its radio and Space.
 - The "All filters" panel is a dialog; it is left with its close button (named
   "Close dialog"), Escape or a click outside.
+- With the row click plugin every body row is a tab stop and Enter activates it; Space
+  does not.
 - Strings are English and live in one module; the kit has no i18n layer yet.
 
 ## Known limitations
