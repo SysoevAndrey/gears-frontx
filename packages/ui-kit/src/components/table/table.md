@@ -11,8 +11,9 @@ composite `data-table` is a separate, not-yet-built component.
 Composition: `Table` (root) → optional `TableCaption` → `TableHeader` (→
 `TableRow` → `TableHead`) → `TableBody` (→ `TableRow` → `TableCell`) →
 optional `TableFooter` (→ `TableRow` → `TableCell`). Every part except
-`Table` itself is a passthrough over the matching native element's props —
-no kit-specific props of its own.
+`Table` itself is a passthrough over the matching native element's props; the
+only kit props below the root are on the two cell parts: `pinned` on both and
+`resizable` on `TableHead` (see "Pinned columns" and "Props").
 
 ## When to use
 
@@ -249,6 +250,48 @@ same single line a row border drew. The look is unchanged either way. A
 border you put on a `TableRow` yourself is not the kit's rule, and is
 ignored by a `stickyHeader` table.
 
+## Pinned columns
+
+`pinned` on `TableHead` and `TableCell` keeps a column in view while a table
+wider than its wrapper scrolls sideways: the cell sticks to an inline edge and
+the other columns slide under it.
+
+Table makes the cell sticky and lifts it above the cells beneath, and leaves the
+one thing it cannot know to you: the offset. A column pins at the sum of the
+widths pinned before it, so set `insetInlineStart` (or `insetInlineEnd` for the
+trailing edge) in `style`. Without one the cell sticks to no edge and scrolls
+away with its row. Pin the heading and every body cell of the column.
+
+```tsx
+<TableHead pinned style={{ insetInlineStart: 0 }}>Name</TableHead>
+<TableCell pinned style={{ insetInlineStart: 0 }}>Ada Lovelace</TableCell>
+```
+
+A pinned cell is opaque, or the cells scrolling under it would show through the
+row's transparent fill. It is filled with the row's own fill, painted over an
+opaque base, so it follows hover (and the open-disclosure hold), `data-state`
+and every other state a row has, with nothing to repeat per state. At rest the
+cell shows the base: `--card`, which is the surface of `DataTable`'s card and of
+a `Card`. A table that sits on the page, on `--background`, sets the hook
+`--table-pinned-fill` on the table (through `className`) or on an ancestor. The
+kit reads it with `--card` as the fallback and declares it nowhere itself:
+
+```css
+.invoices { --table-pinned-fill: var(--background); }
+```
+
+In a sticky header or the collection view a pinned heading is lifted one step
+above the other headings, which sit at `z-index: 2`, and keeps the header's own
+fill (`--table-header-fill`, `--card` in the collection view), which is opaque
+already. In a plain header a pinned heading stacks above the resize handle of the
+column after it, so a `resizable` neighbour's handle does not cover it or take its
+pointer.
+
+Resizing and pinning do not talk to each other. Table has no resize callback, so
+resizing a pinned column does not move the offsets of the pinned columns after it:
+those offsets are yours, and a table that lets a pinned column be resized has to
+read the new width and set them again.
+
 ## Props (kit level)
 
 `Table`:
@@ -267,8 +310,15 @@ ignored by a `stickyHeader` table.
 
 | Prop | Type | Default |
 |------|------|---------|
+| `pinned` | `boolean` - sticks the heading to an inline edge, above the cells scrolling under it; the offset is yours, in `style` (see "Pinned columns") | `false` |
 | `resizable` | `boolean` - draggable and keyboard-resizable trailing edge | `false` |
 | `resizeMinWidth` | `number` - px floor for this column, overriding the 72 / 32 defaults | - |
+
+`TableCell`:
+
+| Prop | Type | Default |
+|------|------|---------|
+| `pinned` | `boolean` - sticks the cell to an inline edge on the row's fill over an opaque base; the offset is yours, in `style` (see "Pinned columns") | `false` |
 
 The two axes on `Table` are orthogonal: `collection` sets the layout, the
 header and the row height, and `density` still tightens the cells inside

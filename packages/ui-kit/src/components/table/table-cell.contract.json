@@ -29,6 +29,10 @@
   ],
   "invariants": [
     {
+      "id": "pinned-cell-sticks-at-the-callers-offset",
+      "text": "With `pinned` the cell is position sticky and stacks above the cells scrolling under it (one step above the header cells under `stickyHeader` or `variant=\"collection\"`), so a column stays in view while a table wider than its wrapper scrolls sideways. Table declares no offset: a column pins at the sum of the widths pinned before it, which only the caller knows, so the caller gives `insetInlineStart` or `insetInlineEnd` in `style`. The cell is filled with the row's own fill over an opaque base, so it follows hover, `data-state` and any other state of its row; the base is `--table-pinned-fill`, read with `--card` as its fallback."
+    },
+    {
       "id": "text-does-not-wrap-by-default",
       "text": "Cell text does not wrap: a long value widens its column and the table's wrapper scrolls horizontally. Under Table's `variant=\"collection\"` cell text wraps instead."
     },
@@ -38,6 +42,10 @@
     }
   ],
   "anti_patterns": [
+    {
+      "dont": "Set `pinned` without an `insetInlineStart` or `insetInlineEnd` in `style`",
+      "do_instead": "Give the offset the column pins at; without one the cell sticks to no edge and scrolls away"
+    },
     {
       "dont": "Set display flex or grid on a TableCell to lay out its content",
       "do_instead": "Wrap the content in an inner element and lay that out; a non-table display makes the cell stop being a table-cell box, so vertical-align no longer applies and the 40px floor becomes a fixed height"
@@ -58,6 +66,10 @@
       {
         "title": "A cell spanning two columns",
         "code": "<TableRow>\n  <TableCell colSpan={2}>No results</TableCell>\n</TableRow>\n"
+      },
+      {
+        "title": "A first column that stays in view",
+        "code": "<TableRow>\n  <TableCell pinned style={{ insetInlineStart: 0 }}>INV001</TableCell>\n  <TableCell>Paid</TableCell>\n</TableRow>\n"
       }
     ],
     "bad": [
@@ -65,6 +77,11 @@
         "title": "A flex layout on the cell itself",
         "code": "<TableCell style={{ display: 'flex', gap: 8 }}>INV001</TableCell>\n",
         "why": "The cell stops being a table-cell box and loses its vertical centering; put the flex layout on an element inside the cell."
+      },
+      {
+        "title": "A pinned cell with no offset",
+        "code": "<TableCell pinned>INV001</TableCell>\n",
+        "why": "Sticky needs an edge to stick to; with no `insetInlineStart` or `insetInlineEnd` the cell scrolls away with its row."
       }
     ]
   },
@@ -80,7 +97,11 @@
   "props": {
     "title": "UiKit TableCell",
     "type": "object",
-    "properties": {},
+    "properties": {
+      "pinned": {
+        "type": "boolean"
+      }
+    },
     "required": [],
     "unevaluatedProperties": {
       "x-uikit-classification": "unchecked"

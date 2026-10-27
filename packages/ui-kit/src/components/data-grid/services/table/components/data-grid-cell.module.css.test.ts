@@ -48,7 +48,7 @@ describe('data-grid-cell.module.css -- nowrap (single-line, ellipsis-clipping) c
   });
 });
 
-// The pinned header's fill and separator used to be the cell's own (`.stickyHeaderCell` painted a
+// The pinned header's fill and separator used to be the cell's own (a pinned-header class painted a
 // background and drew a hairline with a box-shadow). Table's `stickyHeader` owns both now: it
 // fills the header cells from `--table-header-fill`, and draws the rule under them as each cell's
 // own border, which only travels with a pinned cell under the separated-borders model.
@@ -61,6 +61,16 @@ describe('data-grid-table.module.css -- sticky header', () => {
     const rule = extractRule(tableCss, '.table', 'data-grid-table.module.css');
     expect(rule.replace(/\s+/g, ' ')).toMatch(
       /--table-header-fill: var\(--data-grid-header-background, var\(--card\)\)/,
+    );
+  });
+
+  it('hands the consumer hook for the pinned fill to the kit base, with the kit default behind it', () => {
+    // `--data-grid-pinned-background` wins, and a grid that sets nothing paints what a pinned Table
+    // cell paints on its own (`--card`). Table's own `--table-pinned-fill` is not the grid's to
+    // document.
+    const rule = extractRule(tableCss, '.table', 'data-grid-table.module.css');
+    expect(rule.replace(/\s+/g, ' ')).toMatch(
+      /--table-pinned-fill: var\(--data-grid-pinned-background, var\(--card\)\)/,
     );
   });
 

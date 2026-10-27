@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react';
 import { render } from '../../../../../__test-utils__/render-with-user';
 import { DataGrid } from '../../../data-grid';
 import type { DataGridLoadResult } from '../../../data-grid-types';
+import tableStyles from '../../../../table/table.module.css';
 import type { DataGridTableColumn } from '../table-types';
 
 vi.stubGlobal(
@@ -208,5 +209,37 @@ describe('DataGridTable — tableLayout', () => {
 
     expect(table.className).toContain('layoutAuto');
     expect(table.className).not.toContain('layoutFixed');
+  });
+});
+
+describe('DataGridCell — pinned column', () => {
+  const columns: DataGridTableColumn<TestItem>[] = [
+    { id: 'name', label: 'Name', sticky: true },
+    { id: 'bio', label: 'Bio' },
+  ];
+
+  it('pins the header and body cells of a sticky column on the start edge, and no other column', async () => {
+    await renderGridWithColumns(columns, 'cell_pinned_column_grid');
+
+    const table = await screen.findByRole('table');
+    const scope = within(table);
+    const pinned = [
+      scope.getByRole('columnheader', { name: 'Name' }),
+      scope.getByRole('cell', { name: 'John Doe' }),
+    ];
+    const free = [
+      scope.getByRole('columnheader', { name: 'Bio' }),
+      scope.getByRole('cell', { name: 'A very long biography.' }),
+    ];
+
+    for (const cell of pinned) {
+      // Table owns the pin (sticky, its layer and the row's fill); the grid supplies the offset.
+      expect(cell.className).toContain(tableStyles.pinned);
+      expect(cell.style.insetInlineStart).toBe('0px');
+    }
+    for (const cell of free) {
+      expect(cell.className).not.toContain(tableStyles.pinned);
+      expect(cell.style.insetInlineStart).toBe('');
+    }
   });
 });

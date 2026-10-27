@@ -106,12 +106,13 @@ export function DataGridCell<TItem extends DataGridItem = DataGridItem>({
       data-header-fill={fillContent || undefined}
       {...(ignoreRowClick && { [IGNORE_CLICK_ATTRIBUTE]: '' })}
       title={title}
-      className={cx(styles.cell, (isSticky || isStickyEnd) && styles.stickyCell, className)}
+      className={cx(styles.cell, className)}
+      pinned={isSticky || isStickyEnd}
       style={{
         ...style,
         ...(normalizedWidth ? { width: normalizedWidth } : {}),
-        ...(isSticky ? { position: 'sticky', insetInlineStart: `${stickyOffset}px` } : {}),
-        ...(isStickyEnd ? { position: 'sticky', insetInlineEnd: `${endStickyOffset}px` } : {}),
+        ...(isSticky ? { insetInlineStart: `${stickyOffset}px` } : {}),
+        ...(isStickyEnd ? { insetInlineEnd: `${endStickyOffset}px` } : {}),
       }}
       scope={header ? 'col' : undefined}
       rowSpan={rowspan}

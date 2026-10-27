@@ -12,9 +12,9 @@
  * discarded for the whole animation. Flex centring on a full-inset wrapper also needs no
  * directional offsets, which keeps it correct under `dir="rtl"`.
  *
- * `z-index` has to clear every sticky layer inside the table: the pinned cells (`.stickyCell`,
- * `z-index: 1`), the pinned header cells (`.stickyCell.stickyHeaderCell`, `z-index: 3`) and the
- * sticky header row group (`.theadSticky`, `z-index: 2`).
+ * `z-index` has to clear every sticky layer inside the table: the pinned cells (Table's `.pinned`,
+ * `z-index: 1`), the pinned header cells (Table's `.pinned` under a sticky header, `z-index: 3`)
+ * and the sticky header row group (`.theadSticky`, `z-index: 2`).
  *
  * The scrim fades in on the same delay the spinner uses, so a load that finishes quickly never shows
  * anything at all. Without it the spinner would still be delayed but the dim would not, and every

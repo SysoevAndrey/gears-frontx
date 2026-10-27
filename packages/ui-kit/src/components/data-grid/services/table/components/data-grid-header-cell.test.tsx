@@ -6,6 +6,7 @@ import { Checkbox } from '../../../../checkbox/public.js';
 import { DataGrid } from '../../../data-grid';
 import type { DataGridLoadResult } from '../../../data-grid-types';
 import { DataGridOrderPlugin } from '../../../plugins/order/order-plugin';
+import tableStyles from '../../../../table/table.module.css';
 import type { DataGridTableColumn } from '../table-types';
 
 vi.stubGlobal(
@@ -236,7 +237,8 @@ describe('DataGridHeaderCell — overflow', () => {
 
     expect(emailHeader).toBeDefined();
     expect(emailHeader!.dataset.overflow).toBe('nowrap');
-    expect(emailHeader!.style.position).toBe('sticky');
+    // The pin is Table's: it makes a `pinned` cell sticky.
+    expect(emailHeader!.className).toContain(tableStyles.pinned);
     expect(emailHeader!.style.width).toBe('80px');
     expect(within(emailHeader!).getByText('Email Address')).toBeInTheDocument();
   });

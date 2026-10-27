@@ -671,6 +671,7 @@ Set these on the grid or any ancestor:
 | `--data-grid-table-min-inline-size` | `max-content` | Floor for the table's width. Raise it for a narrow pane that starves flexible columns, set it to `0` for a grid that must fit its wrapper. |
 | `--data-grid-header-background` | `var(--card)` | Fill of the header cells while `stickyHeader` is on |
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
+| `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |
 
 The floor is one constraint among several: under `'fixed'` a table whose columns
 declare widths cannot shrink below their sum, and under either mode not below the

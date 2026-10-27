@@ -517,6 +517,12 @@ export function TableRow({ className, ...props }: TableRowProps) {
 
 export interface TableHeadProps extends ComponentProps<'th'> {
   /**
+   * Pins the cell to an inline edge so the other columns scroll under it. The offset is the
+   * caller's: give `insetInlineStart` or `insetInlineEnd` in `style`. See `TableCellProps.pinned`.
+   * @default false
+   */
+  pinned?: boolean;
+  /**
    * Renders a draggable, keyboard-resizable handle on the column's trailing
    * edge. Off by default: the spec's own default is on, but turning it on
    * here would make every column of every shipped table draggable without
@@ -532,23 +538,35 @@ export interface TableHeadProps extends ComponentProps<'th'> {
 
 export function TableHead({
   className,
+  pinned,
   resizable,
   resizeMinWidth,
   children,
   ...props
 }: TableHeadProps) {
   return (
-    <th className={cx(styles.tableHead, className)} {...props}>
+    <th className={cx(styles.tableHead, pinned && styles.pinned, className)} {...props}>
       {children}
       {resizable ? <TableColumnResizer minWidth={resizeMinWidth} /> : null}
     </th>
   );
 }
 
-export type TableCellProps = ComponentProps<'td'>;
+export interface TableCellProps extends ComponentProps<'td'> {
+  /**
+   * Pins the cell to an inline edge, for a column that stays in view while the rest of a table
+   * wider than its wrapper scrolls under it. Table makes the cell sticky, stacks it above the
+   * cells beneath and fills it with the row's own fill over an opaque base (`--table-pinned-fill`,
+   * `--card` by default), so it follows hover, `data-state` and the rest of the row. The offset is
+   * the caller's: a column pins at the sum of the widths pinned before it, which only the caller
+   * knows, so give `insetInlineStart` or `insetInlineEnd` in `style`.
+   * @default false
+   */
+  pinned?: boolean;
+}
 
-export function TableCell({ className, ...props }: TableCellProps) {
-  return <td className={cx(styles.tableCell, className)} {...props} />;
+export function TableCell({ className, pinned, ...props }: TableCellProps) {
+  return <td className={cx(styles.tableCell, pinned && styles.pinned, className)} {...props} />;
 }
 
 /**
