@@ -35,6 +35,12 @@ export const messages = {
   actionsMenu: {
     actions: 'Actions',
   },
+  tableConfiguration: {
+    header: 'Table configuration',
+    configureColumns: 'Configure columns',
+    pinColumn: 'Pin column',
+    unpinColumn: 'Unpin column',
+  },
   pagination: {
     ariaLabel: 'Pagination',
     limitSelectorAriaLabel: 'Items per page',

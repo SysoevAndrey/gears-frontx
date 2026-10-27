@@ -8,7 +8,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click, actions, row actions and an actions menu, each its own entry (see below).
+click, actions, row actions, an actions menu and table configuration, each its own entry
+(see below).
 
 ## When to use
 
@@ -42,6 +43,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
 | `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
+| `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -341,8 +343,8 @@ page, and does not listen for `popstate`; a plugin can opt a state out of it
 backend (`{ storage: 'localStorage' }`).
 
 `persistentColumnVisibility` remembers which columns the user showed or hid, in
-`localStorage` whatever `persistent` says. The grid ships no control that changes
-it; a plugin of your own calls `updateColumnVisibility`.
+`localStorage` whatever `persistent` says. The table configuration plugin is the
+built-in control that changes it; a plugin of your own calls `updateColumnVisibility`.
 
 ## Plugins
 
@@ -730,6 +732,36 @@ on the plugin's API (`getPlugin<DataGridActionsMenuPluginApi>('actionsMenu')`); 
 (`10 * (count + 1)`). A new `menuItems` array replaces every item, the registered ones too, so
 keep `menuItems` in a module-level constant or `useMemo`.
 
+### `DataGridTableConfigurationPlugin`
+
+Adds a gear button named "Configure columns" to the toolbar's `top-end` slot, after an
+`actions` component and before the actions menu (order 10). It opens a popover headed "Table
+configuration" that lists the grid's columns, so the user can show, hide and pin them. It
+takes no props.
+
+```tsx
+import { DataGridTableConfigurationPlugin } from '@gears-frontx/ui-kit/data-grid/table-configuration';
+
+<DataGrid name="users" load={loadUsers} columns={columns} persistentColumnVisibility>
+  <DataGridTableConfigurationPlugin />
+</DataGrid>;
+```
+
+Every column has a switch for its visibility and a pin button for keeping it at the inline
+start while the table scrolls sideways. The pin button shows while its row is hovered or has
+keyboard focus, and always while the column is pinned. A group is a section: a pin button for
+the group, then a switch for each column in it, with no pin button of their own. Pinning the
+group pins its heading and all its columns together, and unpinning reverses it. The switch of
+the last visible column is locked so the table is never empty, and a column's own
+`visibleToggleDisabled` locks its switch.
+
+A choice applies at once. Which columns are hidden survives a reload only with
+`persistentColumnVisibility` on the grid; pins are not stored. A new `columns` array resets both.
+
+The panel renders in a portal, so set its two size hooks on `:root` or `body`, not on the grid
+(see CSS customization). It keeps inside the screen: its width floor gives way to the room there
+is on a narrow one, and a list longer than the room scrolls inside it.
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -838,6 +870,8 @@ Set these on the grid or any ancestor:
 | `--data-grid-table-min-inline-size` | `max-content` | Floor for the table's width. Raise it for a narrow pane that starves flexible columns, set it to `0` for a grid that must fit its wrapper. |
 | `--data-grid-header-background` | `var(--card)` | Fill of the header cells while `stickyHeader` is on |
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
+| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root` or `body` |
+| `--data-grid-table-configuration-content-max-block-size` | `500px` | Height at which the panel's column list scrolls. Set it where the panel's portal is under the cascade, like the width |
 | `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |
 
 The floor is one constraint among several: under `'fixed'` a table whose columns
@@ -866,6 +900,10 @@ columns' minimum content widths.
   or by Tab to its radio and Space.
 - The "All filters" panel is a dialog; it is left with its close button (named
   "Close dialog"), Escape or a click outside.
+- The table configuration panel is built like the order popover, from menu items without
+  a menu popup: its switches and pin buttons are reached with Tab, not with arrow keys, the
+  switches carry no accessible name of their own (the column's name is the text beside them),
+  and the pin buttons are named "Pin column" and "Unpin column" without the column.
 - With the row click plugin every body row is a tab stop and Enter activates it; Space
   does not.
 - Strings are English and live in one module; the kit has no i18n layer yet.
