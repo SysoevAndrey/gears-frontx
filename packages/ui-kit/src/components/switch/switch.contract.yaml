@@ -60,6 +60,11 @@ attestations:
       plus switch.test.tsx's own role/aria-checked/data-checked assertions
   rtl:
     outcome: unknown
+    by: >-
+      switch.module.css reverses the checked thumb's travel with
+      `.thumb[data-checked]:dir(rtl)` at both sizes and switch.test.tsx pins
+      those rules, but jsdom has no layout and does not resolve `:dir()`, so
+      no suite renders the switch right-to-left
 
 # Internal structure this component composes that the kit does not expose as
 # a component of its own.
