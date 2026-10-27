@@ -1,0 +1,47 @@
+/* Deliberately does not grow. This is the root of the `top` slot. The layout puts it in a wrapper,
+   a flex column as tall as the toolbar it replaces (when that was on one line), that sits in the
+   grid's root column beside the main view, which does grow. That wrapper does not grow, so the bar takes its own height and the
+   table does not drop when a row is selected; this root must not grow either, or it would fill the
+   wrapper and sit at the top of it instead of staying centred where the toolbar's items were. The
+   bar's own height is held by `.rowSelectTop`'s `min-block-size`. */
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowSelectTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-block-size: var(--control-height-sm);
+  /* The toolbar's own bottom margin, so the bar takes the room a toolbar of small buttons took. */
+  padding-block-end: var(--space-2);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  animation: appear var(--duration-micro) var(--ease-standard);
+  gap: var(--space-2);
+}
+
+.selectedCount {
+  font-size: var(--text-body-size);
+  font-weight: var(--text-label-weight);
+  line-height: var(--text-body-line-height);
+  white-space: nowrap;
+}

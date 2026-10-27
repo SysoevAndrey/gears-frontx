@@ -1,0 +1,21 @@
+@keyframes banner-appear {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.banner {
+  animation: banner-appear var(--duration-micro) var(--ease-standard);
+}
+
+/* A native button, so it needs the reset a link does not: the line it sits in is the sentence's. */
+.action {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}

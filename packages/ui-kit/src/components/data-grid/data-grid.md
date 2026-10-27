@@ -8,8 +8,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click, actions, row actions, an actions menu and table configuration, each its own entry
-(see below).
+click, actions, row actions, an actions menu, table configuration and row select, each its
+own entry (see below).
 
 ## When to use
 
@@ -44,6 +44,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
 | `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
 | `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-select` | `DataGridRowSelectPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -762,6 +763,93 @@ The panel renders in a portal, so set its two size hooks on `:root` or `body`, n
 (see CSS customization). It keeps inside the screen: its width floor gives way to the room there
 is on a narrow one, and a list longer than the room scrolls inside it.
 
+### `DataGridRowSelectPlugin`
+
+Adds a checkbox column at the start, a select-all checkbox in its header, and an action bar
+that replaces the toolbar while rows are selected.
+
+| Prop | Type | Default |
+|------|------|---------|
+| `onSelectionChange` | `(items, meta) => void` | none; `meta` is `{ mode: 'none' \| 'page' \| 'all', count }` |
+| `component` | `ComponentType<{ rowSelect }>` | none; your actions in the action bar |
+| `statusComponent` | `ComponentType<{ rowSelect }>` | none; replaces the "N items selected" text |
+| `multiple` | `boolean` | `true`; `false` allows one row, with no select-all checkbox |
+| `showSelectAll` | `boolean` | `true`; the select-all checkbox in the header |
+| `visible` | `(item) => boolean` | none; rows it rejects get no checkbox, and select-all skips them |
+| `showSelectAllMatching` | `boolean` | `false`; see below |
+| `keepHiddenSelection` | `boolean` | `false`; see below |
+
+```tsx
+import { DataGridRowSelectPlugin, type DataGridRowSelectPluginApi } from '@gears-frontx/ui-kit/data-grid/row-select';
+
+function BulkActions({ rowSelect }: { rowSelect: DataGridRowSelectPluginApi<User> }) {
+  return (
+    <>
+      <Button variant="outline" onClick={rowSelect.clearSelection}>Cancel</Button>
+      <Button variant="destructive" onClick={() => deactivate(rowSelect.getSelectionDescriptor())}>
+        Deactivate
+      </Button>
+    </>
+  );
+}
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowSelectPlugin<User> component={BulkActions} onSelectionChange={setSelected} />
+</DataGrid>;
+```
+
+The action bar needs `component` or `statusComponent`; with neither, selecting only ticks the
+checkboxes. It shows the count ("1 item selected", "3 items selected") at the end, or your
+`statusComponent` in its place, and your `component` at the start. `rowSelect` is the plugin's
+API: `useSelectedIds`, `useSelectionCount`, `useSelectionMode` and the other `use*` hooks read
+it, `toggleSelection(id)`, `toggleSelectAll(value)` and `clearSelection()` change it.
+
+Selection is kept per page, and it follows the rows that are loaded. Every load empties the
+loaded rows while it runs, so every load clears the selection and calls `onSelectionChange` with
+`[]` and `{ mode: 'none', count: 0 }`: a page change, a filter, a search, and also `refresh()` or
+`triggerLoad()` when they bring back the very same rows. With `keepHiddenSelection` the ids
+selected by hand survive loads. The `total` of the load result is mirrored, so the plugin does
+not depend on the pagination plugin being registered first.
+
+#### Select all matching
+
+`showSelectAllMatching` is opt-in: turn it on only when your bulk action handles the all-matching
+scope. With it on, once every selectable row on the page is selected and the load result's
+`total` is more than the rows loaded, a banner offers "Select all N". Taking it enters
+all-matching mode, every record that matches the current filter across all pages, without
+listing ids. In that mode `onSelectionChange` still gets only the current page's items, and the
+scope is in `meta` (`mode: 'all'`, `count: total`) and in `getSelectionDescriptor()`. Any single
+row toggle, a clear, or any load leaves all-matching, and
+`getSelectionDescriptor()` is back to ids. In single-selection mode the banner and all-matching
+are off.
+
+Send the descriptor, never a list of thousands of ids:
+
+```tsx
+const selection = rowSelect.getSelectionDescriptor();
+// { mode: 'ids', ids: [1, 2, 3] }  or  { mode: 'all-matching' }
+await (selection.mode === 'all-matching' ? deleteMatching(currentFilter) : deleteIds(selection.ids));
+```
+
+The count in all-matching mode is the load result's `total`, which the client cannot narrow by
+`visible`, and a filter-based action acts on every match, so `visible` is not honoured by "select
+all matching". If `visible` is a permission gate, leave `showSelectAllMatching` off. The backend
+enforces permissions either way.
+
+#### `keepHiddenSelection`
+
+With it on, rows selected by hand stay selected when they leave the screen (another page, a
+filter, a search). `onSelectionChange` then reports every selected item across pages, and the
+select-all checkbox, which acts on the page, is ticked or mixed by the page's rows only. Select-all
+adds the page to the selection rather than replacing it. It is not meant to be combined with
+`showSelectAllMatching`: the one keeps a hand-picked set across pages, the other offers a single
+scope.
+
+#### With row click
+
+The checkbox column marks its whole cell, header and body, as ignoring row clicks, so ticking a
+box does not call a row click plugin's `click`. Nothing to configure.
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -906,6 +994,9 @@ columns' minimum content widths.
   and the pin buttons are named "Pin column" and "Unpin column" without the column.
 - With the row click plugin every body row is a tab stop and Enter activates it; Space
   does not.
+- The row select checkboxes, the select-all one included, have no accessible name. "Select all
+  N" and "Clear selection" in the banner are buttons, and the banner is an `alert`, so it is
+  announced when it appears.
 - Strings are English and live in one module; the kit has no i18n layer yet.
 
 ## Known limitations
