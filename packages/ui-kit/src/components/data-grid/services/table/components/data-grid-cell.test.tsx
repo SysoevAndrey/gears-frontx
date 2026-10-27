@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { render } from '../../../../../__test-utils__/render-with-user';
 import { DataGrid } from '../../../data-grid';
+import { createDataGridPlugin } from '../../plugins/plugins-helpers';
 import type { DataGridLoadResult } from '../../../data-grid-types';
 import tableStyles from '../../../../table/table.module.css';
 import type { DataGridTableColumn } from '../table-types';
@@ -240,6 +241,39 @@ describe('DataGridCell — pinned column', () => {
     for (const cell of free) {
       expect(cell.className).not.toContain(tableStyles.pinned);
       expect(cell.style.insetInlineStart).toBe('');
+    }
+  });
+
+  it('pins a column the grid registers before the data in front of a pinned column, so the offsets agree', async () => {
+    const ExtraColumn = createDataGridPlugin('extra_column', (context) => {
+      context.registerExtraColumn({
+        id: 'extra',
+        position: 'start',
+        order: 5,
+        width: '40px',
+        header: () => <span>pick</span>,
+        body: () => <span>x</span>,
+      });
+      return {};
+    });
+    render(
+      <DataGrid name="cell_pinned_extra_grid" load={loadData} columns={columns}>
+        <ExtraColumn />
+      </DataGrid>,
+    );
+
+    const table = await screen.findByRole('table');
+    const extraCells = Array.from(table.querySelectorAll<HTMLElement>('[data-column-id="extra"]'));
+    const nameCells = Array.from(table.querySelectorAll<HTMLElement>('[data-column-id="name"]'));
+
+    expect(extraCells).toHaveLength(2);
+    for (const cell of extraCells) {
+      expect(cell.className).toContain(tableStyles.pinned);
+      expect(cell.style.insetInlineStart).toBe('0px');
+    }
+    // The pinned data column is offset by the extra column's width, which now stays in view.
+    for (const cell of nameCells) {
+      expect(cell.style.insetInlineStart).toBe('40px');
     }
   });
 });

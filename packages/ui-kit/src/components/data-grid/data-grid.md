@@ -148,7 +148,7 @@ under a spanning header cell.
 | `minWidth`, `maxWidth` | `number` | Pixels. Independent floor and cap under `tableLayout="auto"`. |
 | `headerOverflow` | `'nowrap' \| 'wrap'` | Default `'nowrap'`: one line, clipped with an ellipsis, the label in `title`. |
 | `cellOverflow` | `'wrap' \| 'nowrap'` | Default `'wrap'`. `'nowrap'` clips with an ellipsis and sets `title` to the value. |
-| `sticky` | `boolean` | Pins the column to the inline-start edge while the table scrolls sideways. |
+| `sticky` | `boolean` | Pins the column to the inline-start edge while the table scrolls sideways. The columns a plugin adds before the data (a row number, a selection checkbox) pin with the first pinned column, in front of it, so they stay in view; with nothing pinned they scroll away with the rest. |
 | `visible` | `boolean` | Initial visibility. |
 | `visibleToggleDisabled` | `boolean` | The column's visibility is not the user's to change. |
 | `getClassName` | `(item) => string \| undefined` | A class for the column's cell in that row. |
