@@ -15,7 +15,7 @@ interface DataGridFilterDateRangeConfig {
   filterKey?: DataGridFilterEntity['filterKey'];
   label?: DataGridFilterEntity['label'];
   /**
-   * Format the bounds are emitted in and parsed from. Defaults to `YYYY-MM-DD`
+   * Format the bounds are emitted in and parsed from, in date-fns tokens. Defaults to `yyyy-MM-dd`
    * (calendar dates) — deliberately not the date picker's ISO-timestamp model default.
    */
   modelDateFormat?: string;

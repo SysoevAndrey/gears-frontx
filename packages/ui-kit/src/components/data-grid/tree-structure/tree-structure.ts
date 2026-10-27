@@ -334,15 +334,13 @@ export function createDataGridTreeStructure<Item extends DataGridTreeItem>(
  *
  * @example
  * ```tsx
- * function MyTreeComponent() {
- *   const treeStructure = useDataGridTreeStructure({
- *     items,
- *     itemKey: 'id',
- *     parentKey: 'parentId',
- *   });
+ * const tree = useDataGridTreeStructure({
+ *   items,
+ *   itemKey: 'id',
+ *   parentKey: 'parentId',
+ * });
  *
- *   return <Tree name="my-tree" treeStructure={treeStructure} />;
- * }
+ * filterTree({ id: 'department', tree, treeLabel: 'name' });
  * ```
  */
 export function useDataGridTreeStructure<Item extends DataGridTreeItem>(
