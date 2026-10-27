@@ -1,0 +1,26 @@
+.list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/*
+ * The checkbox's hit area reaches 8px past the box on each side along the column and 12px across
+ * it, so the row is as tall as that area (a 16px label and 8px above and below) and as inset as it
+ * is wide. A shorter row would let the last hit area spill out of the scroll region and make it
+ * scroll by a few pixels.
+ */
+.listItem {
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  min-block-size: 80px;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+}

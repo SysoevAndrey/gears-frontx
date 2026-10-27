@@ -1,0 +1,12 @@
+.divider {
+  padding: 0;
+  border: none;
+  border-block-end: var(--border-width) solid var(--border);
+  margin-block: var(--space-2);
+  margin-inline: 0;
+}
+
+.resetButton {
+  padding-block-end: var(--space-1);
+  padding-inline: var(--space-1);
+}

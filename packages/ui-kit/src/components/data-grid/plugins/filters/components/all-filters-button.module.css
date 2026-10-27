@@ -1,0 +1,8 @@
+/*
+ * The kit's sheet is a grid of auto rows, and a tall panel shares its spare height between them,
+ * which pushes the sections away from the title. Here the sections take all of it, so the title
+ * and the Apply button keep to the two ends.
+ */
+.panel {
+  grid-template-rows: auto 1fr auto;
+}

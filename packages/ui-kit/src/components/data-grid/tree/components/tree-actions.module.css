@@ -1,0 +1,26 @@
+.treeActions {
+  display: flex;
+  align-items: center;
+}
+
+.treeActionsAlways {
+  opacity: 1;
+}
+
+/* From the width of a tablet up the actions are hidden until a control inside them has keyboard focus. */
+@media (min-width: 720px) {
+  .treeActionsHover {
+    opacity: 0;
+  }
+
+  .treeActionsHover:has(:focus-visible) {
+    opacity: 1;
+  }
+
+  /* Browsers without :has() fall back to the focus-within form. */
+  @supports not selector(:has(*)) {
+    .treeActionsHover:focus-within {
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,4 @@
+.wrapper {
+  overflow: auto;
+  max-block-size: 360px;
+}

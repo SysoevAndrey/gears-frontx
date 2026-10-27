@@ -1,0 +1,12 @@
+/*
+ * The kit's popover is a fixed 18rem wide, which suits a short list and not a filter that asks for
+ * more (`popover.minInlineSize`) or holds a long label: its content would stick out past the edge.
+ * Here the popover keeps 18rem as its floor and grows to its content, as far as the room the
+ * positioner reports. The width is stated twice over the kit's class so that it wins whichever
+ * stylesheet reaches the page last.
+ */
+.popover.popover {
+  width: auto;
+  min-inline-size: 18rem;
+  max-inline-size: var(--available-width);
+}

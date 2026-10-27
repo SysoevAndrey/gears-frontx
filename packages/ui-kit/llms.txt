@@ -225,8 +225,8 @@ Rules for generated code:
 - [DataGrid](dist/docs/data-grid.md): server-driven data grid (`DataGrid`
   with a `load(ctx)` callback, `columns`, a slot-based layout and
   `createDataGridPlugin`) rendered on `Table`; the built-in plugins are
-  opt-in entries of their own - pagination, text search, ordering and a
-  custom empty state, imported from `@gears-frontx/ui-kit/data-grid/<plugin>`
+  opt-in entries of their own - pagination, text search, ordering, filters
+  and a custom empty state, imported from `@gears-frontx/ui-kit/data-grid/<plugin>`
   or the package root; state can persist to local/session storage, the URL
   or memory.
 - [DataTable](dist/docs/data-table.md): sortable, paginated, optionally

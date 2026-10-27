@@ -5,6 +5,10 @@
  */
 
 .empty {
+  /* The kit has no preflight, so without this the 32px padding and the border are added to the
+     100% width and the card is wider than what holds it. It also makes the 32rem cap the drawn
+     512px card it is named for, padding included. */
+  box-sizing: border-box;
   display: flex;
   width: 100%;
   max-width: 32rem; /* the drawn card (512px); a dimension, not guarded */

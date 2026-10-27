@@ -148,7 +148,8 @@ DATA_GRID_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid.js" 'dataGrid
 DATA_GRID_PAGINATION_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/pagination.js" 'pager')"
 DATA_GRID_ORDER_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/order.js" 'orderPopover')"
 DATA_GRID_TEXT_SEARCH_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/text-search.js" 'searchInput')"
-for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS; do
+DATA_GRID_FILTERS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/filters.js" 'filterOptions')"
+for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS; do
   if [ -z "${!probe_name}" ]; then
     echo "FAIL: could not extract a hashed class probe ($probe_name) from dist/ — did a component's local class names change?"
     exit 1
@@ -622,6 +623,8 @@ assert_absent_from_glob "[esbuild-data-grid] order styles"       "$DATA_GRID_ORD
 assert_absent_from_glob "[esbuild-data-grid] order JS"           "$DATA_GRID_ORDER_CLASS"       'dist/out.js'
 assert_absent_from_glob "[esbuild-data-grid] text-search styles" "$DATA_GRID_TEXT_SEARCH_CLASS" 'dist/out.css'
 assert_absent_from_glob "[esbuild-data-grid] text-search JS"     "$DATA_GRID_TEXT_SEARCH_CLASS" 'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] filters styles"     "$DATA_GRID_FILTERS_CLASS"     'dist/out.css'
+assert_absent_from_glob "[esbuild-data-grid] filters JS"         "$DATA_GRID_FILTERS_CLASS"     'dist/out.js'
 
 echo "==> [esbuild-data-grid] Bundle report (DataGrid core only, react/react-dom external)"
 wc -c dist/out.js dist/out.css
@@ -646,6 +649,27 @@ npx esbuild src/with-plugin.jsx --bundle --minify --format=esm --platform=browse
 assert_present_in_glob "[esbuild-data-grid] pagination styles (plugin imported)"  "$DATA_GRID_PAGINATION_CLASS" 'dist/with-plugin.css'
 assert_present_in_glob "[esbuild-data-grid] pagination class map (plugin imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-plugin.js'
 assert_absent_from_glob "[esbuild-data-grid] order styles (plugin not imported)"   "$DATA_GRID_ORDER_CLASS"       'dist/with-plugin.css'
+assert_absent_from_glob "[esbuild-data-grid] filters styles (plugin not imported)" "$DATA_GRID_FILTERS_CLASS"     'dist/with-plugin.css'
+
+# A second plugin, the one with the largest graph, takes the same route: its own subpath brings its
+# own styles, and not another plugin's.
+cat > src/with-filters.jsx <<'EOF'
+import '@gears-frontx/ui-kit/theme.css';
+
+import { DataGrid } from '@gears-frontx/ui-kit/data-grid';
+import { DataGridFiltersPlugin } from '@gears-frontx/ui-kit/data-grid/filters';
+
+console.log(DataGrid, DataGridFiltersPlugin);
+EOF
+
+echo "==> [esbuild-data-grid] Bundling (adds DataGridFiltersPlugin from @gears-frontx/ui-kit/data-grid/filters)"
+npx esbuild src/with-filters.jsx --bundle --minify --format=esm --platform=browser \
+  --external:react --external:react-dom --external:react/jsx-runtime \
+  --loader:.css=css --outfile=dist/with-filters.js
+
+assert_present_in_glob "[esbuild-data-grid] filters styles (plugin imported)"    "$DATA_GRID_FILTERS_CLASS"    'dist/with-filters.css'
+assert_present_in_glob "[esbuild-data-grid] filters class map (plugin imported)" "$DATA_GRID_FILTERS_CLASS"    'dist/with-filters.js'
+assert_absent_from_glob "[esbuild-data-grid] pagination styles (plugin not imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-filters.css'
 
 echo
 echo "==> [webpack] Scaffolding a webpack consumer (barrel import) in $WORKDIR/webpack-consumer"
@@ -714,7 +738,7 @@ echo "==> [webpack] Bundle report (Button-only barrel consumer, react/react-dom 
 wc -c dist/out.js dist/out.css
 
 echo
-echo "==> [types] Type-checking the barrel and five subpaths (a data-grid core and plugin entry among them) under both moduleResolution settings"
+echo "==> [types] Type-checking the barrel and five subpaths (a data-grid core and two plugin entries among them) under both moduleResolution settings"
 TYPES_CHECK="$WORKDIR/types-check"
 mkdir -p "$TYPES_CHECK/src"
 cd "$TYPES_CHECK"
@@ -737,8 +761,28 @@ import { Table } from '@gears-frontx/ui-kit/table';
 import { Dialog } from '@gears-frontx/ui-kit/dialog';
 import { DataGrid, type DataGridTableColumn } from '@gears-frontx/ui-kit/data-grid';
 import { DataGridPaginationPlugin } from '@gears-frontx/ui-kit/data-grid/pagination';
+import {
+  DataGridFiltersPlugin,
+  filterTree,
+  createDataGridTreeStructure,
+  type DataGridTreeStructure,
+} from '@gears-frontx/ui-kit/data-grid/filters';
 
-export { Button, ButtonSubpath, Table, Dialog, DataGrid, DataGridPaginationPlugin };
+// filterTree's signature names the tree structure, so the types it needs have to resolve from the
+// plugin's own declaration file.
+const tree: DataGridTreeStructure<{ id: string; name: string }> = createDataGridTreeStructure({});
+const entity = filterTree({ id: 'category', tree, treeLabel: 'name' });
+
+export {
+  Button,
+  ButtonSubpath,
+  Table,
+  Dialog,
+  DataGrid,
+  DataGridPaginationPlugin,
+  DataGridFiltersPlugin,
+  entity,
+};
 export type { ButtonProps, DataGridTableColumn };
 EOF
 

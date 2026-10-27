@@ -2,13 +2,13 @@
 
 A server-driven data grid: a `DataGrid` that renders rows through the kit's
 `Table`, a `load(ctx)` callback that fetches them, a slot-based layout around
-the table, and plugins that add behavior (paging, search, sorting, a custom
-empty state) by registering into those slots and hooking the load. Each concern
+the table, and plugins that add behavior (paging, search, sorting, filters, a
+custom empty state) by registering into those slots and hooking the load. Each concern
 (load, layout, table, storage, persistence) is a service with its own store, and
 a plugin reaches all of them through one context object.
 
-Built-in plugins: pagination, text search, order and empty state, each its own
-entry (see below).
+Built-in plugins: pagination, text search, order, filters and empty state, each
+its own entry (see below).
 
 ## When to use
 
@@ -35,6 +35,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/pagination` | `DataGridPaginationPlugin` |
 | `@gears-frontx/ui-kit/data-grid/text-search` | `DataGridTextSearchPlugin` |
 | `@gears-frontx/ui-kit/data-grid/order` | `DataGridOrderPlugin`, `createDataGridOrderOption` |
+| `@gears-frontx/ui-kit/data-grid/filters` | `DataGridFiltersPlugin`, the entity factories `filterSearch`, `filterToggle`, `filterCheckboxGroup`, `filterTagGroup`, `filterTree` and `filterDateRange`, `createDataGridTreeStructure` and `useDataGridTreeStructure` (the tree `filterTree` takes), and the types |
 | `@gears-frontx/ui-kit/data-grid/empty-state` | `DataGridEmptyStatePlugin` |
 
 The package root re-exports all of them, so
@@ -295,6 +296,11 @@ them with `registerSlot(name, { id, component, order? })`:
 | `bottom` | The footer (pagination); hidden while the grid has no records |
 | `empty` | Replaces the built-in empty state |
 
+The toolbar fits itself to the grid's width. What `top-start` holds flows onto
+further lines when it is too wide for one, and `top-end` goes on to a line of its
+own, at its end, when it would not fit beside `top-start` on a single line. A
+toolbar that fits on one line has everything centred on it.
+
 With two or more `main` views (for example the table and a cards view) the grid
 adds a view switch to `top-end` by itself. Read or set the active view with
 `useDataGridActiveView()` and `DATA_GRID_VIEW`:
@@ -393,6 +399,143 @@ again.
 
 The plugin compares `options` and `excludedColumns` by content, so an inline
 array does not count as a change.
+
+### `DataGridFiltersPlugin`
+
+A bar of quick filters in `top-start`, and an "All filters" panel that edits the
+same filters in one go. Each active filter reaches your `load` as
+`filters[filterKey] = { value }`.
+
+```tsx
+import {
+  DataGridFiltersPlugin,
+  filterCheckboxGroup,
+  filterDateRange,
+  filterToggle,
+} from '@gears-frontx/ui-kit/data-grid/filters';
+
+const ENTITIES = [
+  filterToggle({ id: 'only_active', label: 'Only active' }),
+  filterCheckboxGroup({
+    id: 'role',
+    label: 'Role',
+    options: [
+      { label: 'Admin', value: 'admin' },
+      { label: 'Member', value: 'member' },
+    ],
+  }),
+  filterDateRange({ id: 'created_at', label: 'Created' }),
+];
+
+async function loadUsers({ filters }: DataGridLoadContext) {
+  const roles = filters?.role?.value; // ['admin'], when the Role filter holds a choice
+  const range = filters?.created_at?.value; // { from?: '2026-03-01', to?: '2026-03-31' }
+  // ...
+}
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridFiltersPlugin entities={ENTITIES} />
+</DataGrid>;
+```
+
+| Prop | Type | Default |
+|------|------|---------|
+| `entities` | `DataGridFilterEntity[]` | required; keep the array referentially stable (module scope, or `useMemo`) |
+| `isAllFiltersOptionVisible` | `boolean` | `true`; the "All filters" chip is drawn when this is on and at least one entity has a panel section |
+
+**Entities.** Each factory returns one filter. They share `id`, `filterKey`
+(defaults to `id`: the key your `load` reads) and `label`. With no `label`, the
+chip is named after the column whose id equals `id`; an entity with neither a
+label nor a matching column throws when it renders. `popover` (`{ minInlineSize,
+maxInlineSize? }`, in px) sizes the popover of a filter that has one.
+
+| Factory | Value in `load` | Quick filter | Panel section |
+|---------|-----------------|--------------|---------------|
+| `filterSearch({ id })` | `{ value: string }` | A text box in a popover, applied 1 s after typing stops | no |
+| `filterToggle({ id })` | `{ value: true }` | A chip that switches the filter on and off | no |
+| `filterCheckboxGroup({ id, options, search?, searchDebounce? })` | `{ value: (string \| number)[] }` | A popover of checkboxes | yes |
+| `filterTagGroup({ id, options, mode?, search? })` | `{ value: (string \| number)[] }` | A popover of selectable tags; `mode: 'radio'` allows one | yes |
+| `filterTree({ id, tree, treeLabel, filterValue?, search? })` | `{ value: string \| number }` | A popover with a tree of radios | yes |
+| `filterDateRange({ id, modelDateFormat? })` | `{ value: { from?: string, to?: string } }` | A popover with a range calendar | yes |
+
+An option is `{ label, value, component? }`; `component` draws the option in
+place of its label. The search box of a checkbox group and a tree shows above 5
+options (5 nodes), and of a tag group above 10; `search` forces it on or off.
+`filterCheckboxGroup` takes a function for `options` when the list is too long
+to load up front: it is called with the trimmed search term, once when the list
+opens (with an empty string) and again `searchDebounce` ms (default 300) after
+each change of the term, and only the latest answer is shown. A failure shows "No
+options found".
+
+**Quick filters** apply at once: each change updates the value, stores it and
+reloads from page 1. A chip shows a count when its value is a list, a dot when it
+holds any other value, and its popover has a Reset button.
+
+**The "All filters" panel** opens a sheet (from the side from 720 px wide, from the
+bottom edge below it) with a section for each entity that has one. Its choices
+are a draft: nothing loads until **Apply**, which commits all of them at once.
+Leaving the panel without Apply (its close button, Escape, a click outside)
+discards the draft, and the next opening starts from what is applied. The count tag in a section's
+header clears that section of the draft. The chip's count is the number of active
+filters that have a section.
+
+The same width decides how a quick filter opens: as a popover beside its chip,
+or as a panel from the bottom edge.
+
+**Active values.** A filter is active unless its value is `undefined`, `null`,
+`''` or an empty array, so `false` and `0` are values like any other. Inactive
+filters are left out of the load context. (The grid's own `hasActiveFilters`,
+which the empty state reads, agrees except for one value: it treats `0` as
+inactive.)
+
+**Persistence.** All filters are stored under one key, `dataGrid:${name}:filters`,
+as `{ [filterKey]: { value } }`. A refresh that resets filters clears them. The
+stored value can be edited by the user, so what the controls show is guarded: a
+checkbox group or a tag group reads a stored value that is not a list as no
+selection, and a date range reads a bound that is not a date in `modelDateFormat`
+as unset. The guards change only what the controls show. Every stored value,
+whatever its shape, still reaches `load` as long as it is stored (a list filter's
+wrongly shaped value, a date range's, a value for a filter that is no longer in
+`entities`), so read `filters` defensively there (check `Array.isArray` before
+using a list).
+
+**`filterDateRange`.** The bounds are strings in `modelDateFormat`, which takes
+[date-fns format tokens](https://date-fns.org/docs/format) and defaults to
+`'yyyy-MM-dd'`: `'dd.MM.yyyy'`, not `'DD.MM.YYYY'`. Either bound may be missing
+(`{ from }` means "from then on"). The first click on a day starts a range, the
+second ends it (in either order), and a click after that starts a new one.
+
+**`filterTree`.** `tree` is a tree structure, made in the same entry:
+
+```tsx
+import { filterTree, useDataGridTreeStructure } from '@gears-frontx/ui-kit/data-grid/filters';
+
+const tree = useDataGridTreeStructure({
+  items: departments,
+  itemKey: 'id', // the default; a function is allowed
+  parentKey: 'parent_id', // the default; or `childrenKey` for nested items
+  isLeaf: (department) => !department.has_children, // without it every node can be expanded
+});
+
+filterTree({ id: 'department', tree, treeLabel: 'name', filterValue: 'code' });
+```
+
+`createDataGridTreeStructure` makes the same thing outside a component; either
+returns a structure you can fill later with `tree.setItems(items)` or reshape with
+`tree.move(...)` (which throws for a move under the node itself or one of its
+descendants), and an open filter follows. `treeLabel` is a property name or a
+function returning the node's text; search matches on it, keeps the matching
+nodes, the path down to each one and the nodes under it, and starts 300 ms after
+typing stops. By default `load` receives the id of the chosen node; `filterValue`
+(a property name or a function of the item) sends something else, such as a
+code, while the id is what is stored. A tree keeps its items' `id` property as
+their key: use the default `itemKey`.
+
+The plugin's API (`getPlugin<DataGridFiltersPluginApi>('filters')`) offers
+`useState(filterKey)`, `setState`, `removeState`, `useDraftState`,
+`setDraftState`, `applyDraftState`, `resetDraftState`, `useActiveCount(filterKeys)`,
+`isFilterValueActive` and `useFilterEntities`, for a custom filter or a control
+of your own.
 
 ### `DataGridEmptyStatePlugin`
 
@@ -544,6 +687,17 @@ columns' minimum content widths.
 - `aria-busy` is set on the content region while a loader is on screen.
 - The order popover's items are menu items without a menu popup, so they take
   focus and Enter and Space, but arrow keys do not move between them.
+- A filter chip is a native `button`; the toggle chip does not say whether it is on
+  (no `aria-pressed`), only by its look. The text box of a `filterSearch` filter has
+  no placeholder and no accessible name, and the search box inside a list filter
+  has a placeholder ("Search...") and no accessible name. A tag is a label over a
+  native checkbox or radio, so the input carries the state.
+- In a tree filter each row holds a radio and the tree moves its own focus: Arrow
+  keys move between rows, Right and Left open and close a directory, Home and End
+  go to the ends, and Enter toggles a directory. A node is chosen with the mouse,
+  or by Tab to its radio and Space.
+- The "All filters" panel is a dialog; it is left with its close button (named
+  "Close dialog"), Escape or a click outside.
 - Strings are English and live in one module; the kit has no i18n layer yet.
 
 ## Known limitations
@@ -575,6 +729,18 @@ columns' minimum content widths.
   it also drops `history.state` and the `#hash` when it writes the URL, and it does
   not work during server rendering.
 - A new `columns` array identity resets user pins and visibility.
+- A filter's quick popover is not kept in step with what resets it from outside:
+  a tree filter's radio stays checked after its Reset button until the popover is
+  opened again, although the filter is cleared.
+- `filterTree` reads each item's `id` property for its search and its radios. With
+  an `itemKey` other than `id` every radio shows as checked, a click selects
+  nothing, and a search hides every node.
+- In a tree filter with a search, the arrow keys also step onto the rows the search
+  hides. Once the focus is on a hidden row, no row shown is a tab stop, so the
+  arrow keys are lost until that row is shown again or another row is clicked;
+  each row's radio can still be reached with Tab.
+- A key in `filters` that no entity owns any more, and any stored value of the
+  wrong shape (see Persistence), still reach `load`.
 - There is no plugin unregister.
 
 ## Anti-patterns

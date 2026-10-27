@@ -1,0 +1,40 @@
+.header {
+  position: relative;
+}
+
+/*
+ * The actions sit beside the trigger and not in it: a button inside a button is not valid HTML.
+ * They are laid over the trigger's row, just before its chevron, and the title keeps clear of
+ * them with a margin of the same width.
+ */
+.actions {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  inset-block: 0;
+  inset-inline-end: calc(var(--icon-size-sm) + var(--space-2));
+}
+
+.titleWithActions {
+  margin-inline-end: calc(var(--space-6) + var(--space-6) + var(--space-2));
+}
+
+/* The close button of the count tag: part of the tag, drawn in its colours. */
+.tagClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* Inside the tag, which clips, so the ring is drawn inwards. */
+.tagClose:focus-visible {
+  outline: var(--border-width-focus) solid var(--primary-foreground);
+  outline-offset: -2px;
+  border-radius: var(--radius-full);
+}

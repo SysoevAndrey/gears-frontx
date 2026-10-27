@@ -14,6 +14,34 @@
   gap: var(--space-6);
 }
 
+/*
+ * The page buttons are a line of their own when they are wider than the grid, and then they wrap
+ * within it. They are inline items in a centred block, not a flex row, because only inline
+ * content can be balanced: `text-wrap: balance` splits nine buttons into five and four where a flex
+ * row would leave the last one alone on a second line. It is doubled to out-specify the kit's own
+ * `.content`, which is a flex row.
+ *
+ * Each button keeps the gap to the next as a margin on its start and bottom, and the list takes
+ * the first of those back, so a pager that fits is as tall and as wide as the flex row it replaces,
+ * and the buttons stay centred. It is the start side because the list sits at the grid's end edge
+ * when the pager fits, where a margin taken back on the end would push the list out of the grid
+ * and give the page a horizontal scroll.
+ */
+.pages.pages {
+  display: block;
+  margin-block-end: calc(var(--space-1) * -1);
+  margin-inline-start: calc(var(--space-1) * -1);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.pages > li {
+  display: inline-flex;
+  margin-block-end: var(--space-1);
+  margin-inline-start: var(--space-1);
+  vertical-align: middle;
+}
+
 .limit {
   margin-inline-end: auto;
 }
