@@ -21,11 +21,17 @@ describe('the page buttons in a narrow grid', () => {
   });
 
   it('keeps a pager that fits as tall and wide as the flex row it replaces', () => {
-    // Each button's gap to the next is a margin, and the list takes the last one back.
-    expect(declared('.pages.pages', 'margin-inline-end')).toBe('calc(var(--space-1) * -1)');
+    // Each button's gap to the next is a margin, and the list takes the first one back.
+    expect(declared('.pages.pages', 'margin-inline-start')).toBe('calc(var(--space-1) * -1)');
     expect(declared('.pages.pages', 'margin-block-end')).toBe('calc(var(--space-1) * -1)');
-    expect(declared('.pages > li', 'margin-inline-end')).toBe('var(--space-1)');
+    expect(declared('.pages > li', 'margin-inline-start')).toBe('var(--space-1)');
     expect(declared('.pages > li', 'margin-block-end')).toBe('var(--space-1)');
+  });
+
+  it('keeps the list inside the grid when the pager fits and the list sits at its end edge', () => {
+    // A margin taken back on the end pushes the list past the grid and scrolls the page sideways.
+    expect(declared('.pages.pages', 'margin-inline-end')).toBeUndefined();
+    expect(declared('.pages > li', 'margin-inline-end')).toBeUndefined();
   });
 
   it('puts the balancing class on the list of page buttons', () => {
