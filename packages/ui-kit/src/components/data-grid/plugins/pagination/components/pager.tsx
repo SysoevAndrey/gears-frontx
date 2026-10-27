@@ -26,6 +26,12 @@ interface PagerProps {
   limits: number[];
   /** Hides the whole pager while everything fits on one page of the smallest size. */
   autoHide?: boolean;
+  /**
+   * The grid's `label`, when it has one: it names the pager's `nav` "<label> pagination", so two
+   * labelled grids on one page do not share the landmark name. Absent keeps the plain
+   * "Pagination" name.
+   */
+  label?: string;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
 }
@@ -40,6 +46,7 @@ export const Pager = memo(function Pager({
   limit,
   limits,
   autoHide,
+  label,
   onPageChange,
   onLimitChange,
 }: PagerProps) {
@@ -82,7 +89,10 @@ export const Pager = memo(function Pager({
   const showLimitSelector = limits.length > 1;
 
   return (
-    <Pagination aria-label={messages.pagination.ariaLabel} className={styles.pager}>
+    <Pagination
+      aria-label={label === undefined ? messages.pagination.ariaLabel : messages.pagination.ariaLabelFor(label)}
+      className={styles.pager}
+    >
       {showLimitSelector && (
         <Segment
           size="sm"
