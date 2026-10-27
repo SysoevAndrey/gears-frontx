@@ -199,6 +199,22 @@ describe('move', () => {
     expect(ids(tree.getChildren('web'))).toEqual(['ui']);
     expect(tree.getLevel('ui')).toBe(3);
   });
+
+  it('refuses it as well under a node whose ancestor has the id 0', () => {
+    const tree = createDataGridTreeStructure({
+      items: [
+        { id: 0, parent_id: null },
+        { id: 1, parent_id: 0 },
+        { id: 2, parent_id: 1 },
+      ],
+    });
+
+    expect(tree.isDescendantOf(2, 0)).toBe(true);
+    expect(() => tree.move({ id: 0, parentId: 2 })).toThrow(
+      'Node with id "0" cannot move under itself or its descendant "2"',
+    );
+    expect(tree.getLevel(2)).toBe(3);
+  });
 });
 
 describe('the hooks of a tree structure', () => {

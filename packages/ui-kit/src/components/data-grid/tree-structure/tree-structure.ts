@@ -97,7 +97,7 @@ export function createDataGridTreeStructure<Item extends DataGridTreeItem>(
     if (!hasNode(descendantId)) return false;
 
     let current = getById(descendantId);
-    while (current.parentId) {
+    while (current.parentId !== null) {
       if (current.parentId === parentId) {
         return true;
       }
