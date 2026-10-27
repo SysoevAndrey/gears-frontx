@@ -7,8 +7,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 (load, layout, table, storage, persistence) is a service with its own store, and
 a plugin reaches all of them through one context object.
 
-Built-in plugins: pagination, text search, order, filters, empty state, row number and row
-click, each its own entry (see below).
+Built-in plugins: pagination, text search, order, filters, empty state, row number, row
+click and actions, each its own entry (see below).
 
 ## When to use
 
@@ -39,6 +39,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/empty-state` | `DataGridEmptyStatePlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-number` | `DataGridRowNumberPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
+| `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -625,6 +626,32 @@ const columns: DataGridTableColumn<User>[] = [
   },
 ];
 ```
+
+### `DataGridActionsPlugin`
+
+Renders a component of yours in the toolbar's `top-end` slot, at order 0, so it sits before
+the other toolbar buttons. It is for toolbar content (an "Add" button, a bulk-import
+trigger); actions on a row belong in a column of your own.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `component` | `ComponentType` | Required. Keep its identity between renders (a module-level component) |
+| `props` | `Record<string, unknown>` | Spread onto `component` |
+
+```tsx
+import { DataGridActionsPlugin } from '@gears-frontx/ui-kit/data-grid/actions';
+
+function AddUserButton({ onAdd }: { onAdd: () => void }) {
+  return <Button onClick={onAdd}>Add user</Button>;
+}
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridActionsPlugin component={AddUserButton} props={{ onAdd: openCreateDialog }} />
+</DataGrid>;
+```
+
+The wrapper lays its content out in a row with a small gap. The component renders as a
+child of the grid, so `useDataGrid()` works inside it.
 
 ## Custom plugins
 
