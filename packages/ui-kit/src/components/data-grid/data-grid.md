@@ -7,7 +7,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 (load, layout, table, storage, persistence) is a service with its own store, and
 a plugin reaches all of them through one context object.
 
-Built-in plugins: pagination, text search, order, filters and empty state, each
+Built-in plugins: pagination, text search, order, filters, empty state, row number, each its
+own entry (see below).
 its own entry (see below).
 
 ## When to use
@@ -37,6 +38,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/order` | `DataGridOrderPlugin`, `createDataGridOrderOption` |
 | `@gears-frontx/ui-kit/data-grid/filters` | `DataGridFiltersPlugin`, the entity factories `filterSearch`, `filterToggle`, `filterCheckboxGroup`, `filterTagGroup`, `filterTree` and `filterDateRange`, `createDataGridTreeStructure` and `useDataGridTreeStructure` (the tree `filterTree` takes), and the types |
 | `@gears-frontx/ui-kit/data-grid/empty-state` | `DataGridEmptyStatePlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-number` | `DataGridRowNumberPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -562,6 +564,25 @@ function UsersEmptyState() {
   <DataGridEmptyStatePlugin component={UsersEmptyState} />
 </DataGrid>;
 ```
+
+### `DataGridRowNumberPlugin`
+
+Adds a column before the data with the row's 1-based number, in the monospace face. It
+takes no props.
+
+```tsx
+import { DataGridPaginationPlugin } from '@gears-frontx/ui-kit/data-grid/pagination';
+import { DataGridRowNumberPlugin } from '@gears-frontx/ui-kit/data-grid/row-number';
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridPaginationPlugin defaultLimit={20} />
+  <DataGridRowNumberPlugin />
+</DataGrid>;
+```
+
+The number is `limit * (page - 1) + index + 1`, so with the pagination plugin the second page
+of 20 starts at 21; without it the number is the row's position. The column has no header
+text, starts at 32px and grows to the widest number on the page.
 
 ## Custom plugins
 
