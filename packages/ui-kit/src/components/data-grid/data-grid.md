@@ -735,6 +735,10 @@ columns' minimum content widths.
 - `filterTree` reads each item's `id` property for its search and its radios. With
   an `itemKey` other than `id` every radio shows as checked, a click selects
   nothing, and a search hides every node.
+- In a tree filter with a search, the arrow keys also step onto the rows the search
+  hides. Once the focus is on a hidden row, no row shown is a tab stop, so the
+  arrow keys are lost until that row is shown again or another row is clicked;
+  each row's radio can still be reached with Tab.
 - A key in `filters` that no entity owns any more, and any stored value of the
   wrong shape (see Persistence), still reach `load`.
 - There is no plugin unregister.
