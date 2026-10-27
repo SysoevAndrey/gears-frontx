@@ -47,6 +47,7 @@ export * from './components/collapsible/public.js';
 export * from './components/combobox/public.js';
 export * from './components/command/public.js';
 export * from './components/context-menu/public.js';
+export * from './components/data-grid/plugins/actions-menu/public.js';
 export * from './components/data-grid/plugins/actions/public.js';
 export * from './components/data-grid/plugins/empty-state/public.js';
 export * from './components/data-grid/plugins/filters/public.js';

@@ -227,9 +227,9 @@ Rules for generated code:
   layout and `createDataGridPlugin`) rendered on `Table`; the built-in
   plugins are opt-in entries of their own - pagination, text search,
   ordering, filters, a custom empty state, row numbers, row click, a
-  toolbar actions slot and a row actions column, imported from
-  `@gears-frontx/ui-kit/data-grid/<plugin>` or the package root; state
-  can persist to local/session storage, the URL or memory.
+  toolbar actions slot, a row actions column and an actions menu,
+  imported from `@gears-frontx/ui-kit/data-grid/<plugin>` or the package
+  root; state can persist to local/session storage, the URL or memory.
 - [DataTable](dist/docs/data-table.md): sortable, paginated, optionally
   row-selectable table built on `Table` + `@tanstack/react-table` v9;
   productizes upstream's data-table *guide* into a real component

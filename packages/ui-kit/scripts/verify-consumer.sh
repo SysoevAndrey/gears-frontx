@@ -153,12 +153,19 @@ DATA_GRID_ROW_NUMBER_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/ro
 DATA_GRID_ROW_CLICK_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/row-click.js" 'clickableRow')"
 DATA_GRID_ACTIONS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/actions.js" 'wrapper')"
 DATA_GRID_ROW_ACTIONS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/row-actions.js" 'rowActions')"
+# actions-menu has no stylesheet of its own, so there is no hashed class to probe; the name its
+# entry registers the plugin under stands in for one, and is checked to be in that entry's file.
+DATA_GRID_ACTIONS_MENU_PROBE='"actionsMenu"'
 for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS DATA_GRID_ROW_NUMBER_CLASS DATA_GRID_ROW_CLICK_CLASS DATA_GRID_ACTIONS_CLASS DATA_GRID_ROW_ACTIONS_CLASS; do
   if [ -z "${!probe_name}" ]; then
     echo "FAIL: could not extract a hashed class probe ($probe_name) from dist/ — did a component's local class names change?"
     exit 1
   fi
 done
+if ! grep -qF "$DATA_GRID_ACTIONS_MENU_PROBE" "$UIKIT_DIR/dist/data-grid/actions-menu.js"; then
+  echo "FAIL: could not find the actions-menu probe ($DATA_GRID_ACTIONS_MENU_PROBE) in dist/data-grid/actions-menu.js — did the plugin's registered name change?"
+  exit 1
+fi
 echo "==> Probes: Button=$BUTTON_CLASS Table=$TABLE_CLASS Dialog=$DIALOG_CLASS"
 
 # 'use client' regression guard (#568): asserted against the kit's OWN
@@ -637,6 +644,7 @@ assert_absent_from_glob "[esbuild-data-grid] actions styles"     "$DATA_GRID_ACT
 assert_absent_from_glob "[esbuild-data-grid] actions JS"         "$DATA_GRID_ACTIONS_CLASS"     'dist/out.js'
 assert_absent_from_glob "[esbuild-data-grid] row-actions styles" "$DATA_GRID_ROW_ACTIONS_CLASS" 'dist/out.css'
 assert_absent_from_glob "[esbuild-data-grid] row-actions JS"     "$DATA_GRID_ROW_ACTIONS_CLASS" 'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] actions-menu JS"    "$DATA_GRID_ACTIONS_MENU_PROBE" 'dist/out.js'
 
 echo "==> [esbuild-data-grid] Bundle report (DataGrid core only, react/react-dom external)"
 wc -c dist/out.js dist/out.css

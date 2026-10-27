@@ -32,6 +32,9 @@ export const messages = {
     ascDate: 'Oldest first',
     descDate: 'Newest first',
   },
+  actionsMenu: {
+    actions: 'Actions',
+  },
   pagination: {
     ariaLabel: 'Pagination',
     limitSelectorAriaLabel: 'Items per page',

@@ -8,7 +8,7 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click, actions and row actions, each its own entry (see below).
+click, actions, row actions and an actions menu, each its own entry (see below).
 
 ## When to use
 
@@ -41,6 +41,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
 | `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
+| `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -698,6 +699,36 @@ to the inline-end edge, in left-to-right and right-to-left alike, and its cells 
 the rows scroll under it. A pinned cell is painted with its row's own fill over `--card`, so
 it follows hover, selection and the other row states; set `--data-grid-pinned-background` (see
 CSS customization) when the grid sits on `--background`.
+
+### `DataGridActionsMenuPlugin`
+
+Adds an ellipsis button named "Actions" to the toolbar's `top-end` slot, after the other
+toolbar buttons (order 100). It opens a `DropdownMenu` whose items are components of yours.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `menuItems` | `{ component, params?, order? }[]` | `component` receives `{ params }` and renders a `DropdownMenuItem` (or any menu part) |
+
+```tsx
+import { DataGridActionsMenuPlugin } from '@gears-frontx/ui-kit/data-grid/actions-menu';
+
+function ArchiveItem({ params }: { params?: { onArchive: () => void } }) {
+  return <DropdownMenuItem onClick={params?.onArchive}>Archive</DropdownMenuItem>;
+}
+
+const menuItems = [{ component: ArchiveItem, params: { onArchive: archiveAll } }];
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridActionsMenuPlugin menuItems={menuItems} />
+</DataGrid>;
+```
+
+Items are listed by `order`; one without it takes ten times its position in the array, so
+10, 20, 30. Another plugin can add items with `registerMenuItem({ component, params?, order? })`
+on the plugin's API (`getPlugin<DataGridActionsMenuPluginApi>('actionsMenu')`); without an
+`order` it takes ten times one more than the number of items already there, so 20 when one is
+(`10 * (count + 1)`). A new `menuItems` array replaces every item, the registered ones too, so
+keep `menuItems` in a module-level constant or `useMemo`.
 
 ## Custom plugins
 
