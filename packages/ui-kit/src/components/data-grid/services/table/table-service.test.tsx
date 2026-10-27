@@ -8,7 +8,7 @@ import type { DataGridLoadResult } from '../../data-grid-types';
 import { internalContextKey } from '../internal/internal-helpers';
 import { createDataGridPlugin } from '../plugins/plugins-helpers';
 import type { DataGridPluginContext } from '../plugins/plugins-types';
-import type { DataGridTableColumn } from './table-types';
+import { isConfigurationGroup, type DataGridTableColumn, type DataGridTableGroup } from './table-types';
 
 interface TestItem {
   id: number;
@@ -106,5 +106,58 @@ describe('tableService -- registerComponent', () => {
     );
 
     expect(await screen.findByText('class label: name')).toBeInTheDocument();
+  });
+});
+
+describe('tableService -- pinning a group', () => {
+  const columns: (DataGridTableColumn<TestItem> | DataGridTableGroup<TestItem>)[] = [
+    { id: 'name', label: 'Name' },
+    { id: 'contact', label: 'Contact', columns: [{ id: 'email', label: 'Email' }, { id: 'phone', label: 'Phone' }] },
+    { id: 'role', label: 'Role' },
+  ];
+
+  function createPinGrid(gridColumns = columns) {
+    const grid = createGrid();
+    act(() => grid.updateColumns(gridColumns));
+    return grid;
+  }
+
+  describe('updateColumnSticky on a group', () => {
+    function configuration(grid: ReturnType<typeof createGrid>) {
+      return renderHook(() => grid[internalContextKey].table.useConfigurationColumns());
+    }
+
+    function groupEntry(entries: ReturnType<typeof configuration>['result']) {
+      const entry = entries.current.find((candidate) => candidate.id === 'contact');
+      if (!entry || !isConfigurationGroup(entry)) throw new Error('no contact group');
+      return entry;
+    }
+
+    it('pins the heading and every column under it, and unpins them together', () => {
+      const grid = createPinGrid();
+      const { result } = configuration(grid);
+
+      act(() => grid.updateColumnSticky('contact', true));
+      expect(groupEntry(result).sticky).toBe(true);
+      expect(groupEntry(result).columns.map((column) => column.sticky)).toEqual([true, true]);
+      // Nothing outside the group follows it.
+      expect(result.current.find((entry) => entry.id === 'name')?.sticky).toBe(false);
+
+      act(() => grid.updateColumnSticky('contact', false));
+      expect(groupEntry(result).sticky).toBe(false);
+      expect(groupEntry(result).columns.map((column) => column.sticky)).toEqual([false, false]);
+    });
+
+    it('unpins a column that was pinned on its own as well', () => {
+      const grid = createPinGrid([
+        { id: 'contact', label: 'Contact', columns: [{ id: 'email', label: 'Email', sticky: true }, { id: 'phone', label: 'Phone' }] },
+      ]);
+      const { result } = configuration(grid);
+
+      act(() => grid.updateColumnSticky('contact', true));
+      act(() => grid.updateColumnSticky('contact', false));
+
+      expect(groupEntry(result).columns.map((column) => column.sticky)).toEqual([false, false]);
+    });
   });
 });

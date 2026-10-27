@@ -156,10 +156,11 @@ under a spanning header cell.
 | `groupId` | `string` | Set by the grid on columns inside a `DataGridTableGroup`; do not set it. |
 
 A `DataGridTableGroup` is `{ id, label, columns, component?, visible?, sticky? }`; a
-group's `sticky` pins all its columns. Pin a group as a whole or none of its
-columns: a column pinned or unpinned on its own inside a group moves in the body
-but not under the group's header, so the header labels stop matching their
-columns (see "Known limitations").
+group's `sticky` pins all its columns. Pinning or unpinning a group at run time (the table
+configuration plugin does) moves its heading and all its columns together. Pin a group as a
+whole or none of its columns: a column pinned or unpinned on its own inside a group moves in
+the body but not under the group's header, so the header labels stop matching their columns
+(see "Known limitations").
 
 Pass a component to a column as its own module-level component, not an inline
 function: an inline component is a new component on every render and loses its
