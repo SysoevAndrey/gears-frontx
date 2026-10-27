@@ -447,6 +447,19 @@ describe('the filters bar', () => {
     });
     expect(screen.queryByRole('button', { name: messages.filters.allFilters })).toBeNull();
   });
+
+  it('keeps the last quick filter open while a filter is added after it and taken away', async () => {
+    const status = filterCheckboxGroup({ id: 'status', label: 'Status', options: statusOptions });
+    const { user, setEntities } = await renderFiltersGrid({ entities: [status] });
+    await user.click(chip('Status'));
+    const draft = await screen.findByRole('checkbox', { name: 'Draft' });
+
+    setEntities([status, filterToggle({ id: 'flag', label: 'Flag' })]);
+    expect(screen.getByRole('checkbox', { name: 'Draft' })).toBe(draft);
+
+    setEntities([status]);
+    expect(screen.getByRole('checkbox', { name: 'Draft' })).toBe(draft);
+  });
 });
 
 describe('persistence', () => {

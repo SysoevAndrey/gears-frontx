@@ -62,7 +62,8 @@ interface RenderFiltersGridOptions {
 
 /**
  * A grid with the filters plugin and a column of names, rendered and past its first load.
- * `storageKey` is where the plugin keeps its filters.
+ * `storageKey` is where the plugin keeps its filters; `setEntities` renders the same grid again
+ * with other filters.
  */
 export async function renderFiltersGrid({
   entities,
@@ -73,15 +74,21 @@ export async function renderFiltersGrid({
   load = createRecordingLoad(),
   children,
 }: RenderFiltersGridOptions) {
-  const rendered = render(
+  const grid = (filters: DataGridFilterEntity[]) =>
     createElement(
       DataGrid<FiltersGridItem>,
       { name, load, columns, persistent },
-      createElement(DataGridFiltersPlugin, { entities, isAllFiltersOptionVisible }),
+      createElement(DataGridFiltersPlugin, { entities: filters, isAllFiltersOptionVisible }),
       children,
-    ),
-  );
+    );
+  const rendered = render(grid(entities));
   await screen.findByRole('table');
 
-  return { ...rendered, load, name, storageKey: `dataGrid:${name}:filters` };
+  return {
+    ...rendered,
+    load,
+    name,
+    storageKey: `dataGrid:${name}:filters`,
+    setEntities: (filters: DataGridFilterEntity[]) => rendered.rerender(grid(filters)),
+  };
 }

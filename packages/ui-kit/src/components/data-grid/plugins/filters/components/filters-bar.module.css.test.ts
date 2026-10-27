@@ -36,6 +36,10 @@ describe('filters-bar.module.css', () => {
     expect(tail.get('gap')).toBe('var(--space-2) var(--space-4)');
   });
 
+  it('lays out every other quick filter as if it had no wrapper', () => {
+    expect(declarationsOf('.chip').get('display')).toBe('contents');
+  });
+
   it('keeps that gap a gap: a margin on the chip would indent it at the start of a line', () => {
     expect(
       extractRules(css).filter((rule) => /margin|inset|translate|padding/.test(rule.body)),
