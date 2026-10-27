@@ -377,8 +377,9 @@ A page change updates the page, stores it and reloads. A limit change goes back 
 page 1, stores the limit and reloads. A refresh resets the page to 1. The page
 count comes from `total`. The loading treatment is the grid's, not the pager's.
 In a container too narrow for one row, the page buttons wrap to a centred line
-under the page-size selector and the page text. A grid with a `label` names
-the pager `<label> pagination` (see `label`).
+under the page-size selector and the page text, and below a 640px container the
+Previous and Next words collapse to their chevrons. A grid with a `label`
+names the pager `<label> pagination` (see `label`).
 
 ### `DataGridTextSearchPlugin`
 

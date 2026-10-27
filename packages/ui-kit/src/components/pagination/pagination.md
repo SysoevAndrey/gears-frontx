@@ -92,6 +92,20 @@ native `<button>`s, because `PaginationLink` always renders an anchor (it has
 no `render` prop). Pick by what a page change is: a navigation to a URL is a
 link, a state update is a button.
 
+The Previous/Next labels hide below 640px, measured on the `Pagination` root
+when there is one. The root is a size container (`container-type: inline-size`,
+named `pagination`), so inside it the labels follow the root's own width: a
+pager in a narrow column of a wide screen shows the chevrons alone, as it does
+on a phone, and a pager in a wide container keeps the words on a narrow
+screen. A Previous/Next part used without the root has no such container and
+follows the viewport (upstream's `hidden sm:block`).
+
+Because of the containment the root takes the width its parent gives it rather
+than the width of its content: put it in block flow or a stretched flex item,
+not inside a parent that shrinks to fit its content (an `inline-block`, a
+float, a `width: max-content` box, a `width: auto` flex item), which would
+collapse it to zero width. Give such a parent a width.
+
 ## Examples
 
 ```tsx

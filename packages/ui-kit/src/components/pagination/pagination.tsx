@@ -103,9 +103,11 @@ export function PaginationLink({ className, isActive, square = true, ...props }:
 }
 
 export interface PaginationPreviousProps extends Omit<PaginationLinkProps, 'square'> {
-  /** Label text, hidden below the `sm` breakpoint (640px) — matching
-   * upstream's `hidden sm:block`. Also the accessible name when given, since
-   * the label is hidden at that width. @default 'Previous' */
+  /** Label text, hidden while the `Pagination` root it sits in is narrower
+   * than 640px (a container query, so a narrow pane on a wide screen
+   * collapses it too); without the root, below a 640px viewport. Also the
+   * accessible name when given, since the label is hidden at that width.
+   * @default 'Previous' */
   text?: string;
 }
 
@@ -190,7 +192,8 @@ export function PaginationButton({
 }
 
 export interface PaginationPreviousButtonProps extends Omit<PaginationButtonProps, 'square' | 'isActive'> {
-  /** Label text, hidden below the `sm` breakpoint (640px). Also the
+  /** Label text, hidden while the `Pagination` root it sits in is narrower
+   * than 640px; without the root, below a 640px viewport. Also the
    * accessible name when given. @default 'Previous' */
   text?: string;
 }
