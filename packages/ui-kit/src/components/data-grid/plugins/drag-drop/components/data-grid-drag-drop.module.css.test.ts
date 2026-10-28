@@ -94,10 +94,21 @@ describe('data-grid-drag-drop.module.css', () => {
     expect(declarationsOf('.contentDragging').get('--table-row-hover-fill')).toBe('transparent');
   });
 
-  it('outlines the whole grid while it is the drop target', () => {
-    const root = declarationsOf('.contentRootDropping');
-    expect(root.get('outline')).toBe('2px dashed var(--primary)');
-    expect(root.get('background-color')).toBe('var(--secondary)');
+  it('shows the grid as the drop target with a layer over it, which the pinned cells cannot cut', () => {
+    // The wrapper holds the layer; the layer is above the pinned cells (z-index 1, and 3 for the
+    // pinned corner of a sticky header) and lets the pointer through to the grid.
+    expect(declarationsOf('.contentRootDropping').get('position')).toBe('relative');
+    const layer = declarationsOf('.contentRootDropping::after');
+    expect(layer.get('position')).toBe('absolute');
+    expect(layer.get('inset')).toBe('0');
+    expect(Number(layer.get('z-index'))).toBeGreaterThan(3);
+    expect(layer.get('pointer-events')).toBe('none');
+    expect(layer.get('border')).toBe('2px dashed var(--primary)');
+    // A tint the cells under it show through: an opaque one would hide the grid.
+    expect(layer.get('background-color')).toMatch(/^color-mix\(in srgb, var\(--secondary\) \d+%, transparent\)$/);
+    // Not on the wrapper itself, behind the opaque cells.
+    expect(declarationsOf('.contentRootDropping').has('outline')).toBe(false);
+    expect(declarationsOf('.contentRootDropping').has('background-color')).toBe(false);
   });
 
   it('draws the preview as a rounded, lifted surface', () => {

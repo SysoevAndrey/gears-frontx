@@ -112,9 +112,23 @@
   --table-row-hover-fill: transparent;
 }
 
-/* Dropping outside every row: the whole grid is the target. */
+/*
+ * Dropping outside every row: the whole grid is the target. It is shown by a layer over the grid
+ * and not by an outline or a fill on the wrapper, because the pinned cells are opaque and stack
+ * above whatever is behind them, so a pinned column would cut the outline's edge and stay
+ * untinted. The layer sits above them (the sticky header's pinned corner is at 3) and takes no
+ * pointer events, so a drop still lands on the grid under it. The dragged row stays above it.
+ */
 .contentRootDropping {
-  outline: 2px dashed var(--primary);
-  outline-offset: -2px;
-  background-color: var(--secondary);
+  position: relative;
+}
+
+.contentRootDropping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border: 2px dashed var(--primary);
+  background-color: color-mix(in srgb, var(--secondary) 60%, transparent);
+  pointer-events: none;
 }
