@@ -50,6 +50,17 @@
 }
 
 /*
+ * The Button draws its keyboard focus ring outside its box, 2px off. In a column that does not wrap,
+ * the cell's content clips whatever leaves it, and the toggle, a line high and at the start of
+ * that content with its label beside it, has no room around it: an outside ring was cut to a bar on
+ * one side, or to two side bars that touch the label. Drawn inside the box, over the margin the
+ * glyph has in it, the ring is whole wherever the toggle is.
+ */
+.expand .toggle:focus-visible {
+  outline-offset: calc(var(--border-width-focus) * -1);
+}
+
+/*
  * A row is clickable when the row click plugin is registered, and the tree's row, which replaces
  * the row click plugin's, is drawn the way that one is: a pointer cursor, and the kit's focus ring
  * on the row's cells and not on the row, because the opaque pinned cells at its edges would cut a

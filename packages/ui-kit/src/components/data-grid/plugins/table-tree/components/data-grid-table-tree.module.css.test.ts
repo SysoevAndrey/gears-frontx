@@ -62,6 +62,14 @@ describe('data-grid-table-tree.module.css', () => {
     expect(rules.some((rule) => /toggleCell/.test(rule.selector))).toBe(false);
   });
 
+  it('draws the toggle\'s focus ring inside its box, where the cell\'s clipping cannot reach it', () => {
+    // The Button's own ring is outside, `outline-offset: 2px`; here the offset is minus the ring's
+    // width, so the ring lies in the box. The class chain outranks the Button's rule.
+    expect(declarationsOf('.expand .toggle:focus-visible').get('outline-offset')).toBe(
+      'calc(var(--border-width-focus) * -1)',
+    );
+  });
+
   describe('a clickable row', () => {
     // The same ring the row click plugin draws on its own rows, on the cells and not on the row.
     const ring = 'var(--border-width-focus) solid var(--ring)';
