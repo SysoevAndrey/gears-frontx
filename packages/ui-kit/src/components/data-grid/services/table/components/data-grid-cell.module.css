@@ -51,10 +51,17 @@
    keeps text-overflow/ellipsis reliable regardless of whether this is a bare `<td>` child or a
    flex item inside .contentRow. */
 
+/* A word longer than the column is broken to fit it and not left to run on into the next cell: in a
+   column that wraps, a long unbreakable value (a name, a URL, an id) reached past the cell's edge,
+   and the narrower the column, or the more of it an indent and a toggle take, the earlier it did.
+   `break-word` and not `anywhere`: only a word that does not fit is broken, and the cell's
+   min-content width, which a table that sizes its columns to their content reads, is the word's. */
+
 .content {
   display: block;
   min-inline-size: 0;
   white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* `nowrap` is the single-line clipping mode: stays on one line and clips with an ellipsis ("…")
