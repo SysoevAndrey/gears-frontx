@@ -81,7 +81,11 @@ export function DataGridDragDropContent({ children }: DataGridDragDropContentPro
   return (
     <div
       ref={contentRef}
-      className={cx(styles.content, isDragging && isRootDropTarget && styles.contentRootDropping)}
+      className={cx(
+        styles.content,
+        isDragging && styles.contentDragging,
+        isDragging && isRootDropTarget && styles.contentRootDropping,
+      )}
     >
       {children}
     </div>

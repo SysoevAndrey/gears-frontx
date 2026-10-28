@@ -231,6 +231,21 @@ describe('createDataGridDragDropPlugin', () => {
       expect(rows[2]).not.toHaveClass(styles.dragRowDropIndicatorTop);
     });
 
+    it('switches the rows\' hover tint off for as long as a row is dragged', async () => {
+      const DragDrop = createDataGridDragDropPlugin<Item>({ onDrop: vi.fn() });
+      renderGrid('drag_drop_hover_off', <DragDrop />);
+      const rows = await bodyRows();
+      const content = screen.getByRole('table').closest(`.${styles.content}`)!;
+      expect(content).not.toHaveClass(styles.contentDragging);
+
+      await session.start(rows[0]);
+      expect(content).toHaveClass(styles.contentDragging);
+
+      await session.over(rows[1]);
+      await session.drop();
+      expect(content).not.toHaveClass(styles.contentDragging);
+    });
+
     it('clears every mark when the drag is dropped', async () => {
       const DragDrop = createDataGridDragDropPlugin<Item>({ onDrop: vi.fn() });
       renderGrid('drag_drop_clear', <DragDrop />);
