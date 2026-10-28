@@ -261,6 +261,37 @@ describe('DataGridTableTreePlugin', () => {
       expect(load).toHaveBeenCalledTimes(2);
     });
 
+    it('asks once for the children of a row that is closed and opened again while they are on their way', async () => {
+      let release: () => void = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const load = vi.fn(async (context: DataGridLoadContext) => {
+        if (context.tree?.parentId === 1) await gate;
+        return loadAsyncData(context);
+      });
+      const { user } = render(
+        <DataGrid name="test_tree_in_flight" persistent="memory" load={load} columns={columns}>
+          <DataGridTableTreePlugin<TreeItem> expandable={hasChildren} />
+        </DataGrid>,
+      );
+      await screen.findByText('Electronics');
+      const toggle = within(rowOf('Electronics')).getByRole('button');
+
+      await user.click(toggle);
+      await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
+      // Closed and opened again before the first answer: it is still the one load that is asked.
+      await user.click(toggle);
+      await user.click(toggle);
+      expect(load).toHaveBeenCalledTimes(2);
+
+      release();
+
+      // One section was stored, so each child is on screen once.
+      expect(await screen.findAllByText('Phones')).toHaveLength(1);
+      expect(screen.getAllByText('Laptops')).toHaveLength(1);
+    });
+
     it('loads the children of an open row again when the grid is refreshed', async () => {
       const load = vi.fn(loadAsyncData);
       function Refresh() {

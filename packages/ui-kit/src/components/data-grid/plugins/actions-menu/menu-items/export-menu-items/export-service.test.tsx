@@ -5,6 +5,7 @@ import { createGridPluginContext } from '../../../../../../__test-utils__/grid-p
 import { render } from '../../../../../../__test-utils__/render-with-user';
 import { DataGrid } from '../../../../data-grid';
 import type { DataGridLoadContext, DataGridLoadResult } from '../../../../data-grid-types';
+import { messages } from '../../../../messages';
 import { useDataGridPluginContext } from '../../../../services/core/data-grid-context';
 import type { DataGridPluginContext } from '../../../../services/plugins/plugins-types';
 import type { DataGridTableColumn } from '../../../../services/table/table-types';
@@ -160,7 +161,7 @@ describe('getAllData', () => {
       context = useDataGridPluginContext<Node>();
       return null;
     }
-    render(
+    const { user } = render(
       <DataGrid<Node> name={name} persistent="memory" load={load} columns={columns}>
         {plugins}
         <Probe />
@@ -168,8 +169,12 @@ describe('getAllData', () => {
     );
     await screen.findByText(firstRow);
     if (!context) throw new Error('The grid did not render its children');
+    lastUser = user;
     return context;
   }
+
+  // The user of the grid `renderForExport` rendered last, for a test that has to click in it.
+  let lastUser: ReturnType<typeof render>['user'];
 
   const flat: Node[] = [
     { id: 1, name: 'Electronics', parent_id: null, has_children: true },
@@ -229,6 +234,43 @@ describe('getAllData', () => {
     expect(screen.getByText('Electronics')).toBeInTheDocument();
     expect(screen.queryByText('Clothing')).toBeNull();
     expect(load.mock.calls.map(([call]) => call.pagination?.page)).toEqual([1, 1, 2]);
+  });
+
+  it('starts from the first page whichever page the grid is on', async () => {
+    const context = await renderForExport(
+      'export_all_from_page_two',
+      loadLevel,
+      <DataGridPaginationPlugin defaultLimit={2} limits={[2]} />,
+      'Electronics',
+    );
+    await lastUser.click(screen.getByRole('button', { name: messages.pagination.nextPage }));
+    await screen.findByText('Clothing');
+    expect(screen.queryByText('Electronics')).toBeNull();
+
+    const data = await createExportService<Node>().getAllData(context);
+
+    // The page on screen is the last one, and the export still has the rows of the first.
+    expect(names(data)).toEqual(['Electronics', 'Books', 'Clothing']);
+  });
+
+  it('stops at a page that is not full, and asks for no page after it, when the load gives no total', async () => {
+    const withoutTotal = vi.fn(async (context: DataGridLoadContext) => {
+      const { results } = await loadLevel(context);
+      return { results };
+    });
+    const context = await renderForExport(
+      'export_all_no_total',
+      withoutTotal,
+      <DataGridPaginationPlugin defaultLimit={2} limits={[2]} />,
+      'Electronics',
+    );
+    withoutTotal.mockClear();
+
+    const data = await createExportService<Node>().getAllData(context);
+
+    expect(names(data)).toEqual(['Electronics', 'Books', 'Clothing']);
+    // Two roots, then the one that is left, which is short: a fourth, empty, page is not asked for.
+    expect(withoutTotal.mock.calls.map(([call]) => call.pagination?.page)).toEqual([1, 2]);
   });
 
   it('reads the pages with the search the grid has, so the export is of what the grid is filtered to', async () => {
