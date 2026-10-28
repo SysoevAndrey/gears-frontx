@@ -812,7 +812,8 @@ need nothing installed either.
 
 The export is of every row, not the page on screen:
 - With the pagination plugin it reads the pages itself from `load`, with the search, filters and
-  order the grid has now, and leaves the grid on the page it was on.
+  order the grid has now, and leaves the grid on the page it was on (the pager's total is the one
+  thing it can change, for a lazy tree: see Known limitations).
 - With the table tree plugin it walks the tree, each row followed by its children, closed rows
   included; a lazy tree loads the children of every row that can have them, and keeps what it
   loaded without opening those rows.
@@ -989,10 +990,13 @@ async function loadCategories({ tree, signal }: DataGridLoadContext) {
 </DataGrid>;
 ```
 
-In flat mode a row's children are the rows of the same load that name it as their parent, so
-with the pagination plugin a page has to hold the children of the roots it shows, and a row
-whose parent is not in the load is not shown. Opening and closing a row shows and hides its
-children and loads nothing.
+In flat mode every row has to carry the `parentKey` field (`null` for a root). A row without it
+fails the whole load: the first load shows the grid's error view, "Something went wrong", in place
+of the table and logs `Key "…" not found in item …` to the console in development, and a later
+load has no UI of its own (see Known limitations). A row's children are the rows of the same load
+that name it as their parent, so with the pagination plugin a page has to hold the children of the
+roots it shows, and a row whose parent is not in the load is not shown. Opening and closing a row
+shows and hides its children and loads nothing.
 
 In lazy mode `load` is called with `tree.parentId` set to the row's id when it opens, and
 `null` for the rows of the grid. That load carries the same `pagination`, `filters` and
@@ -1080,7 +1084,8 @@ When `onDrop` returns a promise, the handle of the dragged row shows a spinner u
 A rejection is swallowed and the spinner stops: handle errors inside `onDrop`. A callback that
 returns anything else is done at once.
 
-The handle column is marked `data-grid-row-ignore-click`. Only this entry loads the drag
+The handle, which fills its cell, is marked `data-grid-row-ignore-click`; the rest of the cell
+around it is not, since there is none. Only this entry loads the drag
 library (`@atlaskit/pragmatic-drag-and-drop`, a dependency of the kit), so a grid without the
 plugin ships none of it.
 
@@ -1309,7 +1314,11 @@ columns' minimum content widths.
   pointer has been over another row first, since a drag starts over its own row.
 - In lazy mode, the load of a row's children replaces the `total` that the pagination plugin
   shows and that row select mirrors with the children's own: after a row is opened the pager
-  counts its children until the next load of the rows.
+  counts its children until the next load of the rows. The export of a lazy tree does the same,
+  since it loads the children of every row that can have them: with the pagination plugin the pager
+  is left counting the last branch it loaded (`Page 1 of 4 (11 items)` reads `Page 1 of 1 (1
+  items)`) until the grid loads its rows again. The export's file and the rows on screen are not
+  affected.
 - `registerComponent` accepts `'header-cell'` and `'header-group'`, but the header
   always renders its own cell and group components, so those two overrides have no
   effect.
