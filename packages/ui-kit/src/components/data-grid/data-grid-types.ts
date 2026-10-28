@@ -137,6 +137,15 @@ export interface DataGridProps<TItem extends DataGridItem> extends Pick<
    * ```
    */
   implicitFilterKeys?: string[];
+  /**
+   * Accessible name for the grid's landmarks, for a page that renders more than one grid: the
+   * table's scroll wrapper becomes a `region` named with it, and the pagination plugin's pager
+   * becomes a `nav` named "<label> pagination", so the grids are told apart by name. Without it
+   * the pager is the one `nav` named "Pagination" and the wrapper stays roleless. Give every
+   * grid on such a page a distinct label; two grids sharing one still collide. A blank label
+   * reads as absent. It is a spoken name, not the storage key `name`, and it is never persisted.
+   */
+  label?: string;
   children?: ReactNode;
 }
 

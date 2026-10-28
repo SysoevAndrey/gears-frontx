@@ -11,6 +11,7 @@ import { DataGridSpinner } from './components/data-grid-spinner';
 import { createDataGrid } from './create-data-grid';
 import type { DataGridItem, DataGridProps } from './data-grid-types';
 import { DataGridProvider } from './services/core/data-grid-context';
+import { DataGridLabelProvider } from './services/core/data-grid-label-context';
 import { internalContextKey } from './services/internal/internal-helpers';
 import { useLatest } from './utils/use-latest';
 
@@ -27,6 +28,7 @@ export function DataGrid<TItem extends DataGridItem = DataGridItem>({
   stickyHeader = false,
   loading = false,
   implicitFilterKeys,
+  label,
 }: DataGridProps<TItem>) {
   const loadRef = useLatest(load);
   const [grid] = useState(() =>
@@ -68,10 +70,17 @@ export function DataGrid<TItem extends DataGridItem = DataGridItem>({
 
   return (
     <DataGridProvider value={grid}>
-      {children}
-      <Suspense fallback={<DataGridSpinner />}>
-        <DataGridContent />
-      </Suspense>
+      {/* A blank label is not a name: passed through, it would name the pager " pagination" and
+       * put a role="region" with no accessible name on the table wrapper, which is worse than the
+       * roleless wrapper an absent label promises. Normalized at the only writer, trimmed too, so
+       * both landmarks fall back to their unlabelled names together and a padded label names
+       * them without its padding. */}
+      <DataGridLabelProvider value={label?.trim() || undefined}>
+        {children}
+        <Suspense fallback={<DataGridSpinner />}>
+          <DataGridContent />
+        </Suspense>
+      </DataGridLabelProvider>
     </DataGridProvider>
   );
 }

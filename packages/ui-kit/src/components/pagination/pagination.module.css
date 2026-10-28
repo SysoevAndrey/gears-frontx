@@ -17,6 +17,12 @@
   display: flex;
   width: 100%;
   justify-content: center;
+  /* The query container the Previous/Next labels below measure: the pagination's own inline
+   * size, not the viewport's, so a narrow pane on a wide screen collapses the labels the same
+   * way a narrow screen does. Named so the query below cannot be answered by a container some
+   * ancestor happens to declare. */
+  container-type: inline-size;
+  container-name: pagination;
 }
 
 .content {
@@ -123,13 +129,31 @@
 }
 
 .previousNextText {
-  /* Hidden below the `sm` breakpoint (640px, Tailwind's default) — matching
-   * upstream's `hidden sm:block` exactly, so a narrow viewport keeps only
-   * the chevron. */
+  /* Hidden below the `sm` breakpoint (640px, Tailwind's default), matching upstream's
+   * `hidden sm:block`, so a narrow viewport keeps only the chevron. That viewport rule is all
+   * a Previous/Next part gets on its own; inside a `Pagination` root the container queries
+   * below take over and measure the pagination's own width, so a narrow pane on a wide screen
+   * keeps only the chevron too, and a wide one keeps the label on a narrow screen. */
   display: none;
 }
 
 @media (min-width: 640px) {
+  .previousNextText {
+    display: block;
+  }
+}
+
+/* Inside the root its width decides, both ways; the range form leaves no fractional width that
+ * neither query matches. A query adds no specificity, so these tie the viewport rule above and
+ * win by coming after it wherever a `pagination` container answers; a part with no root has no
+ * such container and stays on the viewport rule. */
+@container pagination (width < 640px) {
+  .previousNextText {
+    display: none;
+  }
+}
+
+@container pagination (width >= 640px) {
   .previousNextText {
     display: block;
   }

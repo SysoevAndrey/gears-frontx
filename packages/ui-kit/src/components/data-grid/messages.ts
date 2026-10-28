@@ -52,6 +52,9 @@ export const messages = {
   },
   pagination: {
     ariaLabel: 'Pagination',
+    // The pager of a grid with a `label`: two grids on one page must not share the landmark name
+    // "Pagination" (axe's `landmark-unique`), so the label names each one's nav.
+    ariaLabelFor: (label: string) => `${label} pagination`,
     limitSelectorAriaLabel: 'Items per page',
     previousPage: 'Previous page',
     nextPage: 'Next page',

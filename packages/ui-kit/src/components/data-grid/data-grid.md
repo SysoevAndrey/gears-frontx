@@ -268,6 +268,25 @@ Hold the flag on the screen that renders the grid rather than inside the thing
 that started the work, so the overlay survives that thing going away. It is OR-ed
 with the grid's own loads, and there is no imperative equivalent.
 
+### `label`
+
+`label` names the grid for assistive tech, for a page that renders more than
+one grid: the table's scroll container becomes a `region` named with it, and
+the pagination plugin's pager becomes a `nav` named `<label> pagination`.
+
+```tsx
+<DataGrid name="users" label="Users" load={loadUsers} columns={columns}>
+  <DataGridPaginationPlugin />
+</DataGrid>
+```
+
+Without it the pager is the one `nav` named "Pagination" and the table's
+scroll container stays roleless, so a single grid on a page needs no label.
+Give every grid on a page that holds more than one a distinct label: two grids
+sharing one still leave their landmarks indistinguishable. The label is a spoken name, not the storage key `name`
+(which identifies a grid's persisted state, and is not readable text), and it
+is never persisted.
+
 ## Empty state
 
 A grid with no records shows a centered `Empty` instead of the table: "No results
@@ -374,7 +393,11 @@ A page change updates the page, stores it and reloads. A limit change goes back 
 page 1, stores the limit and reloads. A refresh resets the page to 1. The page
 count comes from `total`. The loading treatment is the grid's, not the pager's.
 In a container too narrow for one row, the page buttons wrap to a centred line
-under the page-size selector and the page text.
+under the page-size selector and the page text, and below a 640px container the
+Previous and Next words collapse to their chevrons. The pager is a size
+container, so a parent that shrinks to fit its content collapses it to zero
+width (see the containment note in `pagination.md`). A grid with a `label`
+names the pager `<label> pagination` (see `label`).
 
 ### `DataGridTextSearchPlugin`
 
@@ -986,7 +1009,10 @@ columns' minimum content widths.
 - The table's scroll container is a tab stop (it holds `tabIndex=0` so a keyboard
   can scroll it).
 - The pager is a `nav` named "Pagination"; the page buttons are named "Go to page
-  N" and carry `aria-current="page"` on the current one.
+  N" and carry `aria-current="page"` on the current one. A grid with a `label`
+  names its pager `<label> pagination` and its table's scroll container a
+  `region` named `<label>` - pass a distinct `label` per grid when a page
+  holds more than one grid, so their landmarks do not collide.
 - `aria-busy` is set on the content region while a loader is on screen.
 - The order popover's items are menu items without a menu popup, so they take
   focus and Enter and Space, but arrow keys do not move between them.

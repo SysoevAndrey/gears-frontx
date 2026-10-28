@@ -48,7 +48,7 @@
     },
     {
       "id": "label-hidden-below-640px",
-      "text": "The visible label is hidden below a 640px viewport width (pagination.module.css `.previousNextText`), so a narrow viewport shows the chevron alone."
+      "text": "The visible label is hidden while the `Pagination` root it sits in is narrower than 640px, on a wide viewport too, and shown from 640px on a narrow one; a part used without the root follows the viewport instead and hides it below a 640px viewport (pagination.module.css `.previousNextText`)."
     },
     {
       "id": "chevron-mirrors-in-rtl",

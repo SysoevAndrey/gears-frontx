@@ -2,6 +2,7 @@ import { cx } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 import { Table } from '../../../../table/public.js';
 import type { DataGridItem } from '../../../data-grid-types';
+import { useDataGridLabel } from '../../core/data-grid-label-context';
 import { useTableService } from '../table-context';
 import type { DataGridTableLayout } from '../table-types';
 import styles from './data-grid-table.module.css';
@@ -16,6 +17,7 @@ const layoutClassMap: Record<DataGridTableLayout, string> = {
 
 export function DataGridTable<TItem extends DataGridItem>() {
   const tableService = useTableService<TItem>();
+  const label = useDataGridLabel();
 
   const hasGroups = tableService.useHasGroups();
   const subheaderSlots = tableService.useSlots('subheader');
@@ -30,6 +32,7 @@ export function DataGridTable<TItem extends DataGridItem>() {
     <ContentWrapper>
       <Table
         stickyHeader={stickyHeader}
+        label={label}
         containerClassName={styles.tableWrapper}
         className={cx(styles.table, layoutClassMap[tableLayout], hasGroups && styles.tableBordered)}
       >

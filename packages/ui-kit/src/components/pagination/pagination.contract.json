@@ -62,6 +62,10 @@
     {
       "id": "centered-full-width-row",
       "text": "The root is a full-width flex row that centers its content (pagination.module.css `.pagination`), so the page row sits in the middle of its container whatever the container's width."
+    },
+    {
+      "id": "inline-size-container",
+      "text": "The root is an inline-size container named `pagination` (pagination.module.css `.pagination`), so the Previous/Next parts inside it hide their labels by the root's width, not the viewport's. With that containment the root takes the width its parent gives it, not the width of its content: inside a parent that shrinks to fit its content (an `inline-block`, a float, a `width: max-content` box, a `width: auto` flex item) it collapses to zero width, so such a parent needs a width."
     }
   ],
   "anti_patterns": [],

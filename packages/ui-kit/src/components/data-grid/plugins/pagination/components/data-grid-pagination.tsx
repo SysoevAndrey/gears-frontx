@@ -1,10 +1,12 @@
 import { useDataGrid } from '../../../services/core/data-grid-context';
+import { useDataGridLabel } from '../../../services/core/data-grid-label-context';
 import type { PaginationPluginApi } from '../pagination-plugin';
 import styles from './data-grid-pagination.module.css';
 import { Pager } from './pager';
 
 export function DataGridPagination() {
   const grid = useDataGrid();
+  const label = useDataGridLabel();
 
   const paginationPlugin = grid.getPlugin<PaginationPluginApi>('pagination')!;
 
@@ -25,6 +27,7 @@ export function DataGridPagination() {
         total={total}
         limits={limits}
         autoHide={autoHide}
+        label={label}
         onPageChange={setPage}
         onLimitChange={setLimit}
       />
