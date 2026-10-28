@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { extractRules } from '../../../../../__test-utils__/css-rules';
+
 // jsdom has no layout engine and Vitest's default CSS handling replaces module classes with an
 // identity proxy (no real stylesheet is ever applied in these tests), so a rendered-component
 // test cannot observe how the nowrap content wrapper actually sizes -- the two failure modes here
@@ -45,6 +47,22 @@ describe('data-grid-cell.module.css -- nowrap (single-line, ellipsis-clipping) c
     // `none` leaves sizing to the cell's actual width (the fixed track, or 100% of the th via
     // .contentRow) exactly as intended.
     expect(rule).toMatch(/max-inline-size\s*:\s*var\(--_data-grid-col-max,\s*none\)/);
+  });
+});
+
+describe('data-grid-cell.module.css -- the content wrapper of a column that wraps', () => {
+  // The plain `.content` rule: `extractRule` would find the first rule that ends in `.content`.
+  const rule = extractRules(readCss('data-grid-cell.module.css')).find((candidate) => candidate.selector === '.content')?.body ?? '';
+
+  it('breaks a word that is longer than the column instead of letting it run into the next cell', () => {
+    expect(rule).toMatch(/overflow-wrap\s*:\s*break-word/);
+  });
+
+  it('breaks it with `break-word`, which leaves the cell\'s min-content width alone, and not `anywhere`', () => {
+    // `anywhere` also lets every break point count toward min-content, so a table that sizes its
+    // columns to their content (`tableLayout="auto"`) would shrink a column to a letter.
+    expect(rule).not.toMatch(/overflow-wrap\s*:\s*anywhere/);
+    expect(rule).not.toMatch(/word-break/);
   });
 });
 
