@@ -280,6 +280,11 @@ kit reads it with `--card` as the fallback and declares it nowhere itself:
 .invoices { --table-pinned-fill: var(--background); }
 ```
 
+The row's fill reaches a pinned cell as a gradient, which does not transition, so
+on hover or selection a pinned cell changes at once while the rest of the row
+fades over 150 ms. In the collection view a focused row's inset ring is drawn on
+its pinned cells too, since their fill would cover it.
+
 In a sticky header or the collection view a pinned heading is lifted one step
 above the other headings, which sit at `z-index: 2`, and keeps the header's own
 fill (`--table-header-fill`, `--card` in the collection view), which is opaque

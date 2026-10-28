@@ -480,6 +480,24 @@
   box-shadow: inset 0 0 0 var(--border-width-focus) var(--primary);
 }
 
+/* A pinned cell's opaque fill covers that ring, so the cell draws its own share of it: the top
+ * and bottom, and the side when it is the row's first or last cell. Logical borders, for RTL. */
+.variantCollection .tableBody .tableRow:focus-visible > .pinned::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-block: var(--border-width-focus) solid var(--primary);
+}
+
+.variantCollection .tableBody .tableRow:focus-visible > .pinned:first-child::after {
+  border-inline-start: var(--border-width-focus) solid var(--primary);
+}
+
+.variantCollection .tableBody .tableRow:focus-visible > .pinned:last-child::after {
+  border-inline-end: var(--border-width-focus) solid var(--primary);
+}
+
 /* A row the caller made focusable is a row that can be activated, so it
  * takes the pointer cursor; a plain display row does not. */
 .variantCollection .tableBody .tableRow[tabindex] {

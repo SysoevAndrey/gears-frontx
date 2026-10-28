@@ -852,6 +852,15 @@ describe('Table pinned cells', () => {
     expect(z('.pinned')).toBeGreaterThan(0);
   });
 
+  it('draws a focused collection row\'s ring on its pinned cells, whose fill covers the row\'s own', () => {
+    const ring = 'var(--border-width-focus) solid var(--primary)';
+    const focused = '.variantCollection .tableBody .tableRow:focus-visible';
+    expect(declared(`${focused} > .pinned::after`, 'border-block')).toBe(ring);
+    expect(declared(`${focused} > .pinned::after`, 'inset')).toBe('0');
+    expect(declared(`${focused} > .pinned:first-child::after`, 'border-inline-start')).toBe(ring);
+    expect(declared(`${focused} > .pinned:last-child::after`, 'border-inline-end')).toBe(ring);
+  });
+
   it('reaches the pinned cell of the header group and no pinned body cell', () => {
     const { container } = renderPinned({ stickyHeader: true });
     const asDomSelector = PINNED_HEADER_STEP.replace(
