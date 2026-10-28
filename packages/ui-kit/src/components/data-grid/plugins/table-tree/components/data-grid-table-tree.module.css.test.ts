@@ -62,6 +62,19 @@ describe('data-grid-table-tree.module.css', () => {
     expect(rules.some((rule) => /toggleCell/.test(rule.selector))).toBe(false);
   });
 
+  it('lets the label give way and ellipsize where the column does not wrap, which the cell\'s block cannot do for it', () => {
+    // A flex item, which can shrink below its text, and so can be clipped.
+    const label = declarationsOf('.label');
+    expect(label.get('min-inline-size')).toBe('0');
+    expect(label.get('flex')).toBe('1 1 auto');
+    // The ellipsis is on the label, and only under the cell's own nowrap marker, so a wrapping
+    // column's label is not clipped.
+    const nowrap = declarationsOf("[data-overflow='nowrap'] .label");
+    expect(nowrap.get('overflow')).toBe('hidden');
+    expect(nowrap.get('text-overflow')).toBe('ellipsis');
+    expect(label.has('overflow')).toBe(false);
+  });
+
   it('draws the toggle\'s focus ring inside its box, where the cell\'s clipping cannot reach it', () => {
     // The Button's own ring is outside, `outline-offset: 2px`; here the offset is minus the ring's
     // width, so the ring lies in the box. The class chain outranks the Button's rule.
