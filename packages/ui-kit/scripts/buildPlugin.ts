@@ -1,10 +1,52 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import MagicString from 'magic-string';
 import nodeExternals from 'rollup-plugin-node-externals';
 import type { Plugin, PluginOption, UserConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import { libInjectCss } from 'vite-plugin-lib-inject-css';
+
+/**
+ * The drag library's subpaths the source imports, rewritten in the emitted JS to the files they
+ * resolve to. Neither `@atlaskit/pragmatic-drag-and-drop` nor its hitbox package has an `exports`
+ * map: a subpath such as `/combine` is a directory holding a `package.json` whose `module` names the
+ * file. Webpack resolves a request from a strict ES module (every file of this package, which is
+ * `"type": "module"`) as fully specified, so it refuses a directory, and a webpack consumer then
+ * fails to build the whole package, the root barrel included. The source keeps the subpath, which is
+ * what TypeScript resolves its types by. A consumer that imports the library itself resolves the
+ * same files through `module`, so the two share one copy.
+ *
+ * The targets are read from each subpath's `package.json`, so a version bump needs no edit here; a
+ * new subpath imported in the source has to be listed.
+ */
+const dragLibrarySubpaths = [
+  '@atlaskit/pragmatic-drag-and-drop/combine',
+  '@atlaskit/pragmatic-drag-and-drop/element/adapter',
+  '@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview',
+  '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview',
+  '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge',
+];
+
+function resolveDragLibraryFilePaths(): Record<string, string> {
+  const require = createRequire(import.meta.url);
+  return Object.fromEntries(
+    dragLibrarySubpaths.map((subpath) => {
+      const [scope, name, ...rest] = subpath.split('/');
+      const packageName = `${scope}/${name}`;
+      const packageRoot = path.dirname(require.resolve(`${packageName}/package.json`));
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(packageRoot, ...rest, 'package.json'), 'utf8'),
+      ) as { module?: unknown };
+      if (typeof manifest.module !== 'string') {
+        throw new Error(
+          `buildPlugin: ${subpath} has no "module" field in its package.json, so its emitted import cannot be fully specified`,
+        );
+      }
+      return [subpath, path.posix.join(packageName, ...rest, manifest.module)];
+    }),
+  );
+}
 
 /**
  * Vite library-mode build: one entry per component (globbed from
@@ -16,32 +58,6 @@ import { libInjectCss } from 'vite-plugin-lib-inject-css';
  * design-notes.md's Architecture section for what carries over and what
  * doesn't.
  */
-/**
- * The drag library's subpaths, as the files they resolve to. Neither `@atlaskit/pragmatic-drag-and-drop`
- * nor its hitbox package has an `exports` map: a subpath such as `/combine` is a directory holding a
- * `package.json` whose `module` names the file. Webpack resolves a request from a strict ES module
- * (every file of this package, which is `"type": "module"`) as fully specified, so it refuses a
- * directory, and a webpack consumer then fails to build the whole package, the root barrel included.
- * The source keeps the subpath, which is what TypeScript resolves its types by; only the emitted
- * import is rewritten to the file. A consumer that imports the library itself resolves the same
- * files through `module`, so the two share one copy.
- *
- * shortcut: the paths follow the internal layout of the pinned versions (1.7.7 and 1.1.0), so
- * re-check each one when either version is bumped; drop this when the library ships an `exports` map.
- */
-const dragLibraryFilePaths: Record<string, string> = {
-  '@atlaskit/pragmatic-drag-and-drop/combine':
-    '@atlaskit/pragmatic-drag-and-drop/dist/esm/entry-point/combine.js',
-  '@atlaskit/pragmatic-drag-and-drop/element/adapter':
-    '@atlaskit/pragmatic-drag-and-drop/dist/esm/entry-point/element/adapter.js',
-  '@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview':
-    '@atlaskit/pragmatic-drag-and-drop/dist/esm/entry-point/element/pointer-outside-of-preview.js',
-  '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview':
-    '@atlaskit/pragmatic-drag-and-drop/dist/esm/entry-point/element/set-custom-native-drag-preview.js',
-  '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge':
-    '@atlaskit/pragmatic-drag-and-drop-hitbox/dist/esm/closest-edge.js',
-};
-
 export function buildPlugin(): PluginOption[] {
   return [
     // Externalizes `dependencies`/`peerDependencies` (@base-ui/react, CVA,
@@ -333,7 +349,7 @@ export function buildPlugin(): PluginOption[] {
           output: {
             chunkFileNames: 'chunks/[name].js',
             assetFileNames: 'chunks/[name].[hash][extname]',
-            paths: dragLibraryFilePaths,
+            paths: resolveDragLibraryFilePaths(),
           },
         },
       },
