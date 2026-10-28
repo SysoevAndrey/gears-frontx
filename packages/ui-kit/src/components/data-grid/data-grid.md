@@ -8,8 +8,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click, actions, row actions, an actions menu, table configuration and row select, each its
-own entry (see below).
+click, actions, row actions, an actions menu, table configuration, row select and a table
+tree, each its own entry (see below).
 
 ## When to use
 
@@ -45,6 +45,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
 | `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-select` | `DataGridRowSelectPlugin` |
+| `@gears-frontx/ui-kit/data-grid/table-tree` | `DataGridTableTreePlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -116,6 +117,7 @@ plugins fill in, and expects a `DataGridLoadResult`.
 | `pagination` | pagination plugin | `{ page: number; limit: number }`, page is 1-based |
 | `filters` | text search plugin, and any plugin that registers one | `Record<string, { value, ... }>` keyed by filter key; text search writes `filters.textSearch` |
 | `order` | order plugin | `{ column: string; direction: 'asc' \| 'desc' }[]`, absent when nothing is sorted |
+| `tree` | table tree plugin | `{ parentId }`: `null` for the rows of the grid, a row's id for its children |
 | `signal` | the grid | an `AbortSignal`, aborted when a refresh replaces the load or the grid unmounts |
 
 `DataGridLoadResult` is `{ results: TItem[]; total?: number }`. `total` is what the pager
@@ -886,6 +888,95 @@ scope.
 The checkbox column marks its whole cell, header and body, as ignoring row clicks, so ticking a
 box does not call a row click plugin's `click`. Nothing to configure.
 
+### `DataGridTableTreePlugin`
+
+Shows hierarchical rows as a tree: a row that has children gets a toggle button in the first
+visible column, and its children appear under it, each level indented one step further. It
+replaces the `row` and `body-cell-content` renderers, so it takes the whole row.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `parentKey` | `string \| (item) => id` | Every row arrives in one load and names its parent by this field (or function); a row whose parent is `null` or `undefined` is a root, and the field has to be on every row. A row with children is expandable |
+| `expandable` | `(item) => boolean` | Children load when a row opens: a row it accepts is expandable. Keep its identity between renders (a module-level function, or `useCallback`): a new one each render updates the plugin's props and re-renders every row |
+
+Use one of the two. With neither, no row is expandable.
+
+```tsx
+import { DataGridTableTreePlugin } from '@gears-frontx/ui-kit/data-grid/table-tree';
+
+interface Category {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  hasChildren: boolean;
+}
+
+// Flat: one load returns every row, and each row names its parent.
+<DataGrid<Category> name="categories" load={loadAllCategories} columns={columns}>
+  <DataGridTableTreePlugin<Category> parentKey="parent_id" />
+</DataGrid>;
+
+// Lazy: the children of a row load when it opens.
+const hasChildren = (category: Category) => category.hasChildren;
+
+async function loadCategories({ tree, signal }: DataGridLoadContext) {
+  const response = await fetchCategories({ parentId: tree?.parentId ?? null, signal });
+  return { results: response.items, total: response.total };
+}
+
+<DataGrid<Category> name="categories" load={loadCategories} columns={columns}>
+  <DataGridTableTreePlugin<Category> expandable={hasChildren} />
+</DataGrid>;
+```
+
+In flat mode a row's children are the rows of the same load that name it as their parent, so
+with the pagination plugin a page has to hold the children of the roots it shows, and a row
+whose parent is not in the load is not shown. Opening and closing a row shows and hides its
+children and loads nothing.
+
+In lazy mode `load` is called with `tree.parentId` set to the row's id when it opens, and
+`null` for the rows of the grid. That load carries the same `pagination`, `filters` and
+`order` as the rows' load, so read `tree.parentId` first and decide whether they apply to a
+branch. Closing a row keeps what was loaded: opening it again shows the children without a load.
+A refresh or a page change drops everything loaded; the open rows that come back in the new
+load fetch their children again.
+
+The toggle sits in the first visible column, so hiding that column moves it to the next one.
+Clicking it does not call the row click plugin's `click`.
+
+#### Persisted expand state
+
+Which rows are open is stored with the grid's other state, under `dataGrid:${name}:tree`, as a
+list of ids with no opt-in. The list keeps the 200 most recent ids and is read back with the
+same cap, and anything in it that is not a string or a number is ignored. Under
+`persistent="router"` the expand state is not stored at all: the list holds ids of rows that may
+no longer exist, and a copied link would carry all of that into whichever grid opens it.
+
+- Ids are kept when the page changes, so coming back to a page restores its open rows; ids of
+  other pages stay stored and take effect once those rows load.
+- In lazy mode a restored row's children are fetched when its record arrives, and a restored id
+  whose row turns out not to be expandable is dropped from the list.
+
+The plugin's API (`getPlugin<DataGridTableTreePluginApi>('tableTree')`) has `toggle(id)`, which
+opens or closes a row and stores the change, `useIsExpanded(id)`, `useIsExpandable(record)`,
+`isExpandable(record)` (the same check outside a render) and `useLevel(section)`, the depth of
+a section's rows.
+
+#### With row click
+
+Declare `DataGridRowClickPlugin` before the tree. Both replace the `row` renderer and the last
+one registered wins. The tree's row does what the row click plugin's does when that plugin is
+registered (`click`, `dblclick`, Enter, a tab stop and the pointer cursor on every row, the
+children's too), so with the tree last the two work together. With the row click plugin last,
+its rows replace the tree's, which draw no children: a toggle opens a branch that never appears.
+
+```tsx
+<DataGrid<Category> name="categories" load={loadCategories} columns={columns}>
+  <DataGridRowClickPlugin<Category> click={(category) => navigate(`/categories/${category.id}`)} />
+  <DataGridTableTreePlugin<Category> expandable={hasChildren} />
+</DataGrid>
+```
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -1033,6 +1124,8 @@ columns' minimum content widths.
   and the pin buttons are named "Pin column" and "Unpin column" without the column.
 - With the row click plugin every body row is a tab stop and Enter activates it; Space
   does not.
+- The table tree's toggle is a native `button` with no accessible name and no `aria-expanded`,
+  so a screen reader announces an unnamed button and not whether the row is open.
 - The row select checkboxes, the select-all one included, have no accessible name. "Select all
   N" and "Clear selection" in the banner are buttons, and the banner is an `alert`, so it is
   announced when it appears.
@@ -1071,7 +1164,12 @@ columns' minimum content widths.
     }}
   >
   ```
-- Renderer overrides (`registerComponent`) are last registered wins.
+- Renderer overrides (`registerComponent`) are last registered wins. The row click and table
+  tree plugins both override `row`, so declare the tree after row click (see the tree's
+  section).
+- In lazy mode, the load of a row's children replaces the `total` that the pagination plugin
+  shows and that row select mirrors with the children's own: after a row is opened the pager
+  counts its children until the next load of the rows.
 - `registerComponent` accepts `'header-cell'` and `'header-group'`, but the header
   always renders its own cell and group components, so those two overrides have no
   effect.

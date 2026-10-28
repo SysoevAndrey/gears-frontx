@@ -58,6 +58,7 @@ export * from './components/data-grid/plugins/row-click/public.js';
 export * from './components/data-grid/plugins/row-number/public.js';
 export * from './components/data-grid/plugins/row-select/public.js';
 export * from './components/data-grid/plugins/table-configuration/public.js';
+export * from './components/data-grid/plugins/table-tree/public.js';
 export * from './components/data-grid/plugins/text-search/public.js';
 export * from './components/data-grid/public.js';
 export * from './components/data-table/public.js';
