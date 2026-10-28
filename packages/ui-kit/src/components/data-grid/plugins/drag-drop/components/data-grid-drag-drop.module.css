@@ -1,0 +1,109 @@
+/*
+ * The handle column's cell. The kit's cell is a line of text between --space-3 of block padding
+ * and --space-4 of inline padding, which leaves a 37px column almost no room, and a handle taller
+ * than the line would make the rows that hold it taller than the rest. So the handle is the size
+ * of the whole cell, `--control-height-lg` being the kit's cell height, and its negative margins
+ * give the padding back: it counts as one line of text in the row's height, and the whole cell is
+ * where a drag can start.
+ *
+ * The cursor is the consumer's `--data-grid-drag-cursor`; a row being dragged sets it to
+ * `grabbing`.
+ */
+.dragHandler {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: calc(var(--space-3) * -1) calc(var(--space-4) * -1);
+  block-size: var(--control-height-lg);
+  cursor: var(--data-grid-drag-cursor, grab);
+}
+
+.dragHandler svg {
+  inline-size: var(--icon-size-sm);
+  block-size: var(--icon-size-sm);
+}
+
+.dragHandler.dragHandlerLoading {
+  cursor: progress;
+}
+
+/*
+ * A draggable row. The states below are one class more than the kit's row, so they win over its
+ * fill and its transition whichever stylesheet loads last. A pinned cell paints `--table-pinned-fill`
+ * under the row's own fill, so each state hands the same colour to it.
+ *
+ * The row being dragged is the one in the list, tinted; what follows the pointer is the preview.
+ * It takes no pointer events, so the row under it is what the drop lands on.
+ */
+.dragRow.dragRowDragging {
+  --data-grid-drag-cursor: grabbing;
+  --table-pinned-fill: var(--secondary);
+  position: relative;
+  z-index: 10000;
+  background-color: var(--secondary);
+  cursor: grabbing;
+  pointer-events: none;
+  transition: background-color var(--duration-tab);
+}
+
+.dragRow.dragRowDragging > td:first-child {
+  border-end-start-radius: var(--radius-md);
+  border-start-start-radius: var(--radius-md);
+}
+
+.dragRow.dragRowDragging > td:last-child {
+  border-end-end-radius: var(--radius-md);
+  border-start-end-radius: var(--radius-md);
+}
+
+/* The row the dragged one would land on, which is the kit's hover tint. */
+.dragRow.dragRowDropping {
+  --table-pinned-fill: var(--card-hover);
+  background-color: var(--card-hover);
+}
+
+/* The line on the edge of the target the dragged row would land beside. */
+.dragRow.dragRowDropIndicatorTop > td {
+  box-shadow: inset 0 2px 0 0 var(--primary);
+}
+
+.dragRow.dragRowDropIndicatorBottom > td {
+  box-shadow: inset 0 -2px 0 0 var(--primary);
+}
+
+/*
+ * The preview that follows the pointer is a clone of the row in a table of its own, which
+ * `setCustomNativeDragPreview` appends to the body, outside the grid. It takes the source table's
+ * classes, so cell padding and type match, and is rounded and lifted like a popup.
+ */
+.dragPreview {
+  overflow: hidden;
+  border-collapse: separate;
+  border-radius: var(--radius-md);
+  border-spacing: 0;
+  background-color: var(--surface);
+  box-shadow: var(--popover-shadow);
+}
+
+/*
+ * The root drop zone's wrapper. It sits between the grid's main area (a flex column) and the table
+ * wrapper, so it has to hand the height bound down: a plain block here would grow to the table's
+ * height, the main area would scroll instead of the table wrapper, and a sticky header (bound to
+ * the wrapper) would scroll away with the rows while the horizontal scrollbar dropped below the
+ * fold. `min-block-size: 0` is what lets a bounded grid shrink this element to the frame; the
+ * default `flex: 0 1 auto` keeps the rest as it was: an unbounded grid stays sized to its rows (a
+ * `0` basis collapsed it to nothing), and the element never grows into spare height, which the
+ * filtered empty state rendered next to the table relies on for its `margin: auto` centring.
+ */
+.content {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+/* Dropping outside every row: the whole grid is the target. */
+.contentRootDropping {
+  outline: 2px dashed var(--primary);
+  outline-offset: -2px;
+  background-color: var(--secondary);
+}

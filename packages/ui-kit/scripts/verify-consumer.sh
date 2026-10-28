@@ -156,10 +156,18 @@ DATA_GRID_ROW_ACTIONS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/r
 DATA_GRID_TABLE_CONFIGURATION_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/table-configuration.js" 'tableConfiguration')"
 DATA_GRID_ROW_SELECT_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/row-select.js" 'rowSelectTop')"
 DATA_GRID_TABLE_TREE_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/table-tree.js" 'treeCellContent')"
+DATA_GRID_DRAG_DROP_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/drag-drop.js" 'dragHandler')"
+# The drag library (`@atlaskit/pragmatic-drag-and-drop`) is a dependency of the kit, so it is not in
+# dist/ but in whatever a consumer's bundler resolves it to, and only the drag-drop entry may bring
+# it. A consumer's minifier renames its bindings, so the probe is a string literal from its code:
+# the attribute its element adapter puts on the honey pot it draws, which the adapter always
+# reaches. [esbuild-data-grid] checks it is there when the entry is imported, so a version of the
+# library that drops it fails there and not as a silent pass of every absence check.
+DATA_GRID_DRAG_LIBRARY_PROBE='data-pdnd-honey-pot'
 # actions-menu has no stylesheet of its own, so there is no hashed class to probe; the name its
 # entry registers the plugin under stands in for one, and is checked to be in that entry's file.
 DATA_GRID_ACTIONS_MENU_PROBE='"actionsMenu"'
-for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS DATA_GRID_ROW_NUMBER_CLASS DATA_GRID_ROW_CLICK_CLASS DATA_GRID_ACTIONS_CLASS DATA_GRID_ROW_ACTIONS_CLASS DATA_GRID_TABLE_CONFIGURATION_CLASS DATA_GRID_ROW_SELECT_CLASS DATA_GRID_TABLE_TREE_CLASS; do
+for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS DATA_GRID_ROW_NUMBER_CLASS DATA_GRID_ROW_CLICK_CLASS DATA_GRID_ACTIONS_CLASS DATA_GRID_ROW_ACTIONS_CLASS DATA_GRID_TABLE_CONFIGURATION_CLASS DATA_GRID_ROW_SELECT_CLASS DATA_GRID_TABLE_TREE_CLASS DATA_GRID_DRAG_DROP_CLASS; do
   if [ -z "${!probe_name}" ]; then
     echo "FAIL: could not extract a hashed class probe ($probe_name) from dist/ — did a component's local class names change?"
     exit 1
@@ -470,6 +478,7 @@ assert_absent_from_glob "[vite] Table styles"    "$TABLE_CLASS"  'dist/assets/*.
 assert_absent_from_glob "[vite] Table JS"        "$TABLE_CLASS"  'dist/assets/*.js'
 assert_absent_from_glob "[vite] Dialog styles"   "$DIALOG_CLASS" 'dist/assets/*.css'
 assert_absent_from_glob "[vite] Dialog JS"       "$DIALOG_CLASS" 'dist/assets/*.js'
+assert_absent_from_glob "[vite] drag library"    "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/assets/*.js'
 
 echo "==> [vite] Bundle report (Button-only consumer page)"
 du -h dist/assets/*.js dist/assets/*.css
@@ -534,6 +543,7 @@ echo "==> [esbuild-barrel] Asserting Table/Dialog JS were tree-shaken out"
 # absence on this leg would be permanently red, not a real check.
 assert_absent_from_glob "[esbuild-barrel] Table JS"  "$TABLE_CLASS"  'dist/out.js'
 assert_absent_from_glob "[esbuild-barrel] Dialog JS" "$DIALOG_CLASS" 'dist/out.js'
+assert_absent_from_glob "[esbuild-barrel] drag library" "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/out.js'
 
 # The class-name probes above only catch leakage of the *kit's own* unused
 # component code. They would miss the specific regression this leg exists
@@ -654,6 +664,9 @@ assert_absent_from_glob "[esbuild-data-grid] row-select styles"  "$DATA_GRID_ROW
 assert_absent_from_glob "[esbuild-data-grid] row-select JS"      "$DATA_GRID_ROW_SELECT_CLASS"  'dist/out.js'
 assert_absent_from_glob "[esbuild-data-grid] table-tree styles"  "$DATA_GRID_TABLE_TREE_CLASS"  'dist/out.css'
 assert_absent_from_glob "[esbuild-data-grid] table-tree JS"      "$DATA_GRID_TABLE_TREE_CLASS"  'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] drag-drop styles"   "$DATA_GRID_DRAG_DROP_CLASS"  'dist/out.css'
+assert_absent_from_glob "[esbuild-data-grid] drag-drop JS"       "$DATA_GRID_DRAG_DROP_CLASS"  'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] drag library"       "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/out.js'
 
 echo "==> [esbuild-data-grid] Bundle report (DataGrid core only, react/react-dom external)"
 wc -c dist/out.js dist/out.css
@@ -679,6 +692,7 @@ assert_present_in_glob "[esbuild-data-grid] pagination styles (plugin imported)"
 assert_present_in_glob "[esbuild-data-grid] pagination class map (plugin imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-plugin.js'
 assert_absent_from_glob "[esbuild-data-grid] order styles (plugin not imported)"   "$DATA_GRID_ORDER_CLASS"       'dist/with-plugin.css'
 assert_absent_from_glob "[esbuild-data-grid] filters styles (plugin not imported)" "$DATA_GRID_FILTERS_CLASS"     'dist/with-plugin.css'
+assert_absent_from_glob "[esbuild-data-grid] drag library (plugin not imported)"    "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/with-plugin.js'
 
 # A second plugin, the one with the largest graph, takes the same route: its own subpath brings its
 # own styles, and not another plugin's.
@@ -699,6 +713,29 @@ npx esbuild src/with-filters.jsx --bundle --minify --format=esm --platform=brows
 assert_present_in_glob "[esbuild-data-grid] filters styles (plugin imported)"    "$DATA_GRID_FILTERS_CLASS"    'dist/with-filters.css'
 assert_present_in_glob "[esbuild-data-grid] filters class map (plugin imported)" "$DATA_GRID_FILTERS_CLASS"    'dist/with-filters.js'
 assert_absent_from_glob "[esbuild-data-grid] pagination styles (plugin not imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-filters.css'
+assert_absent_from_glob "[esbuild-data-grid] drag library (plugin not imported)"       "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/with-filters.js'
+
+# The one plugin that brings a library of its own, and so the control for the absence checks of
+# the drag library above: imported by its own subpath it brings its styles and the library, and no
+# other plugin's.
+cat > src/with-drag-drop.jsx <<'EOF'
+import '@gears-frontx/ui-kit/theme.css';
+
+import { DataGrid } from '@gears-frontx/ui-kit/data-grid';
+import { createDataGridDragDropPlugin } from '@gears-frontx/ui-kit/data-grid/drag-drop';
+
+console.log(DataGrid, createDataGridDragDropPlugin);
+EOF
+
+echo "==> [esbuild-data-grid] Bundling (adds createDataGridDragDropPlugin from @gears-frontx/ui-kit/data-grid/drag-drop)"
+npx esbuild src/with-drag-drop.jsx --bundle --minify --format=esm --platform=browser \
+  --external:react --external:react-dom --external:react/jsx-runtime \
+  --loader:.css=css --outfile=dist/with-drag-drop.js
+
+assert_present_in_glob "[esbuild-data-grid] drag-drop styles (plugin imported)"    "$DATA_GRID_DRAG_DROP_CLASS" 'dist/with-drag-drop.css'
+assert_present_in_glob "[esbuild-data-grid] drag-drop class map (plugin imported)" "$DATA_GRID_DRAG_DROP_CLASS" 'dist/with-drag-drop.js'
+assert_present_in_glob "[esbuild-data-grid] drag library (plugin imported)"        "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/with-drag-drop.js'
+assert_absent_from_glob "[esbuild-data-grid] pagination styles (plugin not imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-drag-drop.css'
 
 echo
 echo "==> [webpack] Scaffolding a webpack consumer (barrel import) in $WORKDIR/webpack-consumer"
@@ -762,12 +799,13 @@ assert_absent_from_glob "[webpack] Table styles"    "$TABLE_CLASS"  'dist/out.cs
 assert_absent_from_glob "[webpack] Table JS"        "$TABLE_CLASS"  'dist/out.js'
 assert_absent_from_glob "[webpack] Dialog styles"   "$DIALOG_CLASS" 'dist/out.css'
 assert_absent_from_glob "[webpack] Dialog JS"       "$DIALOG_CLASS" 'dist/out.js'
+assert_absent_from_glob "[webpack] drag library"    "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/out.js'
 
 echo "==> [webpack] Bundle report (Button-only barrel consumer, react/react-dom external)"
 wc -c dist/out.js dist/out.css
 
 echo
-echo "==> [types] Type-checking the barrel and five subpaths (a data-grid core and two plugin entries among them) under both moduleResolution settings"
+echo "==> [types] Type-checking the barrel and its subpaths (a data-grid core and three plugin entries among them) under both moduleResolution settings"
 TYPES_CHECK="$WORKDIR/types-check"
 mkdir -p "$TYPES_CHECK/src"
 cd "$TYPES_CHECK"
@@ -796,6 +834,14 @@ import {
   createDataGridTreeStructure,
   type DataGridTreeStructure,
 } from '@gears-frontx/ui-kit/data-grid/filters';
+import { createDataGridDragDropPlugin, type DataGridDropEdge } from '@gears-frontx/ui-kit/data-grid/drag-drop';
+
+// The drag plugin's own types, and none of the drag library's, are what its declaration file has to
+// resolve, so a consumer's type-check needs no more than the kit's own entry.
+const edge: DataGridDropEdge = 'top';
+const DragDrop = createDataGridDragDropPlugin<{ id: string }>({
+  onDrop: ({ item, target }) => void [item, target],
+});
 
 // filterTree's signature names the tree structure, so the types it needs have to resolve from the
 // plugin's own declaration file.
@@ -810,6 +856,8 @@ export {
   DataGrid,
   DataGridPaginationPlugin,
   DataGridFiltersPlugin,
+  DragDrop,
+  edge,
   entity,
 };
 export type { ButtonProps, DataGridTableColumn };

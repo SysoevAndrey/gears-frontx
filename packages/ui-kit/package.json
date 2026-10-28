@@ -42,6 +42,8 @@
     "contracts:enrollment": "tsx scripts/contracts/check.ts enrollment"
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "1.7.7",
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0",
     "@base-ui/react": "1.6.0",
     "@shadcn/react": "0.3.0",
     "@tanstack/react-table": "9.1.2",

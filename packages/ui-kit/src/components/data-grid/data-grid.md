@@ -8,8 +8,8 @@ custom empty state) by registering into those slots and hooking the load. Each c
 a plugin reaches all of them through one context object.
 
 Built-in plugins: pagination, text search, order, filters, empty state, row number, row
-click, actions, row actions, an actions menu, table configuration, row select and a table
-tree, each its own entry (see below).
+click, actions, row actions, an actions menu, table configuration, row select, a table tree
+and drag and drop, each its own entry (see below).
 
 ## When to use
 
@@ -46,6 +46,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-select` | `DataGridRowSelectPlugin` |
 | `@gears-frontx/ui-kit/data-grid/table-tree` | `DataGridTableTreePlugin` |
+| `@gears-frontx/ui-kit/data-grid/drag-drop` | `createDataGridDragDropPlugin` and the types |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -977,6 +978,69 @@ its rows replace the tree's, which draw no children: a toggle opens a branch tha
 </DataGrid>
 ```
 
+### `createDataGridDragDropPlugin`
+
+Adds a handle column at the start of the grid and lets the user reorder rows by dragging a row,
+by its handle, onto another row or onto the grid. It replaces the `row` and `content` renderers.
+Unlike the other plugins it is a factory: the callbacks are its configuration, and what it
+returns is the component to render as a child of the grid. Create it once, outside render, or in
+`useState`. `onDrop` is the one it was created with, so anything it needs that changes between
+renders has to reach it some other way, through a ref or a store.
+
+| Option | Type | Notes |
+|--------|------|-------|
+| `onDrop` | `({ item, target, ...context }) => void \| Promise<void>` | Required. `item` is the dragged row's item and `target` the item of the row it was dropped on, or `null` for a drop on the grid and not on a row. The rest is the plugin context, so `refresh()` reloads the grid |
+| `renderDragPreview` | `(item) => ReactNode` | What follows the pointer; without it, a copy of the dragged row |
+
+```tsx
+import { createDataGridDragDropPlugin } from '@gears-frontx/ui-kit/data-grid/drag-drop';
+
+const DragDrop = createDataGridDragDropPlugin<Task>({
+  onDrop: async ({ item, target, refresh }) => {
+    // `target` is the row the task was dropped on, or null when it was dropped on the grid.
+    await moveTask(item.id, target?.id ?? null);
+    await refresh({ resetFilters: false });
+  },
+});
+
+<DataGrid<Task> name="tasks" load={loadTasks} columns={columns}>
+  <DragDrop />
+</DataGrid>;
+```
+
+The plugin does not reorder anything: it reports the drop, and `onDrop` moves the row, usually on
+the server, and reloads. It is told the item and the row it was dropped on, and not which edge of
+that row the pointer was nearer.
+
+The handle is the only place a drag can start, and dragging is pointer-only: there is no keyboard
+way to move a row. While a row is dragged it is tinted, the row under the pointer is tinted too
+and has a line on its top or bottom edge, and a drop on the grid outside every row outlines the
+whole grid. A drop outside the grid does nothing.
+
+When `onDrop` returns a promise, the handle of the dragged row shows a spinner until it settles.
+A rejection is swallowed and the spinner stops: handle errors inside `onDrop`. A callback that
+returns anything else is done at once.
+
+The handle column is marked `data-grid-row-ignore-click`. Only this entry loads the drag
+library (`@atlaskit/pragmatic-drag-and-drop`, a dependency of the kit), so a grid without the
+plugin ships none of it.
+
+`--data-grid-drag-cursor` sets the cursor over a handle at rest (see CSS customization).
+
+#### With other row plugins
+
+Row click, the table tree and drag and drop each replace the `row` renderer and the last one
+registered wins, so declaration order decides what a grid with two of them does:
+
+| Declared last | What the grid does |
+|---------------|--------------------|
+| Drag and drop, after row click | Rows drag; the row click callbacks are not called |
+| Row click, after drag and drop | Rows click; the handle column is drawn but nothing drags |
+| Drag and drop, after the table tree | Rows drag, and the tree's toggle and indentation are drawn, but opening a row shows no children |
+| The table tree, after drag and drop | The tree's rows show their children; the handle column is drawn but nothing drags |
+
+With row select the handle column comes first, ahead of the checkboxes.
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -1087,6 +1151,7 @@ Set these on the grid or any ancestor:
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
 | `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root` or `body` |
 | `--data-grid-table-configuration-content-max-block-size` | `500px` | Height at which the panel's column list scrolls. Set it where the panel's portal is under the cascade, like the width |
+| `--data-grid-drag-cursor` | `grab` | Cursor over a drag handle at rest. The row being dragged sets it to `grabbing` on itself, so a value set above it applies before and after a drag |
 | `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |
 
 The floor is one constraint among several: under `'fixed'` a table whose columns
@@ -1124,6 +1189,9 @@ columns' minimum content widths.
   and the pin buttons are named "Pin column" and "Unpin column" without the column.
 - With the row click plugin every body row is a tab stop and Enter activates it; Space
   does not.
+- Drag and drop is pointer-only: there is no keyboard way to move a row. The handle is a `div`
+  with the label "Drag to reorder row" and no role, so it is not reached with Tab and a screen
+  reader does not announce it as a control.
 - The table tree's toggle is a native `button` with no accessible name and no `aria-expanded`,
   so a screen reader announces an unnamed button and not whether the row is open.
 - The row select checkboxes, the select-all one included, have no accessible name. "Select all
@@ -1164,9 +1232,18 @@ columns' minimum content widths.
     }}
   >
   ```
-- Renderer overrides (`registerComponent`) are last registered wins. The row click and table
-  tree plugins both override `row`, so declare the tree after row click (see the tree's
-  section).
+- Renderer overrides (`registerComponent`) are last registered wins. The row click, table
+  tree and drag and drop plugins all override `row`, so declare the tree after row click (see
+  the tree's section), and see "With other row plugins" under drag and drop for what each
+  pair does.
+- With the drag and drop plugin, a row dropped on itself is not refused: a row is never its own
+  target, so the drop falls through to the grid and `onDrop` is called with a `null` target, the
+  same as for a drop outside every row. A row dropped on another grid that has the plugin does
+  the same for its own grid: its `onDrop` is called with `target: null`, and the other grid's is
+  not.
+- The line on a drop target's edge is the edge the pointer entered the row by: it does not
+  follow the pointer inside the row. The grid's outline for a drop on the grid shows once the
+  pointer has been over another row first, since a drag starts over its own row.
 - In lazy mode, the load of a row's children replaces the `total` that the pagination plugin
   shows and that row select mirrors with the children's own: after a row is opened the pager
   counts its children until the next load of the rows.
