@@ -197,7 +197,16 @@ that shape — the drawn state language of the Studio Data Table:
   both themes; `--muted` would not, since the theme draws it equal to
   `--background` in light and to every surface in dark. A `data-state` tint
   outranks hover, so a selected row stays selected-colored under the
-  pointer.
+  pointer. The tint is the hook `--table-row-hover-fill`, read with
+  `--card-hover` as its fallback and declared nowhere by the kit: set it on the
+  table (through `className`) or on an ancestor to change the tint, or to
+  `transparent` to turn it off while something else shows the user where they
+  are, as a drag over the rows does. A pinned cell follows it, as it follows
+  every fill a row has.
+
+```css
+.reordering { --table-row-hover-fill: transparent; }
+```
 
 Because rows carry no fill at rest, the surface behind the table shows
 through them — put a `Table` on a `Card`, on `DataTable`'s own card, or on

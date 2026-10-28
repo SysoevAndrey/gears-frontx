@@ -42,7 +42,7 @@
   "invariants": [
     {
       "id": "states-are-caller-set-data-attributes",
-      "text": "The kit sets no row state itself: a row inside TableBody is tinted by the `data-state` attribute the caller passes (\"selected\", \"stale\" or \"restricted\"), on hover, and while a descendant carries aria-expanded=\"true\"; a data-state tint wins over hover. Rows in TableHeader and TableFooter take none of these tints."
+      "text": "The kit sets no row state itself: a row inside TableBody is tinted by the `data-state` attribute the caller passes (\"selected\", \"stale\" or \"restricted\"), on hover, and while a descendant carries aria-expanded=\"true\"; a data-state tint wins over hover. The hover tint is `--card-hover` unless the caller sets `--table-row-hover-fill` on the table or an ancestor (`transparent` turns it off). Rows in TableHeader and TableFooter take none of these tints."
     },
     {
       "id": "row-rule-is-drawn-by-the-cells",

@@ -724,10 +724,13 @@ describe('Table sticky header and row rules', () => {
   });
 
   it('tints a hovered row with a fill that differs from both backdrops in both themes', () => {
-    const hover = 'var(--card-hover)';
+    // The tint is a hook with the kit's hover step behind it: a table that must not tint under the
+    // pointer for a while sets the hook, and the kit declares it nowhere itself.
+    const hover = 'var(--table-row-hover-fill, var(--card-hover))';
     expect(declared(".tableBody .tableRow:hover,\n.tableBody .tableRow:has([aria-expanded='true'])", '--_table-row-fill')).toBe(
       hover,
     );
+    expect(rules.some((rule) => declarationMap(rule.body).has('--table-row-hover-fill'))).toBe(false);
     // A row is transparent, so the tint has to read against whatever is behind
     // the table: --surface inside a card, --background on a bare page. --muted
     // is drawn equal to --background in light and to every surface in dark
