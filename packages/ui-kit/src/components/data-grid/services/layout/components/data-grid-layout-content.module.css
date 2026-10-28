@@ -14,7 +14,9 @@
  *
  * `z-index` has to clear every sticky layer inside the table: the pinned cells (Table's `.pinned`,
  * `z-index: 1`), the pinned header cells (Table's `.pinned` under a sticky header, `z-index: 3`)
- * and the sticky header row group (`.theadSticky`, `z-index: 2`).
+ * and the sticky header row group (`.theadSticky`, `z-index: 2`). This overlay is `z-index: 4`; the drag
+ * and drop plugin's root drop layer (`z-index: 5`, in its own stylesheet) is above it, so a drop zone
+ * is not hidden by a load that is on screen while a row is dragged.
  *
  * The scrim fades in on the same delay the spinner uses, so a load that finishes quickly never shows
  * anything at all. Without it the spinner would still be delayed but the dim would not, and every
