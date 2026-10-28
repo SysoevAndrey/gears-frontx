@@ -22,6 +22,7 @@ export function DataGridTableTreeExpand<TItem extends DataGridItem>() {
       <Button
         variant="ghost"
         size="sm"
+        className={styles.toggle}
         icon={<ChevronDownIcon className={iconClassName} />}
         onClick={() => treePlugin.toggle(record.id)}
       />

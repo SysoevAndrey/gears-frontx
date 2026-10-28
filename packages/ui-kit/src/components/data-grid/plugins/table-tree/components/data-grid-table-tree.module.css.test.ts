@@ -23,20 +23,43 @@ describe('data-grid-table-tree.module.css', () => {
     expect(declarationsOf('.expandIconCollapsed:dir(rtl)').get('transform')).toBe('rotate(90deg)');
   });
 
-  it('indents a level by one --space-8, which the row multiplies by the level', () => {
+  it('indents a level by one --space-6, which the row multiplies by the level', () => {
     const spacer = declarationsOf('.indentSpacer');
-    expect(spacer.get('--_data-grid-table-tree-indent')).toBe('var(--space-8)');
+    expect(spacer.get('--_data-grid-table-tree-indent')).toBe('var(--space-6)');
     // A deep level in a narrow column must not squeeze the spacer to nothing.
     expect(spacer.get('flex-shrink')).toBe('0');
   });
 
-  it('takes the block padding of the cell that holds a toggle down to --space-1, over the kit\'s', () => {
-    // 2 x --space-1 and the small button's --control-height-sm add up to --control-height-lg, the
-    // kit's cell height, so the row is no taller than one without a toggle. The attribute selector
-    // is what lets it win over the kit's own single-class padding.
-    expect(declarationsOf('.toggleCell[data-column-id]').get('padding-block')).toBe(
-      'var(--space-1)',
+  it('indents further than a toggle and its margin take, so a child starts after its parent\'s label', () => {
+    // A parent's label starts after its toggle and the margin behind it; a child, whose toggle or
+    // text starts one level in, must start after that and not before it. Resolved from the
+    // stylesheet and the theme, since jsdom lays nothing out.
+    // The sizes are the theme's invariants, the `:root` block that holds no colour.
+    const themeRules = extractRules(
+      readFileSync(join(here, '..', '..', '..', '..', '..', 'styles', 'theme.css'), 'utf-8'),
     );
+    const invariants = declarationMap(themeRules.find((rule) => rule.selector === ':root')?.body ?? '');
+    const rem = (value: string | undefined) => {
+      const resolved = /^var\((--[a-z0-9-]+)\)$/.exec(value ?? '');
+      const token = resolved ? invariants.get(resolved[1]) : undefined;
+      if (!token?.endsWith('rem')) throw new Error(`${value} is not a rem token of the theme`);
+      return parseFloat(token);
+    };
+    const toggle = rem(declarationsOf('.expand .toggle').get('inline-size'));
+    const margin = rem(declarationsOf('.expand').get('margin-inline-end'));
+    const indent = rem(declarationsOf('.indentSpacer').get('--_data-grid-table-tree-indent'));
+
+    expect(indent).toBeGreaterThan(toggle + margin);
+  });
+
+  it('takes no more of the cell than a line of text, so no row that has a toggle is taller', () => {
+    // The kit's cell is a line of this height between its padding, and the toggle is a square of it.
+    const toggle = declarationsOf('.expand .toggle');
+    expect(toggle.get('block-size')).toBe('var(--text-meta-line-height)');
+    expect(toggle.get('inline-size')).toBe('var(--text-meta-line-height)');
+    // It does not shrink away in a narrow column, nor is it put in a padding of the cell's own.
+    expect(declarationsOf('.expand').get('flex-shrink')).toBe('0');
+    expect(rules.some((rule) => /toggleCell/.test(rule.selector))).toBe(false);
   });
 
   describe('a clickable row', () => {

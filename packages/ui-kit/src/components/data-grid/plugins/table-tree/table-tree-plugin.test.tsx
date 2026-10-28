@@ -306,7 +306,7 @@ describe('DataGridTableTreePlugin', () => {
   });
 
   describe('the toggle', () => {
-    it('is in the first column only, which is the one that gives up padding for it', async () => {
+    it('is in the first column only', async () => {
       render(
         <DataGrid name="test_tree_first_column" persistent="memory" load={loadFlatData} columns={columns}>
           <DataGridTableTreePlugin<TreeItem> parentKey="parent_id" />
@@ -316,11 +316,23 @@ describe('DataGridTableTreePlugin', () => {
 
       const [first, second] = within(rowOf('Electronics')).getAllByRole('cell');
       expect(within(first).getByRole('button')).toBeInTheDocument();
-      expect(first).toHaveClass(styles.toggleCell);
       expect(within(second).queryByRole('button')).toBeNull();
-      expect(second).not.toHaveClass(styles.toggleCell);
-      // A row with nothing under it has no toggle, so its cell keeps the kit's padding.
-      expect(within(rowOf('Books')).getAllByRole('cell')[0]).not.toHaveClass(styles.toggleCell);
+      // A row with nothing under it has no toggle.
+      expect(within(rowOf('Books')).queryByRole('button')).toBeNull();
+    });
+
+    it('is sized by its own class and not by its row, so any row renderer shows it the same', async () => {
+      // The row click plugin's row, when it is declared after the tree, draws the cells instead of
+      // the tree's row, and the toggle comes from the tree's cell content either way.
+      render(
+        <DataGrid name="test_tree_toggle_own_class" persistent="memory" load={loadFlatData} columns={columns}>
+          <DataGridTableTreePlugin<TreeItem> parentKey="parent_id" />
+          <DataGridRowClickPlugin<TreeItem> click={vi.fn()} />
+        </DataGrid>,
+      );
+      await screen.findByText('Electronics');
+
+      expect(within(rowOf('Electronics')).getByRole('button')).toHaveClass(styles.toggle);
     });
 
     it('leaves a column\'s own class on the cell', async () => {
@@ -335,7 +347,7 @@ describe('DataGridTableTreePlugin', () => {
       await screen.findByText('Electronics');
 
       const [cell] = within(rowOf('Electronics')).getAllByRole('cell');
-      expect(cell).toHaveClass('name-cell', styles.toggleCell);
+      expect(cell).toHaveClass('name-cell');
     });
   });
 
