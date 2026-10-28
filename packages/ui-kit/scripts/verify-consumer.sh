@@ -164,6 +164,11 @@ DATA_GRID_DRAG_DROP_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/dra
 # reaches. [esbuild-data-grid] checks it is there when the entry is imported, so a version of the
 # library that drops it fails there and not as a silent pass of every absence check.
 DATA_GRID_DRAG_LIBRARY_PROBE='data-pdnd-honey-pot'
+# The export code lives in the actions-menu entry, so a bundle of the plugin without
+# `exportMenuItems` must not carry it. The probe is the text of the export item's own console
+# message: a literal, which a minifier keeps, and not part of the shared `messages` object, which
+# an unused export would leave behind.
+DATA_GRID_EXPORT_PROBE='Export failed:'
 # actions-menu has no stylesheet of its own, so there is no hashed class to probe; the name its
 # entry registers the plugin under stands in for one, and is checked to be in that entry's file.
 DATA_GRID_ACTIONS_MENU_PROBE='"actionsMenu"'
@@ -178,6 +183,36 @@ if ! grep -qF "$DATA_GRID_ACTIONS_MENU_PROBE" "$UIKIT_DIR/dist/data-grid/actions
   exit 1
 fi
 echo "==> Probes: Button=$BUTTON_CLASS Table=$TABLE_CLASS Dialog=$DIALOG_CLASS"
+
+# exceljs is the consumer's to load (`exportMenuItems({ loadExcelJs: () => import('exceljs') })`),
+# and an optional peer: a bare import of it anywhere in the kit's output would fail the build of
+# every consumer that does not have it installed, the root barrel's included, because a bundler
+# resolves a dynamic import as it builds. Checked in the kit's own dist, where a JSDoc line that
+# names the package in a declaration file is not an import.
+echo "==> Asserting nothing in dist imports exceljs, and that it is an optional peer and no dependency"
+if grep -rEn "['\"]exceljs['\"]" "$UIKIT_DIR/dist" --include='*.js' --include='*.d.ts' | grep -Ev ':[0-9]+:[[:space:]]*(\*|//)'; then
+  echo "FAIL: dist names the exceljs package outside a comment — the kit has to leave that import to the consumer's loadExcelJs"
+  exit 1
+fi
+node -e "
+const p = require('$UIKIT_DIR/package.json');
+const optionalPeer = p.peerDependencies?.exceljs && p.peerDependenciesMeta?.exceljs?.optional === true;
+if (!optionalPeer || p.dependencies?.exceljs) {
+  console.error('FAIL: exceljs has to be an optional peer dependency of the kit and not a dependency');
+  process.exit(1);
+}
+"
+
+# A consumer that does not export to Excel does not have exceljs, and a build that passes with it
+# there says nothing about whether the kit imports it. The legs below install the packed kit and
+# nothing else, which leaves an optional peer out; this is what keeps it that way.
+assert_exceljs_not_installed() {
+  # $1: label. Run from the consumer's directory, after its install.
+  if [ -e node_modules/exceljs ]; then
+    echo "FAIL: $1 — exceljs is installed in the consumer, so its build passing proves nothing about the kit not importing it"
+    exit 1
+  fi
+}
 
 # 'use client' regression guard (#568): asserted against the kit's OWN
 # dist/, not a consumer bundle — an RSC framework like Next.js reads the
@@ -464,6 +499,7 @@ npm install --no-audit --no-fund --silent \
   "$TARBALL" "react@$REACT_VERSION" "react-dom@$REACT_VERSION"
 npm install --no-audit --no-fund --silent -D \
   "vite@$VITE_VERSION" "@vitejs/plugin-react@$PLUGIN_REACT_VERSION"
+assert_exceljs_not_installed "[vite]"
 
 echo "==> [vite] Building the consumer (imports only Button from the barrel)"
 npm run build
@@ -515,6 +551,7 @@ EOF
 echo "==> [esbuild-barrel] Installing tarball and deps"
 npm install --no-audit --no-fund --silent \
   "$TARBALL" "react@$REACT_VERSION" "react-dom@$REACT_VERSION" "esbuild@$ESBUILD_VERSION"
+assert_exceljs_not_installed "[esbuild-barrel]"
 
 echo "==> [esbuild-barrel] Bundling (imports only Button from the barrel)"
 # Deliberately NOT --minify: the Base UI submodule probes below search for
@@ -630,6 +667,7 @@ EOF
 echo "==> [esbuild-data-grid] Installing tarball and deps"
 npm install --no-audit --no-fund --silent \
   "$TARBALL" "react@$REACT_VERSION" "react-dom@$REACT_VERSION" "esbuild@$ESBUILD_VERSION"
+assert_exceljs_not_installed "[esbuild-data-grid]"
 
 echo "==> [esbuild-data-grid] Bundling (imports DataGrid from @gears-frontx/ui-kit/data-grid)"
 npx esbuild src/main.jsx --bundle --minify --format=esm --platform=browser \
@@ -667,6 +705,7 @@ assert_absent_from_glob "[esbuild-data-grid] table-tree JS"      "$DATA_GRID_TAB
 assert_absent_from_glob "[esbuild-data-grid] drag-drop styles"   "$DATA_GRID_DRAG_DROP_CLASS"  'dist/out.css'
 assert_absent_from_glob "[esbuild-data-grid] drag-drop JS"       "$DATA_GRID_DRAG_DROP_CLASS"  'dist/out.js'
 assert_absent_from_glob "[esbuild-data-grid] drag library"       "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] export code"        "$DATA_GRID_EXPORT_PROBE"       'dist/out.js'
 
 echo "==> [esbuild-data-grid] Bundle report (DataGrid core only, react/react-dom external)"
 wc -c dist/out.js dist/out.css
@@ -737,6 +776,41 @@ assert_present_in_glob "[esbuild-data-grid] drag-drop class map (plugin imported
 assert_present_in_glob "[esbuild-data-grid] drag library (plugin imported)"        "$DATA_GRID_DRAG_LIBRARY_PROBE" 'dist/with-drag-drop.js'
 assert_absent_from_glob "[esbuild-data-grid] pagination styles (plugin not imported)" "$DATA_GRID_PAGINATION_CLASS" 'dist/with-drag-drop.css'
 
+# The actions menu is the plugin the export lives in. Without `exportMenuItems` imported, a bundle of
+# the plugin carries no export code; with it, it does, and builds with no exceljs installed, since
+# the kit imports none and the loader is the consumer's own.
+cat > src/with-actions-menu.jsx <<'EOF'
+import '@gears-frontx/ui-kit/theme.css';
+
+import { DataGrid } from '@gears-frontx/ui-kit/data-grid';
+import { DataGridActionsMenuPlugin } from '@gears-frontx/ui-kit/data-grid/actions-menu';
+
+console.log(DataGrid, DataGridActionsMenuPlugin);
+EOF
+
+cat > src/with-export.jsx <<'EOF'
+import '@gears-frontx/ui-kit/theme.css';
+
+import { DataGrid } from '@gears-frontx/ui-kit/data-grid';
+import { DataGridActionsMenuPlugin, exportMenuItems } from '@gears-frontx/ui-kit/data-grid/actions-menu';
+
+// The loader is the consumer's: it is exceljs they would import here, and a CSV-only app leaves it out.
+console.log(DataGrid, DataGridActionsMenuPlugin, exportMenuItems());
+EOF
+
+echo "==> [esbuild-data-grid] Bundling (DataGridActionsMenuPlugin without exportMenuItems)"
+npx esbuild src/with-actions-menu.jsx --bundle --minify --format=esm --platform=browser \
+  --external:react --external:react-dom --external:react/jsx-runtime \
+  --loader:.css=css --outfile=dist/with-actions-menu.js
+
+echo "==> [esbuild-data-grid] Bundling (adds exportMenuItems, exceljs not installed)"
+npx esbuild src/with-export.jsx --bundle --minify --format=esm --platform=browser \
+  --external:react --external:react-dom --external:react/jsx-runtime \
+  --loader:.css=css --outfile=dist/with-export.js
+
+assert_absent_from_glob  "[esbuild-data-grid] export code (exportMenuItems not imported)" "$DATA_GRID_EXPORT_PROBE" 'dist/with-actions-menu.js'
+assert_present_in_glob   "[esbuild-data-grid] export code (exportMenuItems imported)"     "$DATA_GRID_EXPORT_PROBE" 'dist/with-export.js'
+
 echo
 echo "==> [webpack] Scaffolding a webpack consumer (barrel import) in $WORKDIR/webpack-consumer"
 WP="$WORKDIR/webpack-consumer"
@@ -785,6 +859,7 @@ npm install --no-audit --no-fund --silent \
   "$TARBALL" "react@$REACT_VERSION" "react-dom@$REACT_VERSION" \
   "webpack@$WEBPACK_VERSION" "webpack-cli@$WEBPACK_CLI_VERSION" \
   "css-loader@$CSS_LOADER_VERSION" "mini-css-extract-plugin@$MINI_CSS_EXTRACT_VERSION"
+assert_exceljs_not_installed "[webpack]"
 
 echo "==> [webpack] Bundling (imports only Button from the barrel, production mode)"
 npx webpack --config webpack.config.cjs >/dev/null
@@ -805,7 +880,7 @@ echo "==> [webpack] Bundle report (Button-only barrel consumer, react/react-dom 
 wc -c dist/out.js dist/out.css
 
 echo
-echo "==> [types] Type-checking the barrel and its subpaths (a data-grid core and three plugin entries among them) under both moduleResolution settings"
+echo "==> [types] Type-checking the barrel and its subpaths (a data-grid core and four plugin entries among them) under both moduleResolution settings"
 TYPES_CHECK="$WORKDIR/types-check"
 mkdir -p "$TYPES_CHECK/src"
 cd "$TYPES_CHECK"
@@ -835,12 +910,26 @@ import {
   type DataGridTreeStructure,
 } from '@gears-frontx/ui-kit/data-grid/filters';
 import { createDataGridDragDropPlugin, type DataGridDropEdge } from '@gears-frontx/ui-kit/data-grid/drag-drop';
+import { exportMenuItems } from '@gears-frontx/ui-kit/data-grid/actions-menu';
 
 // The drag plugin's own types, and none of the drag library's, are what its declaration file has to
 // resolve, so a consumer's type-check needs no more than the kit's own entry.
 const edge: DataGridDropEdge = 'top';
 const DragDrop = createDataGridDragDropPlugin<{ id: string }>({
   onDrop: ({ item, target }) => void [item, target],
+});
+
+// The export's loader is typed by the few members of exceljs it uses, so a consumer's own object of
+// that shape type-checks with exceljs not installed here, and `row` in a transformer is typed.
+class StubWorkbook {
+  xlsx = { writeBuffer: () => Promise.resolve(new ArrayBuffer(0)) };
+  addWorksheet() {
+    return { getRow: () => ({ getCell: () => ({ value: null as unknown }) }) };
+  }
+}
+const exportItems = exportMenuItems<{ id: number; name: string }>({
+  loadExcelJs: () => Promise.resolve({ Workbook: StubWorkbook }),
+  transformCellText: { name: ({ row, formattedValue }) => `${formattedValue} ${row.id}` },
 });
 
 // filterTree's signature names the tree structure, so the types it needs have to resolve from the
@@ -859,6 +948,7 @@ export {
   DragDrop,
   edge,
   entity,
+  exportItems,
 };
 export type { ButtonProps, DataGridTableColumn };
 EOF

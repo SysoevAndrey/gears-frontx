@@ -58,8 +58,14 @@
     "zustand": "5.0.15"
   },
   "peerDependencies": {
+    "exceljs": "^4.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "exceljs": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@globaltypesystem/gts-ts": "0.3.0",
@@ -73,6 +79,7 @@
     "@vitest/coverage-v8": "4.1.4",
     "ajv": "8.18.0",
     "esbuild": "0.25.12",
+    "exceljs": "4.4.0",
     "jsdom": "26.1.0",
     "magic-string": "0.30.21",
     "react": "19.2.8",

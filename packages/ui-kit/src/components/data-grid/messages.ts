@@ -35,6 +35,11 @@ export const messages = {
   actionsMenu: {
     actions: 'Actions',
   },
+  exportMenuItem: {
+    defaultFilename: 'Report',
+    defaultSheetName: 'Sheet',
+    exportAs: (type: string) => `Export as ${type}`,
+  },
   tableConfiguration: {
     header: 'Table configuration',
     configureColumns: 'Configure columns',

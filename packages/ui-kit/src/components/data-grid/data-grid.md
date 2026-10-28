@@ -42,7 +42,7 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
 | `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
-| `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
+| `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin`, `exportMenuItems` (the menu items that export the rows) and the types |
 | `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
 | `@gears-frontx/ui-kit/data-grid/row-select` | `DataGridRowSelectPlugin` |
 | `@gears-frontx/ui-kit/data-grid/table-tree` | `DataGridTableTreePlugin` |
@@ -743,7 +743,8 @@ CSS customization) when the grid sits on `--background`.
 ### `DataGridActionsMenuPlugin`
 
 Adds an ellipsis button named "Actions" to the toolbar's `top-end` slot, after the other
-toolbar buttons (order 100). It opens a `DropdownMenu` whose items are components of yours.
+toolbar buttons (order 100). It opens a `DropdownMenu` whose items are components of yours,
+or the export items the kit ships (see Export below).
 
 | Prop | Type | Notes |
 |------|------|-------|
@@ -770,6 +771,64 @@ on the plugin's API (`getPlugin<DataGridActionsMenuPluginApi>('actionsMenu')`); 
 `order` it takes ten times one more than the number of items already there, so 20 when one is
 (`10 * (count + 1)`). A new `menuItems` array replaces every item, the registered ones too, so
 keep `menuItems` in a module-level constant or `useMemo`.
+
+#### Export
+
+`exportMenuItems(config?)` returns menu items that download the grid's rows: "Export as Excel", when
+`loadExcelJs` is given, and "Export as CSV". Put them in `menuItems`:
+
+```tsx
+import {
+  DataGridActionsMenuPlugin,
+  exportMenuItems,
+} from '@gears-frontx/ui-kit/data-grid/actions-menu';
+
+const menuItems = exportMenuItems<User>({
+  filename: 'users',
+  // Excel only: install `exceljs` (4.4.0) in your app and hand the package over.
+  loadExcelJs: () => import('exceljs'),
+});
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridActionsMenuPlugin menuItems={menuItems} />
+</DataGrid>;
+```
+
+The kit never imports `exceljs`: `exceljs` is an optional peer dependency, and the import lives in
+your code, so an app that exports only CSV does not install it and builds without it. Without
+`loadExcelJs` there is no Excel item. `DataGridExcelJsModule`, what the loader resolves to, is
+spelled out as the `Workbook` the export uses and names no `exceljs` type, so the kit's types
+need nothing installed either.
+
+| Option | Type | Default |
+|--------|------|---------|
+| `filename` | `string \| () => string` | `Report`; the extension is added when it is missing |
+| `includeHeaders` | `boolean` | `true` |
+| `delimiter` | `string` | `,` (CSV) |
+| `sheetName` | `string` | `Sheet` (Excel) |
+| `transformCellText` | `Record<columnId, ({ value, formattedValue, row }, grid) => string>` | none; replaces the text of one column's cells |
+| `loadExcelJs` | `() => Promise<DataGridExcelJsModule>` | none; `() => import('exceljs')` fits, and without it there is CSV only |
+| `onError` | `(error: Error) => void` | none; see below |
+
+The export is of every row, not the page on screen:
+- With the pagination plugin it reads the pages itself from `load`, with the search, filters and
+  order the grid has now, and leaves the grid on the page it was on.
+- With the table tree plugin it walks the tree, each row followed by its children, closed rows
+  included; a lazy tree loads the children of every row that can have them, and keeps what it
+  loaded without opening those rows.
+- Otherwise it is what is on screen.
+
+The columns are the visible ones, in their order, headed by their labels. A cell is the row's
+property named by the column's `key` (its `id` without one), through the column's `formatter` and
+then `transformCellText`; a column drawn by `render` or `component` exports its value, not what is
+drawn. In CSV a value that holds the delimiter, a quote or a line break is quoted, and one that
+starts with `=`, `+`, `-`, `@`, a tab or a carriage return is quoted and prefixed with a tab, so a
+spreadsheet does not read it as a formula. In Excel a value that nothing changed stays a number,
+a boolean or a date, and a string that is an ISO date or a plain number (not one with a leading
+zero, or an exponent) is written as one.
+
+A failure while the cells are made goes to `onError`, or to `console.error` without it; the menu
+closes when an item is chosen, so there is no other place to show it.
 
 ### `DataGridTableConfigurationPlugin`
 
@@ -1232,6 +1291,10 @@ columns' minimum content widths.
     }}
   >
   ```
+- The export reads a cell as `item[key]`, a plain property and not a path: a column whose `key` is
+  dotted exports empty, though the grid shows the nested value. A failing `load` while it reads
+  the pages is logged to the console and does not reach `onError`, and the `format` and `encoding`
+  options are accepted and ignored.
 - Renderer overrides (`registerComponent`) are last registered wins. The row click, table
   tree and drag and drop plugins all override `row`, so declare the tree after row click (see
   the tree's section), and see "With other row plugins" under drag and drop for what each

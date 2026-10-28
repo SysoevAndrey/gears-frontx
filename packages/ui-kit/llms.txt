@@ -230,8 +230,10 @@ Rules for generated code:
   toolbar actions slot, a row actions column, an actions menu, a column
   configuration popover, row selection with a bulk-action bar,
   expandable tree rows and drag-and-drop row reordering, imported from
-  `@gears-frontx/ui-kit/data-grid/<plugin>` or the package root; state
-  can persist to local/session storage, the URL or memory.
+  `@gears-frontx/ui-kit/data-grid/<plugin>` or the package root, and the
+  actions menu's `exportMenuItems` for CSV and (with `exceljs` loaded by
+  the app) Excel export; state can persist to local/session storage,
+  the URL or memory.
 - [DataTable](dist/docs/data-table.md): sortable, paginated, optionally
   row-selectable table built on `Table` + `@tanstack/react-table` v9;
   productizes upstream's data-table *guide* into a real component
