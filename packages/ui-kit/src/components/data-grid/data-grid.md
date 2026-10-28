@@ -654,7 +654,7 @@ trigger); actions on a row belong in a column of your own.
 ```tsx
 import { DataGridActionsPlugin } from '@gears-frontx/ui-kit/data-grid/actions';
 
-function AddUserButton({ onAdd }: { onAdd: () => void }) {
+function AddUserButton({ onAdd }: { onAdd?: () => void }) {
   return <Button onClick={onAdd}>Add user</Button>;
 }
 
@@ -662,6 +662,9 @@ function AddUserButton({ onAdd }: { onAdd: () => void }) {
   <DataGridActionsPlugin component={AddUserButton} props={{ onAdd: openCreateDialog }} />
 </DataGrid>;
 ```
+
+`props` is not typed against `component`, so the component's own props have to be optional
+for it to type-check, as `onAdd` is here.
 
 The wrapper lays its content out in a row with a small gap. The component renders as a
 child of the grid, so `useDataGrid()` works inside it.
@@ -723,7 +726,8 @@ toolbar buttons (order 100). It opens a `DropdownMenu` whose items are component
 ```tsx
 import { DataGridActionsMenuPlugin } from '@gears-frontx/ui-kit/data-grid/actions-menu';
 
-function ArchiveItem({ params }: { params?: { onArchive: () => void } }) {
+// `params` is typed as a plain record, so each field of an item's own params is optional.
+function ArchiveItem({ params }: { params?: { onArchive?: () => void } }) {
   return <DropdownMenuItem onClick={params?.onArchive}>Archive</DropdownMenuItem>;
 }
 
@@ -849,7 +853,8 @@ enforces permissions either way.
 With it on, rows selected by hand stay selected when they leave the screen (another page, a
 filter, a search). `onSelectionChange` then reports every selected item across pages, and the
 select-all checkbox, which acts on the page, is ticked or mixed by the page's rows only. Select-all
-adds the page to the selection rather than replacing it. It is not meant to be combined with
+adds the page to the selection rather than replacing it, but unticking it clears the whole
+selection, other pages included, as the source grid does. It is not meant to be combined with
 `showSelectAllMatching`: the one keeps a hand-picked set across pages, the other offers a single
 scope.
 
