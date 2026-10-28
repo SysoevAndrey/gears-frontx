@@ -1,11 +1,14 @@
-import type { DataGridItem } from '../../data-grid-types';
-import type { DataGridPluginApi } from '../../services/plugins/plugins-helpers';
+// `.js` on each relative type import: they land verbatim in the shipped declaration file, where
+// `moduleResolution: "nodenext"` rejects an extensionless one and every type from it goes untyped
+// (the `expandable` callback's `item` among them).
+import type { DataGridItem } from '../../data-grid-types.js';
+import type { DataGridPluginApi } from '../../services/plugins/plugins-helpers.js';
 import type {
   DataGridDataKey,
   DataGridItemId,
   DataGridRecord,
   DataGridSection,
-} from '../../services/storage/storage-types';
+} from '../../services/storage/storage-types.js';
 
 export interface DataGridTableTreePluginConfig<
   TItem extends DataGridItem = DataGridItem,

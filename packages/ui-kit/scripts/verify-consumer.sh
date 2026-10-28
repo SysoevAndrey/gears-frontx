@@ -880,7 +880,7 @@ echo "==> [webpack] Bundle report (Button-only barrel consumer, react/react-dom 
 wc -c dist/out.js dist/out.css
 
 echo
-echo "==> [types] Type-checking the barrel and its subpaths (a data-grid core and four plugin entries among them) under both moduleResolution settings"
+echo "==> [types] Type-checking the barrel and its subpaths (a data-grid core and five plugin entries among them) under both moduleResolution settings"
 TYPES_CHECK="$WORKDIR/types-check"
 mkdir -p "$TYPES_CHECK/src"
 cd "$TYPES_CHECK"
@@ -911,12 +911,19 @@ import {
 } from '@gears-frontx/ui-kit/data-grid/filters';
 import { createDataGridDragDropPlugin, type DataGridDropEdge } from '@gears-frontx/ui-kit/data-grid/drag-drop';
 import { exportMenuItems } from '@gears-frontx/ui-kit/data-grid/actions-menu';
+import { DataGridTableTreePlugin } from '@gears-frontx/ui-kit/data-grid/table-tree';
 
 // The drag plugin's own types, and none of the drag library's, are what its declaration file has to
 // resolve, so a consumer's type-check needs no more than the kit's own entry.
 const edge: DataGridDropEdge = 'top';
 const DragDrop = createDataGridDragDropPlugin<{ id: string }>({
   onDrop: ({ item, target }) => void [item, target],
+});
+
+// The tree's `expandable` is typed by the consumer's item only if its declaration file resolves the
+// item type: with an extensionless relative import under nodenext `item` goes implicit-any (TS7006).
+const treePlugin = DataGridTableTreePlugin<{ id: number; name: string }>({
+  expandable: (item) => item.id > 0,
 });
 
 // The export's loader is typed by the few members of exceljs it uses, so a consumer's own object of
@@ -946,6 +953,7 @@ export {
   DataGridPaginationPlugin,
   DataGridFiltersPlugin,
   DragDrop,
+  treePlugin,
   edge,
   entity,
   exportItems,
