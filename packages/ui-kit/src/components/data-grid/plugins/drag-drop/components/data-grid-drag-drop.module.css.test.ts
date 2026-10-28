@@ -22,8 +22,9 @@ describe('data-grid-drag-drop.module.css', () => {
     it('fills the kit\'s cell and gives its padding back, so a row with a handle is as high as one without', () => {
       const handle = declarationsOf('.dragHandler');
       // The kit's cell is --space-3 of block and --space-4 of inline padding around one line of
-      // text, and its height is --control-height-lg.
-      expect(handle.get('block-size')).toBe('var(--control-height-lg)');
+      // text, so the handle is that line and the padding on both sides: the negative margins below
+      // give back what the block size adds.
+      expect(handle.get('block-size')).toBe('calc(var(--text-meta-line-height) + 2 * var(--space-3))');
       expect(handle.get('margin')).toBe('calc(var(--space-3) * -1) calc(var(--space-4) * -1)');
     });
 

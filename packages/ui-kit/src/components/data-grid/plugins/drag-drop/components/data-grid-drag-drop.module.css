@@ -2,9 +2,9 @@
  * The handle column's cell. The kit's cell is a line of text between --space-3 of block padding
  * and --space-4 of inline padding, which leaves a 37px column almost no room, and a handle taller
  * than the line would make the rows that hold it taller than the rest. So the handle is the size
- * of the whole cell, `--control-height-lg` being the kit's cell height, and its negative margins
- * give the padding back: it counts as one line of text in the row's height, and the whole cell is
- * where a drag can start.
+ * of the whole cell, a line of text and the block padding on both sides, so it matches the
+ * negative margins that give the padding back by construction. Those margins make it count as one
+ * line of text in the row's height, and the whole cell is where a drag can start.
  *
  * The cursor is the consumer's `--data-grid-drag-cursor`; a row being dragged sets it to
  * `grabbing`.
@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   margin: calc(var(--space-3) * -1) calc(var(--space-4) * -1);
-  block-size: var(--control-height-lg);
+  block-size: calc(var(--text-meta-line-height) + 2 * var(--space-3));
   cursor: var(--data-grid-drag-cursor, grab);
 }
 
