@@ -272,9 +272,9 @@ the pagination plugin's pager becomes a `nav` named `<label> pagination`.
 ```
 
 Without it the pager is the one `nav` named "Pagination" and the table's
-scroll container stays roleless, so a single grid on a page needs no label. Give every grid on a page that holds more than
-one a distinct label: two grids sharing one still leave their landmarks
-indistinguishable. The label is a spoken name, not the storage key `name`
+scroll container stays roleless, so a single grid on a page needs no label.
+Give every grid on a page that holds more than one a distinct label: two grids
+sharing one still leave their landmarks indistinguishable. The label is a spoken name, not the storage key `name`
 (which identifies a grid's persisted state, and is not readable text), and it
 is never persisted.
 
@@ -378,7 +378,9 @@ page 1, stores the limit and reloads. A refresh resets the page to 1. The page
 count comes from `total`. The loading treatment is the grid's, not the pager's.
 In a container too narrow for one row, the page buttons wrap to a centred line
 under the page-size selector and the page text, and below a 640px container the
-Previous and Next words collapse to their chevrons. A grid with a `label`
+Previous and Next words collapse to their chevrons. The pager is a size
+container, so a parent that shrinks to fit its content collapses it to zero
+width (see the containment note in `pagination.md`). A grid with a `label`
 names the pager `<label> pagination` (see `label`).
 
 ### `DataGridTextSearchPlugin`
