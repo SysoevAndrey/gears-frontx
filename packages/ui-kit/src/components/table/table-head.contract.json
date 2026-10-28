@@ -33,6 +33,10 @@
       "text": "The header styling - mono uppercase labels that do not wrap, a header band height - belongs to TableHead itself, so a TableHead in a body row looks the same as one in TableHeader. Under Table's `stickyHeader` in the default variant only the cells of TableHeader pin, and a TableHead in a body row scrolls with its row; under `variant=\"collection\"` every TableHead pins, body rows included (a known gap: such a cell covers the column header while the rows scroll)."
     },
     {
+      "id": "pinned-heading-sticks-at-the-callers-offset",
+      "text": "With `pinned` the heading is position sticky and stacks above the cells scrolling under it (one step above the other headings under `stickyHeader` or `variant=\"collection\"`), so a column stays in view while a table wider than its wrapper scrolls sideways. Table declares no offset: a column pins at the sum of the widths pinned before it, which only the caller knows, so the caller gives `insetInlineStart` or `insetInlineEnd` in `style`. In a plain header or a heading in a body row it is filled with the row's own fill over an opaque base, `--table-pinned-fill` (read with `--card` as its fallback). Under `stickyHeader` and `variant=\"collection\"` it keeps the header's own fill instead, `--table-header-fill` (`--card` in the collection view), which is opaque already, and `--table-pinned-fill` does not reach it. A pinned heading that is also `resizable` stacks above the columns after it, so their resize handles do not cover it. Table has no resize callback: resizing a pinned column does not move the offsets of the pinned columns after it, which are the caller's."
+    },
+    {
       "id": "resize-trades-width-with-the-next-column",
       "text": "With `resizable` the cell renders a focusable role=\"separator\" handle on its trailing edge. Dragging it, or ArrowLeft / ArrowRight at 12px per press, moves the boundary against the next column so the table's width stays the same. The last column has no neighbour: its handle changes the table's width instead, so the table can end up narrower than its container or wider (the scroll wrapper then scrolls). The first resize writes the current width of every heading in that row inline, switches the table to a fixed layout and pins the table's width to the sum of those widths, unless the table's own style already sets `tableLayout: fixed`: then nothing is written up front, a heading with no inline width of its own counts as zero, and the table shrinks to the columns the resize wrote. A column floors at 72px when it holds text and 32px when it does not; `resizeMinWidth` replaces this column's floor while its own handle is dragged, and when the previous column's handle shrinks it the 72px / 32px floor applies. The last column also stops where the table would drop below its own min-width (960px in the collection view), so the width the handle announces is the one on screen. The handle is named \"<heading text> width\" (\"Column width\" when the heading has no text), with the current width in pixels appended once a drag starts or an arrow key moves it. As a focusable separator it also carries the value assistive technology reads: aria-valuenow is the column's width in pixels (read at mount and whenever the handle takes focus, live while it resizes), aria-valuemin the floor the resize clamps to (lowered to the width when the layout renders the column narrower than that) and aria-valuemax the table's width."
     },
@@ -42,6 +46,10 @@
     }
   ],
   "anti_patterns": [
+    {
+      "dont": "Set `pinned` without an `insetInlineStart` or `insetInlineEnd` in `style`",
+      "do_instead": "Give the offset the column pins at; without one the cell sticks to no edge and scrolls away"
+    },
     {
       "dont": "Set `resizeMinWidth` on a column without `resizable`",
       "do_instead": "Set `resizable` as well - the floor only feeds the resize handle"
@@ -99,6 +107,9 @@
     "title": "UiKit TableHead",
     "type": "object",
     "properties": {
+      "pinned": {
+        "type": "boolean"
+      },
       "resizable": {
         "type": "boolean"
       },

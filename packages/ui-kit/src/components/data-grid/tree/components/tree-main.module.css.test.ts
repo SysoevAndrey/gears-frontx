@@ -43,8 +43,6 @@ function px(value: string, vars: Map<string, string>): number {
 const CHILDREN = '--_data-grid-tree-padding-children';
 const PARENT = '--_data-grid-tree-padding-parent';
 const DELTA = '--_data-grid-tree-directory-delta';
-// The shared declaration reader stops a custom property's name at its `_`, so `--_foo` reads as `foo`.
-const declared = (name: string) => name.replace('--_', '');
 
 describe('the tree indentation', () => {
   const main = declarationsOf(read('tree-main.module.css'), '.treeMain');
@@ -52,7 +50,7 @@ describe('the tree indentation', () => {
   const children = declarationsOf(read('tree-nodes.module.css'), '.treeNodeDirectoryChildren');
 
   // What the tree's own rule declares, under the names the stylesheets read it by.
-  const mainVars = new Map([...main].map(([name, value]) => [`--_${name}`, value] as const));
+  const mainVars = new Map(main);
 
   function insets(levels: number) {
     const delta = px(`var(${DELTA})`, mainVars);
@@ -60,13 +58,13 @@ describe('the tree indentation', () => {
     const result = [inset];
     for (let level = 1; level < levels; level += 1) {
       const parent = px(
-        directory.get(declared(PARENT)) ?? '',
+        directory.get(PARENT) ?? '',
         new Map([
           [CHILDREN, `${inset}px`],
           [DELTA, `${delta}px`],
         ]),
       );
-      inset = px(children.get(declared(CHILDREN)) ?? '', new Map([[PARENT, `${parent}px`]]));
+      inset = px(children.get(CHILDREN) ?? '', new Map([[PARENT, `${parent}px`]]));
       result.push(inset);
     }
     return result;

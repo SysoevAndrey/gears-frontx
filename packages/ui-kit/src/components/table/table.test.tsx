@@ -591,7 +591,7 @@ describe('Table collection view', () => {
     expect(declared('.variantCollection .tableBody .tableRow:focus-visible', 'box-shadow')).toBe(
       'inset 0 0 0 var(--border-width-focus) var(--primary)',
     );
-    expect(declared('.variantCollection .tableBody .tableRow[data-pending]', '--table-row-fill')).toBe(
+    expect(declared('.variantCollection .tableBody .tableRow[data-pending]', '--_table-row-fill')).toBe(
       'var(--muted)',
     );
     expect(declared('.variantCollection .tableBody .tableRow[tabindex]', 'cursor')).toBe('pointer');
@@ -725,7 +725,7 @@ describe('Table sticky header and row rules', () => {
 
   it('tints a hovered row with a fill that differs from both backdrops in both themes', () => {
     const hover = 'var(--card-hover)';
-    expect(declared(".tableBody .tableRow:hover,\n.tableBody .tableRow:has([aria-expanded='true'])", '--table-row-fill')).toBe(
+    expect(declared(".tableBody .tableRow:hover,\n.tableBody .tableRow:has([aria-expanded='true'])", '--_table-row-fill')).toBe(
       hover,
     );
     // A row is transparent, so the tint has to read against whatever is behind
@@ -739,5 +739,135 @@ describe('Table sticky header and row rules', () => {
       expect(fill, `${theme} vs --surface`).not.toBe(tokens.get('--surface'));
       expect(fill, `${theme} vs --background`).not.toBe(tokens.get('--background'));
     }
+  });
+});
+
+/*
+ * A pinned column's cell: the class lands on the cells that ask for it, and the stylesheet makes
+ * them stick and fill from the row. jsdom lays nothing out, so the rest is asserted on the CSS.
+ */
+describe('Table pinned cells', () => {
+  const rules = extractRules(
+    readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'table.module.css'), 'utf8'),
+  );
+
+  function declared(selector: string, prop: string) {
+    const rule = rules.find((candidate) => candidate.selector === selector);
+    return rule ? declarationMap(rule.body).get(prop) : undefined;
+  }
+
+  const HEADER_STEP = ':where(.stickyHeader) .tableHeader .tableHead';
+  const PINNED_HEADER_STEP = `${HEADER_STEP}.pinned`;
+
+  function renderPinned(props: Parameters<typeof Table>[0] = {}) {
+    return render(
+      <Table {...props}>
+        <TableHeader>
+          <TableRow>
+            <TableHead pinned>Name</TableHead>
+            <TableHead>Email</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell pinned>Ada</TableCell>
+            <TableCell>ada@example.com</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+  }
+
+  it('marks the cells that ask to be pinned, on both cell parts, and no others', () => {
+    renderPinned();
+    expect(screen.getByRole('columnheader', { name: 'Name' }).className).toContain(styles.pinned);
+    expect(screen.getByRole('cell', { name: 'Ada' }).className).toContain(styles.pinned);
+    expect(screen.getByRole('columnheader', { name: 'Email' }).className).not.toContain(
+      styles.pinned,
+    );
+    expect(screen.getByRole('cell', { name: 'ada@example.com' }).className).not.toContain(
+      styles.pinned,
+    );
+  });
+
+  it('keeps the caller\'s own class and inline offset on a pinned cell', () => {
+    render(
+      <Table>
+        <TableBody>
+          <TableRow>
+            <TableCell pinned className="mine" style={{ insetInlineStart: 40 }}>
+              a
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const cell = screen.getByRole('cell');
+    expect(cell.className).toContain('mine');
+    expect(cell.className).toContain(styles.pinned);
+    expect(cell.style.insetInlineStart).toBe('40px');
+  });
+
+  it('sticks, and takes the row\'s own fill over an opaque base', () => {
+    expect(declared('.pinned', 'position')).toBe('sticky');
+    // The base is a hook with the kit's raised surface behind it, so a table on --background
+    // sets one property rather than writing a selector that beats this one.
+    expect(declared('.pinned', 'background-color')).toBe('var(--table-pinned-fill, var(--card))');
+    // The row's fill is read, never repeated per state: hover, the open-disclosure hold, selected,
+    // stale and restricted all reach a pinned cell by setting `--_table-row-fill` on the row.
+    expect(declared('.pinned', 'background-image')).toMatch(
+      /^linear-gradient\(\s*var\(--_table-row-fill, transparent\),\s*var\(--_table-row-fill, transparent\)\s*\)$/,
+    );
+    expect(rules.some((rule) => /\.pinned\b/.test(rule.selector) && /:hover|data-state/.test(rule.selector))).toBe(
+      false,
+    );
+    // The gradient is only the row's tint: what makes the cell opaque at rest is the base, a hex
+    // with no alpha channel in both themes.
+    const { light, dark } = readThemeTokens();
+    for (const [theme, tokens] of [['light', light], ['dark', dark]] as const) {
+      expect(tokens.get('--card'), `${theme} --card`).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('declares the pin after the header cell\'s own `position: relative`', () => {
+    // Same specificity, so the later rule wins the position.
+    const order = (selector: string) => rules.findIndex((rule) => rule.selector === selector);
+    expect(declared('.tableHead', 'position')).toBe('relative');
+    expect(order('.pinned')).toBeGreaterThan(order('.tableHead'));
+  });
+
+  it('stacks a pinned header cell one step above the header cells it scrolls under', () => {
+    const z = (selector: string) => Number(declared(selector, 'z-index'));
+    expect(z(PINNED_HEADER_STEP)).toBeGreaterThan(z(HEADER_STEP));
+    expect(z('.variantCollection .tableHead.pinned')).toBeGreaterThan(
+      z('.variantCollection .tableHead'),
+    );
+    // In a plain header, a pinned heading stacks above the resize handle of the column after it:
+    // the handle hangs over the edge into this column, comes later in the document, and would
+    // otherwise cover the heading at the same step and take its pointer.
+    expect(z('.tableHead.pinned')).toBeGreaterThan(z('.columnResizer'));
+    // The sticky-header and collection rules, one class more, are the ones that stay on top.
+    expect(z(PINNED_HEADER_STEP)).toBeGreaterThan(z('.tableHead.pinned'));
+    // And a pinned body cell sits above the cells beside it, which have no step of their own.
+    expect(z('.pinned')).toBeGreaterThan(0);
+  });
+
+  it('draws a focused collection row\'s ring on its pinned cells, whose fill covers the row\'s own', () => {
+    const ring = 'var(--border-width-focus) solid var(--primary)';
+    const focused = '.variantCollection .tableBody .tableRow:focus-visible';
+    expect(declared(`${focused} > .pinned::after`, 'border-block')).toBe(ring);
+    expect(declared(`${focused} > .pinned::after`, 'inset')).toBe('0');
+    expect(declared(`${focused} > .pinned:first-child::after`, 'border-inline-start')).toBe(ring);
+    expect(declared(`${focused} > .pinned:last-child::after`, 'border-inline-end')).toBe(ring);
+  });
+
+  it('reaches the pinned cell of the header group and no pinned body cell', () => {
+    const { container } = renderPinned({ stickyHeader: true });
+    const asDomSelector = PINNED_HEADER_STEP.replace(
+      /\.(\w+)/g,
+      (_, name: string) => `.${(styles as Record<string, string>)[name]}`,
+    );
+    const reached = Array.from(container.querySelectorAll(asDomSelector));
+    expect(reached.map((cell) => cell.textContent)).toEqual(['Name']);
   });
 });

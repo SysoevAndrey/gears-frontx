@@ -28,11 +28,13 @@ function zIndexOf(cssFile: string, selector: string): number {
 }
 
 describe('data-grid-layout-content.module.css -- loader overlay stacking', () => {
-  const cellCss = join(tableComponents, 'data-grid-cell.module.css');
+  // The pinned cells are the kit's (`pinned` on TableCell / TableHead), so their layers are
+  // Table's own.
+  const kitTableCss = join(here, '..', '..', '..', '..', 'table', 'table.module.css');
   const overlay = zIndexOf(join(here, 'data-grid-layout-content.module.css'), '.loaderOverlay');
 
   it('lifts the overlay above both sticky layers inside the table, header above pinned cells', () => {
-    const pinnedCell = zIndexOf(cellCss, '.stickyCell');
+    const pinnedCell = zIndexOf(kitTableCss, '.pinned');
     const stickyHeader = zIndexOf(
       join(tableComponents, 'data-grid-table-header.module.css'),
       '.theadSticky',
@@ -48,11 +50,11 @@ describe('data-grid-layout-content.module.css -- loader overlay stacking', () =>
     // Table's own sticky header lifts every header cell to the same step. A pinned column's
     // header cell has to clear that step, or the header cells scrolling in from the side paint
     // over it; and it still sits under the overlay.
-    const kitHeaderCell = zIndexOf(
-      join(here, '..', '..', '..', '..', 'table', 'table.module.css'),
-      ':where(.stickyHeader) .tableHeader .tableHead',
+    const kitHeaderCell = zIndexOf(kitTableCss, ':where(.stickyHeader) .tableHeader .tableHead');
+    const pinnedHeaderCell = zIndexOf(
+      kitTableCss,
+      ':where(.stickyHeader) .tableHeader .tableHead.pinned',
     );
-    const pinnedHeaderCell = zIndexOf(cellCss, '.cell.stickyCell.stickyHeaderCell');
 
     expect(pinnedHeaderCell).toBeGreaterThan(kitHeaderCell);
     expect(pinnedHeaderCell).toBeLessThan(overlay);

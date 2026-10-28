@@ -7,8 +7,9 @@ custom empty state) by registering into those slots and hooking the load. Each c
 (load, layout, table, storage, persistence) is a service with its own store, and
 a plugin reaches all of them through one context object.
 
-Built-in plugins: pagination, text search, order, filters and empty state, each
-its own entry (see below).
+Built-in plugins: pagination, text search, order, filters, empty state, row number, row
+click, actions, row actions, an actions menu, table configuration and row select, each its
+own entry (see below).
 
 ## When to use
 
@@ -37,6 +38,13 @@ code or CSS:
 | `@gears-frontx/ui-kit/data-grid/order` | `DataGridOrderPlugin`, `createDataGridOrderOption` |
 | `@gears-frontx/ui-kit/data-grid/filters` | `DataGridFiltersPlugin`, the entity factories `filterSearch`, `filterToggle`, `filterCheckboxGroup`, `filterTagGroup`, `filterTree` and `filterDateRange`, `createDataGridTreeStructure` and `useDataGridTreeStructure` (the tree `filterTree` takes), and the types |
 | `@gears-frontx/ui-kit/data-grid/empty-state` | `DataGridEmptyStatePlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-number` | `DataGridRowNumberPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-click` | `DataGridRowClickPlugin` |
+| `@gears-frontx/ui-kit/data-grid/actions` | `DataGridActionsPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-actions` | `DataGridRowActionsPlugin` |
+| `@gears-frontx/ui-kit/data-grid/actions-menu` | `DataGridActionsMenuPlugin` |
+| `@gears-frontx/ui-kit/data-grid/table-configuration` | `DataGridTableConfigurationPlugin` |
+| `@gears-frontx/ui-kit/data-grid/row-select` | `DataGridRowSelectPlugin` |
 
 The package root re-exports all of them, so
 `import { DataGrid, DataGridPaginationPlugin } from '@gears-frontx/ui-kit'`
@@ -140,7 +148,7 @@ under a spanning header cell.
 | `minWidth`, `maxWidth` | `number` | Pixels. Independent floor and cap under `tableLayout="auto"`. |
 | `headerOverflow` | `'nowrap' \| 'wrap'` | Default `'nowrap'`: one line, clipped with an ellipsis, the label in `title`. |
 | `cellOverflow` | `'wrap' \| 'nowrap'` | Default `'wrap'`. `'nowrap'` clips with an ellipsis and sets `title` to the value. |
-| `sticky` | `boolean` | Pins the column to the inline-start edge while the table scrolls sideways. |
+| `sticky` | `boolean` | Pins the column to the inline-start edge while the table scrolls sideways. The columns a plugin adds before the data (a row number, a selection checkbox) pin with the first pinned column, in front of it, so they stay in view; with nothing pinned they scroll away with the rest. |
 | `visible` | `boolean` | Initial visibility. |
 | `visibleToggleDisabled` | `boolean` | The column's visibility is not the user's to change. |
 | `getClassName` | `(item) => string \| undefined` | A class for the column's cell in that row. |
@@ -148,10 +156,11 @@ under a spanning header cell.
 | `groupId` | `string` | Set by the grid on columns inside a `DataGridTableGroup`; do not set it. |
 
 A `DataGridTableGroup` is `{ id, label, columns, component?, visible?, sticky? }`; a
-group's `sticky` pins all its columns. Pin a group as a whole or none of its
-columns: a column pinned or unpinned on its own inside a group moves in the body
-but not under the group's header, so the header labels stop matching their
-columns (see "Known limitations").
+group's `sticky` pins all its columns. Pinning or unpinning a group at run time (the table
+configuration plugin does) moves its heading and all its columns together. Pin a group as a
+whole or none of its columns: a column pinned or unpinned on its own inside a group moves in
+the body but not under the group's header, so the header labels stop matching their columns
+(see "Known limitations").
 
 Pass a component to a column as its own module-level component, not an inline
 function: an inline component is a new component on every render and loses its
@@ -301,6 +310,13 @@ further lines when it is too wide for one, and `top-end` goes on to a line of it
 own, at its end, when it would not fit beside `top-start` on a single line. A
 toolbar that fits on one line has everything centred on it.
 
+A slot registered in `top` and made active replaces the toolbar's two halves. While the toolbar
+is on one line, the grid gives the slot at least the height the toolbar had and centres what it
+holds in that height, so the table under it does not move when the slot takes the toolbar's place
+(the row select bar does). A toolbar that has wrapped onto several lines, as a row of quick
+filters does on a narrow screen, is not kept: the slot takes its own height and the table moves
+up with it.
+
 With two or more `main` views (for example the table and a cards view) the grid
 adds a view switch to `top-end` by itself. Read or set the active view with
 `useDataGridActiveView()` and `DATA_GRID_VIEW`:
@@ -336,8 +352,8 @@ page, and does not listen for `popstate`; a plugin can opt a state out of it
 backend (`{ storage: 'localStorage' }`).
 
 `persistentColumnVisibility` remembers which columns the user showed or hid, in
-`localStorage` whatever `persistent` says. The grid ships no control that changes
-it; a plugin of your own calls `updateColumnVisibility`.
+`localStorage` whatever `persistent` says. The table configuration plugin is the
+built-in control that changes it; a plugin of your own calls `updateColumnVisibility`.
 
 ## Plugins
 
@@ -563,6 +579,290 @@ function UsersEmptyState() {
 </DataGrid>;
 ```
 
+### `DataGridRowNumberPlugin`
+
+Adds a column before the data with the row's 1-based number, in the monospace face. It
+takes no props.
+
+```tsx
+import { DataGridPaginationPlugin } from '@gears-frontx/ui-kit/data-grid/pagination';
+import { DataGridRowNumberPlugin } from '@gears-frontx/ui-kit/data-grid/row-number';
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridPaginationPlugin defaultLimit={20} />
+  <DataGridRowNumberPlugin />
+</DataGrid>;
+```
+
+The number is `limit * (page - 1) + index + 1`, so with the pagination plugin the second page
+of 20 starts at 21; without it the number is the row's position. The column has no header
+text, starts at 32px and grows to the widest number on the page.
+
+### `DataGridRowClickPlugin`
+
+Calls back with the row's item when a row is clicked, double-clicked, or has Enter pressed
+on it. It replaces the `row` renderer, so it takes the whole row.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `click` | `(item) => void` | A click, and Enter on a focused row |
+| `dblclick` | `(item) => void` | A double click, which also fires `click` twice first, as in a browser |
+
+```tsx
+import { DataGridRowClickPlugin } from '@gears-frontx/ui-kit/data-grid/row-click';
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowClickPlugin<User> click={(user) => navigate(`/users/${user.id}`)} />
+</DataGrid>;
+```
+
+Every body row gets `tabIndex={0}` and a pointer cursor. The callbacks are read when the event
+fires, so a new function each render is fine.
+
+A click anywhere in the row counts, including on a control inside a cell, so a button, link or
+checkbox in a cell would fire the row click as well. Mark such an element with
+`data-grid-row-ignore-click`, or any ancestor of it in the cell: clicks, double clicks and
+Enter that start inside it are skipped. An extra column marks its whole cell with the
+`ignoreRowClick` option of `registerExtraColumn`.
+
+```tsx
+const columns: DataGridTableColumn<User>[] = [
+  { id: 'name', label: 'Name' },
+  {
+    id: 'actions',
+    label: 'Actions',
+    component: ({ item }) => (
+      <Button data-grid-row-ignore-click onClick={() => remove(item.id)}>
+        Delete
+      </Button>
+    ),
+  },
+];
+```
+
+### `DataGridActionsPlugin`
+
+Renders a component of yours in the toolbar's `top-end` slot, at order 0, so it sits before
+the other toolbar buttons. It is for toolbar content (an "Add" button, a bulk-import
+trigger); actions on a row belong in a column of your own.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `component` | `ComponentType` | Required. Keep its identity between renders (a module-level component) |
+| `props` | `Record<string, unknown>` | Spread onto `component` |
+
+```tsx
+import { DataGridActionsPlugin } from '@gears-frontx/ui-kit/data-grid/actions';
+
+function AddUserButton({ onAdd }: { onAdd?: () => void }) {
+  return <Button onClick={onAdd}>Add user</Button>;
+}
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridActionsPlugin component={AddUserButton} props={{ onAdd: openCreateDialog }} />
+</DataGrid>;
+```
+
+`props` is not typed against `component`, so the component's own props have to be optional
+for it to type-check, as `onAdd` is here.
+
+The wrapper lays its content out in a row with a small gap. The component renders as a
+child of the grid, so `useDataGrid()` works inside it.
+
+### `DataGridRowActionsPlugin`
+
+Adds a last column that renders your component in every row, given the row's `item`:
+the place for a row's edit and delete buttons or its "more" menu.
+
+| Prop | Type | Default |
+|------|------|---------|
+| `component` | `ComponentType<{ item }>` | required |
+| `order` | `number` | `100`, its place among the columns at the end |
+| `className` | `string` | none; goes on the wrapper around your component |
+| `sticky` | `boolean` | `false`; pins the column to the inline-end edge |
+
+```tsx
+import { DataGridRowActionsPlugin } from '@gears-frontx/ui-kit/data-grid/row-actions';
+
+function UserActions({ item }: { item: User }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="sm" icon={<MoreHorizontal />} aria-label={`Actions for ${item.name}`} />}
+      />
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => edit(item)}>Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => remove(item)}>Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowActionsPlugin<User> component={UserActions} sticky />
+</DataGrid>;
+```
+
+The column has no header text and is as wide as the widest actions it holds. The wrapper is
+marked `data-grid-row-ignore-click`, so with the row click plugin a click on your buttons does
+not also click the row. A menu your component opens renders in a portal, outside that
+wrapper: see Known limitations.
+
+`sticky` keeps the actions in view on a table wide enough to scroll sideways: the column sticks
+to the inline-end edge, in left-to-right and right-to-left alike, and its cells are opaque, so
+the rows scroll under it. A pinned cell is painted with its row's own fill over `--card`, so
+it follows hover, selection and the other row states; set `--data-grid-pinned-background` (see
+CSS customization) when the grid sits on `--background`.
+
+### `DataGridActionsMenuPlugin`
+
+Adds an ellipsis button named "Actions" to the toolbar's `top-end` slot, after the other
+toolbar buttons (order 100). It opens a `DropdownMenu` whose items are components of yours.
+
+| Prop | Type | Notes |
+|------|------|-------|
+| `menuItems` | `{ component, params?, order? }[]` | `component` receives `{ params }` and renders a `DropdownMenuItem` (or any menu part) |
+
+```tsx
+import { DataGridActionsMenuPlugin } from '@gears-frontx/ui-kit/data-grid/actions-menu';
+
+// `params` is typed as a plain record, so each field of an item's own params is optional.
+function ArchiveItem({ params }: { params?: { onArchive?: () => void } }) {
+  return <DropdownMenuItem onClick={params?.onArchive}>Archive</DropdownMenuItem>;
+}
+
+const menuItems = [{ component: ArchiveItem, params: { onArchive: archiveAll } }];
+
+<DataGrid name="users" load={loadUsers} columns={columns}>
+  <DataGridActionsMenuPlugin menuItems={menuItems} />
+</DataGrid>;
+```
+
+Items are listed by `order`; one without it takes ten times its position in the array, so
+10, 20, 30. Another plugin can add items with `registerMenuItem({ component, params?, order? })`
+on the plugin's API (`getPlugin<DataGridActionsMenuPluginApi>('actionsMenu')`); without an
+`order` it takes ten times one more than the number of items already there, so 20 when one is
+(`10 * (count + 1)`). A new `menuItems` array replaces every item, the registered ones too, so
+keep `menuItems` in a module-level constant or `useMemo`.
+
+### `DataGridTableConfigurationPlugin`
+
+Adds a gear button named "Configure columns" to the toolbar's `top-end` slot, after an
+`actions` component and before the actions menu (order 10). It opens a popover headed "Table
+configuration" that lists the grid's columns, so the user can show, hide and pin them. It
+takes no props.
+
+```tsx
+import { DataGridTableConfigurationPlugin } from '@gears-frontx/ui-kit/data-grid/table-configuration';
+
+<DataGrid name="users" load={loadUsers} columns={columns} persistentColumnVisibility>
+  <DataGridTableConfigurationPlugin />
+</DataGrid>;
+```
+
+Every column has a switch for its visibility and a pin button for keeping it at the inline
+start while the table scrolls sideways. The pin button shows while its row is hovered or has
+keyboard focus, and always while the column is pinned. A group is a section: a pin button for
+the group, then a switch for each column in it, with no pin button of their own. Pinning the
+group pins its heading and all its columns together, and unpinning reverses it. The switch of
+the last visible column is locked so the table is never empty, and a column's own
+`visibleToggleDisabled` locks its switch.
+
+A choice applies at once. Which columns are hidden survives a reload only with
+`persistentColumnVisibility` on the grid; pins are not stored. A new `columns` array resets both.
+
+The panel renders in a portal, so set its two size hooks on `:root` or `body`, not on the grid
+(see CSS customization). It keeps inside the screen: its width floor gives way to the room there
+is on a narrow one, and a list longer than the room scrolls inside it.
+
+### `DataGridRowSelectPlugin`
+
+Adds a checkbox column at the start, a select-all checkbox in its header, and an action bar
+that replaces the toolbar while rows are selected.
+
+| Prop | Type | Default |
+|------|------|---------|
+| `onSelectionChange` | `(items, meta) => void` | none; `meta` is `{ mode: 'none' \| 'page' \| 'all', count }` |
+| `component` | `ComponentType<{ rowSelect }>` | none; your actions in the action bar |
+| `statusComponent` | `ComponentType<{ rowSelect }>` | none; replaces the "N items selected" text |
+| `multiple` | `boolean` | `true`; `false` allows one row, with no select-all checkbox |
+| `showSelectAll` | `boolean` | `true`; the select-all checkbox in the header |
+| `visible` | `(item) => boolean` | none; rows it rejects get no checkbox, and select-all skips them |
+| `showSelectAllMatching` | `boolean` | `false`; see below |
+| `keepHiddenSelection` | `boolean` | `false`; see below |
+
+```tsx
+import { DataGridRowSelectPlugin, type DataGridRowSelectPluginApi } from '@gears-frontx/ui-kit/data-grid/row-select';
+
+function BulkActions({ rowSelect }: { rowSelect: DataGridRowSelectPluginApi<User> }) {
+  return (
+    <>
+      <Button variant="outline" onClick={rowSelect.clearSelection}>Cancel</Button>
+      <Button variant="destructive" onClick={() => deactivate(rowSelect.getSelectionDescriptor())}>
+        Deactivate
+      </Button>
+    </>
+  );
+}
+
+<DataGrid<User> name="users" load={loadUsers} columns={columns}>
+  <DataGridRowSelectPlugin<User> component={BulkActions} onSelectionChange={setSelected} />
+</DataGrid>;
+```
+
+The action bar needs `component` or `statusComponent`; with neither, selecting only ticks the
+checkboxes. It shows the count ("1 item selected", "3 items selected") at the end, or your
+`statusComponent` in its place, and your `component` at the start. `rowSelect` is the plugin's
+API: `useSelectedIds`, `useSelectionCount`, `useSelectionMode` and the other `use*` hooks read
+it, `toggleSelection(id)`, `toggleSelectAll(value)` and `clearSelection()` change it.
+
+Selection is kept per page, and it follows the rows that are loaded. Every load empties the
+loaded rows while it runs, so every load clears the selection and calls `onSelectionChange` with
+`[]` and `{ mode: 'none', count: 0 }`: a page change, a filter, a search, and also `refresh()` or
+`triggerLoad()` when they bring back the very same rows. With `keepHiddenSelection` the ids
+selected by hand survive loads. The `total` of the load result is mirrored, so the plugin does
+not depend on the pagination plugin being registered first.
+
+#### Select all matching
+
+`showSelectAllMatching` is opt-in: turn it on only when your bulk action handles the all-matching
+scope. With it on, once every selectable row on the page is selected and the load result's
+`total` is more than the rows loaded, a banner offers "Select all N". Taking it enters
+all-matching mode, every record that matches the current filter across all pages, without
+listing ids. In that mode `onSelectionChange` still gets only the current page's items, and the
+scope is in `meta` (`mode: 'all'`, `count: total`) and in `getSelectionDescriptor()`. Any single
+row toggle, a clear, or any load leaves all-matching, and
+`getSelectionDescriptor()` is back to ids. In single-selection mode the banner and all-matching
+are off.
+
+Send the descriptor, never a list of thousands of ids:
+
+```tsx
+const selection = rowSelect.getSelectionDescriptor();
+// { mode: 'ids', ids: [1, 2, 3] }  or  { mode: 'all-matching' }
+await (selection.mode === 'all-matching' ? deleteMatching(currentFilter) : deleteIds(selection.ids));
+```
+
+The count in all-matching mode is the load result's `total`, which the client cannot narrow by
+`visible`, and a filter-based action acts on every match, so `visible` is not honoured by "select
+all matching". If `visible` is a permission gate, leave `showSelectAllMatching` off. The backend
+enforces permissions either way.
+
+#### `keepHiddenSelection`
+
+With it on, rows selected by hand stay selected when they leave the screen (another page, a
+filter, a search). `onSelectionChange` then reports every selected item across pages, and the
+select-all checkbox, which acts on the page, is ticked or mixed by the page's rows only. Select-all
+adds the page to the selection rather than replacing it, but unticking it clears the whole
+selection, other pages included, as the source grid does. It is not meant to be combined with
+`showSelectAllMatching`: the one keeps a hand-picked set across pages, the other offers a single
+scope.
+
+#### With row click
+
+The checkbox column marks its whole cell, header and body, as ignoring row clicks, so ticking a
+box does not call a row click plugin's `click`. Nothing to configure.
+
 ## Custom plugins
 
 `createDataGridPlugin(name, setup, propsAreEqual?)` returns a component to use as
@@ -671,6 +971,9 @@ Set these on the grid or any ancestor:
 | `--data-grid-table-min-inline-size` | `max-content` | Floor for the table's width. Raise it for a narrow pane that starves flexible columns, set it to `0` for a grid that must fit its wrapper. |
 | `--data-grid-header-background` | `var(--card)` | Fill of the header cells while `stickyHeader` is on |
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
+| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root` or `body` |
+| `--data-grid-table-configuration-content-max-block-size` | `500px` | Height at which the panel's column list scrolls. Set it where the panel's portal is under the cascade, like the width |
+| `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |
 
 The floor is one constraint among several: under `'fixed'` a table whose columns
 declare widths cannot shrink below their sum, and under either mode not below the
@@ -698,6 +1001,15 @@ columns' minimum content widths.
   or by Tab to its radio and Space.
 - The "All filters" panel is a dialog; it is left with its close button (named
   "Close dialog"), Escape or a click outside.
+- The table configuration panel is built like the order popover, from menu items without
+  a menu popup: its switches and pin buttons are reached with Tab, not with arrow keys, the
+  switches carry no accessible name of their own (the column's name is the text beside them),
+  and the pin buttons are named "Pin column" and "Unpin column" without the column.
+- With the row click plugin every body row is a tab stop and Enter activates it; Space
+  does not.
+- The row select checkboxes, the select-all one included, have no accessible name. "Select all
+  N" and "Clear selection" in the banner are buttons, and the banner is an `alert`, so it is
+  announced when it appears.
 - Strings are English and live in one module; the kit has no i18n layer yet.
 
 ## Known limitations
@@ -718,6 +1030,21 @@ columns' minimum content widths.
   refresh runs after the grid is gone, and its load's `signal` is not aborted.
 - The loading overlay blocks the pointer only, not the keyboard.
 - No `aria-sort`; Previous and Next drop keyboard focus at the ends of the range.
+- With the row click plugin, activating an item of a menu that a row action opens fires the row
+  click, and fires it twice: with the mouse, and with Enter on the item (Space does not, a row
+  ignores it). The menu renders in a portal, so the item is not inside the element marked to
+  ignore row clicks, and a React event still bubbles from it to the row, where it arrives twice.
+  Stop both in the menu's content, which leaves the item's own `onClick`, Escape and the arrow
+  keys as they were:
+
+  ```tsx
+  <DropdownMenuContent
+    onClick={(event) => event.stopPropagation()}
+    onKeyDown={(event) => {
+      if (event.key === 'Enter') event.stopPropagation();
+    }}
+  >
+  ```
 - Renderer overrides (`registerComponent`) are last registered wins.
 - `registerComponent` accepts `'header-cell'` and `'header-group'`, but the header
   always renders its own cell and group components, so those two overrides have no

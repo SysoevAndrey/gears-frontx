@@ -7,7 +7,6 @@ import { resolveLabel } from '../table-helpers';
 import { measureMinContentWidth } from '../table-min-content-width';
 import type { DataGridTableColumn, TableSlot } from '../table-types';
 import { DataGridCell } from './data-grid-cell';
-import cellStyles from './data-grid-cell.module.css';
 import styles from './data-grid-header-cell.module.css';
 
 interface DataGridHeaderCellProps<TItem extends DataGridItem> {
@@ -28,7 +27,6 @@ export function DataGridHeaderCell<TItem extends DataGridItem>({
 
   const LabelComponent = tableService.useComponent<{ column: DataGridTableColumn<TItem> }>('header-cell-label');
   const tableLayout = tableService.useTableLayout();
-  const stickyHeader = tableService.useStickyHeader();
   const minContentWidth = tableService.useMinContentWidth(column.id);
 
   const content = column.headerComponent ? (
@@ -113,7 +111,7 @@ export function DataGridHeaderCell<TItem extends DataGridItem>({
     <DataGridCell
       header
       columnId={column.id}
-      className={cx(styles.headerCell, stickyHeader && cellStyles.stickyHeaderCell, className)}
+      className={cx(styles.headerCell, className)}
       style={{ ...headerStyle, ...contentVars }}
       rowspan={rowspan}
       overflow={cellOverflow}

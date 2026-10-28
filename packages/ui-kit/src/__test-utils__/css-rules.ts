@@ -42,9 +42,10 @@ export interface CssDeclaration {
 
 /*
  * Every declaration in a rule's body, in source order — custom properties
- * (`--foo: ...`) and ordinary properties (`color: ...`) alike, since
+ * (`--foo: ...`, `--_foo: ...`) and ordinary properties (`color: ...`) alike, since
  * `[a-z-]` as the first character class matches both a letter and the
- * leading `-` of `--foo`.
+ * leading `-` of `--foo`, and `_` is in the rest of it for the private
+ * form `--_foo`.
  *
  * `[;}]` as the terminator, not `;` alone: a rule's last declaration is
  * valid CSS without a trailing semicolon (`padding: 12px }`), and a
@@ -60,7 +61,7 @@ export interface CssDeclaration {
  * since collapsing to the winning one would hide the loser from the scan.
  */
 export function declarations(body: string): CssDeclaration[] {
-  return Array.from(body.matchAll(/([a-z-][a-z0-9-]*)\s*:\s*([^;}]+)[;}]/g), (match) => ({
+  return Array.from(body.matchAll(/([a-z-][a-z0-9_-]*)\s*:\s*([^;}]+)[;}]/g), (match) => ({
     prop: match[1] ?? '',
     value: (match[2] ?? '').trim(),
   }));

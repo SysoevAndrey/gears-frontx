@@ -130,8 +130,8 @@
  * merge into the same single full-bleed 1px line a row border drew.
  */
 .tableRow {
-  --table-row-fill: transparent;
-  background-color: var(--table-row-fill);
+  --_table-row-fill: transparent;
+  background-color: var(--_table-row-fill);
   /* Colour crossfades only, no transform/geometry — not motion under WCAG
      2.3.3, so deliberately left unguarded under prefers-reduced-motion. */
   transition:
@@ -170,7 +170,7 @@
  */
 .tableBody .tableRow:hover,
 .tableBody .tableRow:has([aria-expanded='true']) {
-  --table-row-fill: var(--card-hover);
+  --_table-row-fill: var(--card-hover);
 }
 
 /*
@@ -191,15 +191,15 @@
  * washed out the moment the pointer arrives.
  */
 .tableBody .tableRow[data-state='selected'] {
-  --table-row-fill: var(--selection-subtle);
+  --_table-row-fill: var(--selection-subtle);
 }
 
 .tableBody .tableRow[data-state='stale'] {
-  --table-row-fill: var(--warning-soft);
+  --_table-row-fill: var(--warning-soft);
 }
 
 .tableBody .tableRow[data-state='restricted'] {
-  --table-row-fill: var(--danger-soft);
+  --_table-row-fill: var(--danger-soft);
 }
 
 .tableHead {
@@ -377,6 +377,58 @@
 }
 
 /*
+ * A pinned column's cell (`pinned` on TableHead and TableCell). It sticks to the inline edge the
+ * caller's `inset-inline-start` / `inset-inline-end` names, so the cells scrolling past it slide
+ * under it. It declares no offset itself: a column pins at the sum of the widths pinned before it,
+ * which only the caller knows.
+ *
+ * It needs a fill of its own, or what scrolls under it would show through the row's transparent
+ * one. The fill is the row's own, `--_table-row-fill`, painted as a gradient over an opaque base,
+ * so a pinned cell follows hover (including the open-disclosure hold), `data-state` and anything
+ * else that sets the row's fill, and at rest it is the base. The base is a hook with the kit's
+ * raised surface as its fallback: a table sitting on `--background` sets `--table-pinned-fill`
+ * to that, with no selector of its own to beat this one. The layers are one colour and one image
+ * so the row's own fill, which every state sets as a plain colour, needs no per-state rule here.
+ *
+ * Declared after `.tableHead`, which sets `position: relative` at the same specificity. A header
+ * cell in a sticky header or the collection view keeps that rule's fill, which is the header's
+ * own, and the gradient over it is the row's transparent header fill.
+ */
+.pinned {
+  position: sticky;
+  z-index: 1;
+  background-color: var(--table-pinned-fill, var(--card));
+  background-image: linear-gradient(
+    var(--_table-row-fill, transparent),
+    var(--_table-row-fill, transparent)
+  );
+}
+
+/*
+ * A pinned heading of a plain header. The resize handle of a column after it (`.columnResizer`, one
+ * step up, and it hangs over the edge into this column) is at the same step as `.pinned`, and it
+ * comes later in the document, so without this it would paint over the pinned heading and take the
+ * pointer from it. Two classes, so the rules below, which are one more, still win.
+ */
+.tableHead.pinned {
+  z-index: 2;
+}
+
+/*
+ * A pinned header cell of a pinned header. The header cells already sit at `z-index: 2` (here and
+ * in the collection view), so a pinned one has to sit one step above them, or the header cells
+ * scrolling in from the side would paint over it. Three classes, one more than those rules, so the
+ * order the rules are written in does not decide which wins.
+ */
+:where(.stickyHeader) .tableHeader .tableHead.pinned {
+  z-index: 3;
+}
+
+.variantCollection .tableHead.pinned {
+  z-index: 3;
+}
+
+/*
  * The collection view (TableProps.variant). A fixed layout on a floor wide
  * enough for its own columns, a header that sticks to the top of the
  * scrollport on its own fill, and tall rows whose cells wrap rather than
@@ -428,6 +480,24 @@
   box-shadow: inset 0 0 0 var(--border-width-focus) var(--primary);
 }
 
+/* A pinned cell's opaque fill covers that ring, so the cell draws its own share of it: the top
+ * and bottom, and the side when it is the row's first or last cell. Logical borders, for RTL. */
+.variantCollection .tableBody .tableRow:focus-visible > .pinned::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-block: var(--border-width-focus) solid var(--primary);
+}
+
+.variantCollection .tableBody .tableRow:focus-visible > .pinned:first-child::after {
+  border-inline-start: var(--border-width-focus) solid var(--primary);
+}
+
+.variantCollection .tableBody .tableRow:focus-visible > .pinned:last-child::after {
+  border-inline-end: var(--border-width-focus) solid var(--primary);
+}
+
 /* A row the caller made focusable is a row that can be activated, so it
  * takes the pointer cursor; a plain display row does not. */
 .variantCollection .tableBody .tableRow[tabindex] {
@@ -440,7 +510,7 @@
  * activatable rule above, at the same specificity, because an activatable
  * row that is also pending is pending first. */
 .variantCollection .tableBody .tableRow[data-pending] {
-  --table-row-fill: var(--muted);
+  --_table-row-fill: var(--muted);
   cursor: progress;
 }
 
@@ -494,7 +564,7 @@
 }
 
 .tableFooter .tableRow {
-  --table-row-fill: var(--muted);
+  --_table-row-fill: var(--muted);
 }
 
 /* The last row of the table, whatever section it is in, has the container's

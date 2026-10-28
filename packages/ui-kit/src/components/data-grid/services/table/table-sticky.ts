@@ -7,6 +7,12 @@ import { isTableGroup } from './table-types';
 /** The slice of the table store the inline-end offsets are derived from. */
 type EndStickyState = Pick<TableStore, 'extraColumnsEnd' | 'columnWidths'>;
 
+/** The slice of the table store that says whether a start extra column pins, and where. */
+type StartExtraStickyState<TItem extends DataGridItem> = Pick<
+  TableStore<TItem>,
+  'extraColumnsStart' | 'columns' | 'flatColumns' | 'columnVisibility' | 'columnSticky' | 'groupSticky'
+>;
+
 /** A registered `width` the inline-end arithmetic can use: a plain px length, nothing else. */
 const pxWidthRe = /^\s*(\d+(?:\.\d+)?)px\s*$/;
 
@@ -90,7 +96,7 @@ export function prepareTableSticky<TItem extends DataGridItem = DataGridItem>(
 
   function useColumnStickyOffset(columnId: string): number | undefined {
     return useTableStore((s) => {
-      if (!s.columnSticky.get(columnId)) return undefined;
+      if (!s.columnSticky.get(columnId)) return getStartExtraStickyOffset(s, columnId);
 
       let offset = getExtraStartOffset(s);
       const visibleCols = s.flatColumns.filter((c) => s.columnVisibility.get(c.id) !== false);
@@ -127,10 +133,55 @@ export function prepareTableSticky<TItem extends DataGridItem = DataGridItem>(
   function getExtraStartOffset(s: TableStore<TItem>) {
     let offset = 0;
     for (const extra of s.extraColumnsStart) {
-      if (extra.width) offset += parseInt(extra.width, 10) || 0;
+      offset += startExtraWidth(extra);
     }
     return offset;
   }
+}
+
+function startExtraWidth(extra: ExtraColumn): number {
+  return extra.width ? parseInt(extra.width, 10) || 0 : 0;
+}
+
+/**
+ * Offset from the table's inline-start edge for an extra `start` column (a row number, a
+ * checkbox), or `undefined` when it does not pin.
+ *
+ * A pinned data column or group is offset by the width of every start extra column, so the extra
+ * columns have to be pinned in front of it: left unpinned they scroll away and leave that width
+ * empty. They pin together with the first pinned data column and not before it, so a grid that pins
+ * nothing scrolls its extra columns away with the rest. A pinned column that is hidden pins nothing.
+ * Each one sits behind the extra columns before it, in the order they are drawn.
+ *
+ * The widths are read the way the data columns' own offset reads them (the registered `width`), so
+ * the two sums always agree. Pure and store-shaped, like `getEndStickyOffset`.
+ */
+export function getStartExtraStickyOffset<TItem extends DataGridItem>(
+  s: StartExtraStickyState<TItem>,
+  columnId: string,
+): number | undefined {
+  if (!s.extraColumnsStart.some((extra) => extra.id === columnId) || !hasStartPinnedData(s)) {
+    return undefined;
+  }
+
+  let offset = 0;
+  for (const extra of s.extraColumnsStart) {
+    if (extra.id === columnId) return offset;
+    offset += startExtraWidth(extra);
+  }
+
+  return undefined;
+}
+
+function hasStartPinnedData<TItem extends DataGridItem>(s: StartExtraStickyState<TItem>): boolean {
+  const isVisible = (column: DataGridTableColumn<TItem>) => s.columnVisibility.get(column.id) !== false;
+
+  return (
+    s.flatColumns.some((column) => isVisible(column) && s.columnSticky.get(column.id)) ||
+    s.columns.some(
+      (item) => isTableGroup(item) && s.groupSticky.get(item.id) && item.columns.some(isVisible),
+    )
+  );
 }
 
 /**

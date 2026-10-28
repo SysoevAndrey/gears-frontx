@@ -29,6 +29,24 @@ invariants:
       pin, and a TableHead in a body row scrolls with its row; under
       `variant="collection"` every TableHead pins, body rows included (a
       known gap: such a cell covers the column header while the rows scroll).
+  - id: pinned-heading-sticks-at-the-callers-offset
+    text: >-
+      With `pinned` the heading is position sticky and stacks above the cells
+      scrolling under it (one step above the other headings under
+      `stickyHeader` or `variant="collection"`), so a column stays in view
+      while a table wider than its wrapper scrolls sideways. Table declares no
+      offset: a column pins at the sum of the widths pinned before it, which
+      only the caller knows, so the caller gives `insetInlineStart` or
+      `insetInlineEnd` in `style`. In a plain header or a heading in a body row
+      it is filled with the row's own fill over an opaque base,
+      `--table-pinned-fill` (read with `--card` as its fallback). Under
+      `stickyHeader` and `variant="collection"` it keeps the header's own fill
+      instead, `--table-header-fill` (`--card` in the collection view), which is
+      opaque already, and `--table-pinned-fill` does not reach it. A pinned
+      heading that is also `resizable` stacks above the columns after it, so
+      their resize handles do not cover it. Table has no resize callback:
+      resizing a pinned column does not move the offsets of the pinned columns
+      after it, which are the caller's.
   - id: resize-trades-width-with-the-next-column
     text: >-
       With `resizable` the cell renders a focusable role="separator"
@@ -64,6 +82,8 @@ invariants:
       role="checkbox" descendant drops its inline-end padding.
 
 anti_patterns:
+  - dont: Set `pinned` without an `insetInlineStart` or `insetInlineEnd` in `style`
+    do_instead: Give the offset the column pins at; without one the cell sticks to no edge and scrolls away
   - dont: Set `resizeMinWidth` on a column without `resizable`
     do_instead: Set `resizable` as well - the floor only feeds the resize handle
 

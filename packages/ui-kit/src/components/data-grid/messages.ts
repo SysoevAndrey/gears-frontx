@@ -32,6 +32,24 @@ export const messages = {
     ascDate: 'Oldest first',
     descDate: 'Newest first',
   },
+  actionsMenu: {
+    actions: 'Actions',
+  },
+  tableConfiguration: {
+    header: 'Table configuration',
+    configureColumns: 'Configure columns',
+    pinColumn: 'Pin column',
+    unpinColumn: 'Unpin column',
+  },
+  rowSelect: {
+    itemsSelected: (count: number) => (count === 1 ? '1 item selected' : `${count} items selected`),
+    pageSelected: (count: number) =>
+      count === 1 ? '1 item on this page is selected.' : `All ${count} items on this page are selected.`,
+    selectAll: (count: number) => `Select all ${count}`,
+    allSelected: (count: number) =>
+      count === 1 ? '1 item is selected.' : `All ${count} items are selected.`,
+    clearSelection: 'Clear selection',
+  },
   pagination: {
     ariaLabel: 'Pagination',
     limitSelectorAriaLabel: 'Items per page',

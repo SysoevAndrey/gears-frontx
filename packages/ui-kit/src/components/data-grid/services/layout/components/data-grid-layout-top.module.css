@@ -1,0 +1,22 @@
+/*
+ * Whatever the top slot holds is in a box of its own that contains its children's margins, so its
+ * size is the room the slot takes (the toolbar's bottom margin included), which is what is measured
+ * and what a replacing slot is given. `flow-root` does that in any layout the wrapper is in, and
+ * does not rely on it being a flex item.
+ */
+.wrapper {
+  display: flow-root;
+}
+
+/*
+ * A slot that takes the toolbar's place is at least as tall as the toolbar was while the toolbar
+ * was on one line (set inline from what the toolbar measured), and what it holds sits in the middle
+ * of that height, where the toolbar's own items sat. It does not grow: it takes no more than that,
+ * and with no minimum, after a toolbar that had wrapped, it takes its own height. Declared after
+ * `.wrapper`, which it replaces the display of.
+ */
+.replacement {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

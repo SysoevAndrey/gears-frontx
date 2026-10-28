@@ -22,7 +22,6 @@ export function DataGridHeaderGroup<TItem extends DataGridItem>({
   const tableService = useTableService<TItem>();
 
   const stickyOffset = tableService.useGroupStickyOffset(group.id);
-  const stickyHeader = tableService.useStickyHeader();
   const isSticky = stickyOffset !== undefined;
 
   const GroupContent = group.component;
@@ -35,14 +34,9 @@ export function DataGridHeaderGroup<TItem extends DataGridItem>({
 
   return (
     <TableHead
-      className={cx(
-        styles.cell,
-        headerStyles.headerCell,
-        isSticky && styles.stickyCell,
-        stickyHeader && styles.stickyHeaderCell,
-        className,
-      )}
-      style={isSticky ? { position: 'sticky', insetInlineStart: `${stickyOffset}px` } : undefined}
+      className={cx(styles.cell, headerStyles.headerCell, className)}
+      pinned={isSticky}
+      style={isSticky ? { insetInlineStart: `${stickyOffset}px` } : undefined}
       scope="col"
       colSpan={colspan}
     >

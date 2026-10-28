@@ -131,9 +131,16 @@ export function createTableService<TItem extends DataGridItem>(
     const isGroup = state.columns.some((col) => isTableGroup(col) && col.id === id);
 
     if (isGroup) {
+      // A group pins as a whole: its heading and every column under it, or the columns would
+      // scroll away from beneath a heading that stays.
+      const group = state.columns.find((col) => isTableGroup(col) && col.id === id);
       const newGroupSticky = new Map(state.groupSticky);
       newGroupSticky.set(id, sticky);
-      useTableStore.setState({ groupSticky: newGroupSticky });
+      const newColumnSticky = new Map(state.columnSticky);
+      if (group && isTableGroup(group)) {
+        for (const col of group.columns) newColumnSticky.set(col.id, sticky);
+      }
+      useTableStore.setState({ groupSticky: newGroupSticky, columnSticky: newColumnSticky });
     } else {
       const newColumnSticky = new Map(state.columnSticky);
       newColumnSticky.set(id, sticky);

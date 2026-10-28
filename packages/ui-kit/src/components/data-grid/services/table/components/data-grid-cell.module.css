@@ -7,33 +7,6 @@
   border-inline-end: var(--_data-grid-table-group-border, 0 solid transparent);
 }
 
-/*
- * A pinned column. It needs a fill of its own: the cells scrolling under it would show through
- * the row's transparent one. The row's hover tint is repeated here for the same reason (the kit
- * paints it on the row, which a pinned cell now covers); `--card-hover` is the colour the kit's
- * own hover rule uses.
- */
-.stickyCell {
-  position: sticky;
-  z-index: 1;
-  background-color: var(--surface);
-}
-
-/* Body rows only, like the kit's own hover rule: a header row has no hover tint. */
-tbody tr:hover > .stickyCell {
-  background-color: var(--card-hover);
-}
-
-/*
- * A pinned header cell of a sticky header. Table's own sticky header (`stickyHeader`) lifts every
- * header cell to `z-index: 2`, so a pinned one has to sit one step above them, or the header
- * cells scrolling in from the side would paint over it. Three classes, one more than the kit's
- * rule, so the order the two stylesheets load in does not decide which wins.
- */
-.cell.stickyCell.stickyHeaderCell {
-  z-index: 3;
-}
-
 /* Flex row wrapping .content + .endSlot -- only rendered when a cell has an endSlot (headers) */
 .contentRow {
   display: flex;

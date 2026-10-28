@@ -160,8 +160,8 @@ describe('table family: what nests where', () => {
 });
 
 describe('table family: kit props and growth surfaces', () => {
-  it('carries kit props on the root and on TableHead only, every one fully typed but containerStyle and containerRef', () => {
-    // The parts other than TableHead declare nothing of their own: their
+  it('carries kit props on the root and on the two cell parts only, every one fully typed but containerStyle and containerRef', () => {
+    // The parts other than the cells declare nothing of their own: their
     // whole surface is the native element's, behind `forwards_to`.
     expect(Object.keys(units[DIRECTORY].contract.props.properties).sort()).toEqual([
       'containerClassName',
@@ -172,8 +172,9 @@ describe('table family: kit props and growth surfaces', () => {
       'stickyHeader',
       'variant',
     ]);
-    expect(Object.keys(units['table-head'].contract.props.properties).sort()).toEqual(['resizable', 'resizeMinWidth']);
-    for (const stem of PART_STEMS.filter((s) => s !== 'table-head')) {
+    expect(Object.keys(units['table-head'].contract.props.properties).sort()).toEqual(['pinned', 'resizable', 'resizeMinWidth']);
+    expect(Object.keys(units['table-cell'].contract.props.properties)).toEqual(['pinned']);
+    for (const stem of PART_STEMS.filter((s) => !CELLS.includes(s as (typeof CELLS)[number]))) {
       expect(Object.keys(units[stem].contract.props.properties), stem).toEqual([]);
     }
     // containerStyle is React's CSSProperties and containerRef a Ref, neither

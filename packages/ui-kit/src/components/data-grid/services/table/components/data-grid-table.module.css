@@ -16,10 +16,14 @@
  * scroll.
  *
  * The header fill hands the consumer's `--data-grid-header-background` to the kit's own hook,
- * `--table-header-fill`, which Table reads for a sticky header.
+ * `--table-header-fill`, which Table reads for a sticky header. The pinned fill does the same with
+ * `--data-grid-pinned-background` and `--table-pinned-fill`, the base Table paints under a pinned
+ * cell before the row's own fill: the grid's own hook is what a consumer sets, and Table's stays
+ * Table's.
  */
 .table {
   --table-header-fill: var(--data-grid-header-background, var(--card));
+  --table-pinned-fill: var(--data-grid-pinned-background, var(--card));
   min-inline-size: var(--data-grid-table-min-inline-size, max-content);
 }
 

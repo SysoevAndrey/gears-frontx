@@ -4,7 +4,7 @@
  * keeps both rows in their natural places with nothing to measure; the cells' own pinning is then
  * a no-op inside it. A single-row header needs none of this and is left to the kit.
  *
- * `z-index: 2` lifts the block above the pinned body cells (`.stickyCell`, `z-index: 1`); inside
+ * `z-index: 2` lifts the block above the pinned body cells (Table's `.pinned`, `z-index: 1`); inside
  * it the pinned header cells keep their own horizontal stickiness. The refetch overlay sits above
  * both (data-grid-layout-content.module.css).
  */

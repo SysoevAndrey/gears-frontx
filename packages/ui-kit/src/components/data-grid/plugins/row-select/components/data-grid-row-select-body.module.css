@@ -1,0 +1,7 @@
+.cell {
+  display: flex;
+  align-items: center;
+  /* One line of cell text, the height of the kit checkbox's own box: a row holding it stays the
+     height of a row of text. */
+  block-size: var(--text-meta-line-height);
+}

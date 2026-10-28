@@ -1,0 +1,128 @@
+/*
+ * The kit's popover is a fixed 18rem wide, and this panel asks for more (its own floor, below), so
+ * its content would stick out past the edge. The popup keeps to what the panel holds, as far as
+ * the room the positioner reports, in width and in height: a list longer than the room scrolls
+ * inside it instead of running off the screen. The sizes are stated twice over the kit's class so
+ * that they win whichever stylesheet reaches the page last.
+ */
+.popup.popup {
+  width: auto;
+  max-inline-size: var(--available-width);
+  max-block-size: var(--available-height);
+}
+
+/*
+ * The panel is a column the header sits above the list in, and it may be shorter than its content
+ * (`min-block-size: 0`), which is what lets the list scroll when the popup runs out of room.
+ *
+ * Both sizes are consumer-overridable. The panel renders in a portal, so set them where the portal
+ * is under the cascade: `:root` or `body`, not on the grid. The width is a floor, and a floor wider
+ * than the room would stick out of the popup: it gives way to the room the popup has, less the
+ * popup's own padding and border (a step per side, with a little to spare).
+ */
+.tableConfiguration {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  min-inline-size: min(
+    var(--data-grid-table-configuration-min-inline-size, 304px),
+    calc(var(--available-width, 100vw) - var(--space-6))
+  );
+}
+
+.header {
+  flex: none;
+  padding-block: var(--space-3);
+  padding-inline: var(--space-4);
+  border-block-end: var(--border-width) solid var(--border);
+  color: var(--foreground);
+  font-size: var(--text-body-size);
+  font-weight: var(--text-heading-2-weight);
+  line-height: var(--text-body-line-height);
+}
+
+/*
+ * Clipped across: the kit's separator bleeds a step past each edge of its menu, and the list is
+ * a scroll container, so left alone that bleed would be a horizontal scrollbar under the rows.
+ */
+.content {
+  flex: 1 1 auto;
+  overflow: hidden auto;
+  padding-block: var(--space-2);
+  min-block-size: 0;
+  max-block-size: var(--data-grid-table-configuration-content-max-block-size, 500px);
+}
+
+/*
+ * The items are rows holding a switch and a pin button, so the row's block padding is a step
+ * smaller than a plain menu item's: the pin button is already the height of a control. Stated
+ * twice over the kit's `.item`, like the popup's width, so it wins whichever stylesheet loads last.
+ */
+.configurationItem.configurationItem {
+  padding-block: var(--space-1);
+}
+
+/*
+ * The items sit in a menu that has no popup, so Base UI never highlights them as the pointer moves
+ * over them (that comes from the popup's list navigation). The kit's highlight, the accent fill
+ * with its own text colour, is applied on hover instead (a row that has focus takes it from the
+ * kit's own rule). The pin button follows the row: hidden until the row is hovered or holds
+ * keyboard focus, and always shown while the column is pinned.
+ */
+.configurationItem {
+  --_data-grid-table-configuration-pin-button-opacity: 0;
+}
+
+.configurationItem:hover {
+  --_data-grid-table-configuration-pin-button-opacity: 1;
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.configurationItem:has(:focus-visible) {
+  --_data-grid-table-configuration-pin-button-opacity: 1;
+}
+
+@supports not selector(:has(*)) {
+  .configurationItem:focus-within {
+    --_data-grid-table-configuration-pin-button-opacity: 1;
+  }
+}
+
+.pinButton {
+  display: flex;
+  opacity: var(--_data-grid-table-configuration-pin-button-opacity, 0);
+}
+
+.pinButtonVisible {
+  --_data-grid-table-configuration-pin-button-opacity: 1;
+}
+
+/*
+ * What a highlighted row holds has to stay readable on the fill. A switch that is on is the
+ * brand colour, which in the light theme is the accent fill itself, so it gets a ring in the
+ * row's text colour to stand out as a switch; one that is off already contrasts. A pin button
+ * that is neither pressed nor hovered takes the row's text colour in place of its muted one,
+ * which is faint on the accent; a pressed or hovered one keeps the kit's own fill and colour.
+ */
+.configurationItem:is(:hover, :focus) [role='switch'][data-checked] {
+  box-shadow: 0 0 0 var(--border-width) var(--accent-foreground);
+}
+
+.configurationItem:is(:hover, :focus) .pin:not(:hover):not([data-pressed]) {
+  color: inherit;
+}
+
+.label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* A column inside a group has no pin button of its own; its label lines up with a pinned row's. */
+.configurationItem.configurationItemNoSticky {
+  padding-inline-start: calc(var(--space-2) + var(--control-height-sm) + var(--space-2));
+}
+
+.groupContent {
+  padding-inline-start: var(--space-4);
+}
