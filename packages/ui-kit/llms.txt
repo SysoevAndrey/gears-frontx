@@ -228,8 +228,8 @@ Rules for generated code:
   plugins are opt-in entries of their own - pagination, text search,
   ordering, filters, a custom empty state, row numbers, row click, a
   toolbar actions slot, a row actions column, an actions menu, a column
-  configuration popover, row selection with a bulk-action bar and
-  expandable tree rows, imported from
+  configuration popover, row selection with a bulk-action bar,
+  expandable tree rows and drag-and-drop row reordering, imported from
   `@gears-frontx/ui-kit/data-grid/<plugin>` or the package root; state
   can persist to local/session storage, the URL or memory.
 - [DataTable](dist/docs/data-table.md): sortable, paginated, optionally

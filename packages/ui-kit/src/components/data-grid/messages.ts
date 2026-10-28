@@ -72,6 +72,9 @@ export const messages = {
     close: 'Close',
     closeDialog: 'Close dialog',
   },
+  dragDrop: {
+    dragHandle: 'Drag to reorder row',
+  },
   tree: {
     noItems: 'No items',
     collapse: 'Collapse',
