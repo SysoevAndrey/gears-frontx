@@ -51,7 +51,7 @@ The port follows four rules:
 
 * **Behaviour matches the source, defects included.** A defect found while porting is recorded as a follow-up and fixed afterwards, not inside the port. Where a kit component behaves differently, or where review decides a defect must not ship, the pull request that makes the difference lists it as an accepted delta.
 * **The kit is the visual reference.** The grid takes the kit's sizes, type and spacing. Visual differences from the source are expected and are not deltas.
-* **The public API mirrors the source without the `Acv` prefix.** Component, plugin and prop names, the `load(context)` shape and the persisted storage keys stay the same. The exceptions are listed in the pull request that makes them. Among them: each plugin has its own import path, public CSS hooks are named after the component directory (`--data-grid-*`), and the date-range filter takes date-fns format tokens instead of dayjs ones.
+* **The public API mirrors the source without the `Acv` prefix.** Component, plugin and prop names, the `load(context)` shape and the persisted storage keys stay the same. The exceptions are listed in the pull request that makes them. Among them: each plugin has its own import path, public CSS hooks are named after the component directory (`--data-grid-*`), and the date-range filter takes date-fns format tokens instead of dayjs ones, and Excel export takes a loader for the spreadsheet library from the consumer.
 * **Nothing private comes along.** Utilities the source takes from Constructor's private packages are written again inside the grid. The part of the source's tree that the tree filter needs is ported as private code inside the grid, not as a public tree component.
 
 The ported grid replaces `DataTable`. When the last part of the grid has landed, `DataTable` and `@tanstack/react-table` are removed from the package.
@@ -62,7 +62,7 @@ Beyond the per-plugin entries and the state store the source's structure brings,
 
 ### Consequences
 
-* Good, because a migrating team keeps its `load` code and its users' saved choices. It changes its imports, any overrides of the renamed CSS hooks, and its date formats.
+* Good, because a migrating team keeps its `load` code and its users' saved choices. It changes its imports, any overrides of the renamed CSS hooks, and its date formats, and, to export to Excel, installs the spreadsheet library and passes its loader.
 * Good, because the source's unit tests come with the code, so the source's behaviour is checked here, not only described.
 * Good, because the grid is rebranded through the kit's tokens like any other component.
 * Bad, because the source's known defects arrive with it. Among them: a late response can overwrite a newer one, sorted columns have no `aria-sort`, and a failed first load has no retry. Each is a follow-up rather than part of the port.
