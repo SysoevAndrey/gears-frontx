@@ -1,4 +1,13 @@
+/*
+ * The number is set in the mono face, and an inline box whose face differs from the line's is
+ * placed by the baseline of its own, which put half a pixel more than the cell's 16px line into the
+ * line box: a row with a number was 41.5px, against the kit's 41px. Top-aligned in the line, the
+ * number adds nothing to it. `inline-block` keeps its width the number's own, which is what the
+ * column is sized from.
+ */
 .rowNumber {
+  display: inline-block;
+  vertical-align: top;
   font-family: var(--font-mono);
   white-space: nowrap;
 }
