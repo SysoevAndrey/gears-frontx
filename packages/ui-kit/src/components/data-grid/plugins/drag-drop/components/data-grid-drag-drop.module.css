@@ -101,6 +101,17 @@
   min-block-size: 0;
 }
 
+/*
+ * While a row is dragged no row tints under the pointer: the row being dragged and the row it would
+ * land on are marked by the states above, and a hovered row, which the dragged one also stays
+ * while it is dragged, would say a second, wrong thing and paint its pinned cells in a fill of its
+ * own beside the tint of the cells that scroll. The kit's hook for a row's hover tint is what turns
+ * it off, on the table's wrapper.
+ */
+.contentDragging {
+  --table-row-hover-fill: transparent;
+}
+
 /* Dropping outside every row: the whole grid is the target. */
 .contentRootDropping {
   outline: 2px dashed var(--primary);

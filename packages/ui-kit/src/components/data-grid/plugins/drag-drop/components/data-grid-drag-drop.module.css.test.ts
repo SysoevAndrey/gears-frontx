@@ -90,6 +90,10 @@ describe('data-grid-drag-drop.module.css', () => {
     expect(content.has('flex')).toBe(false);
   });
 
+  it('turns the rows\' hover tint off while a row is dragged, with the kit\'s hook', () => {
+    expect(declarationsOf('.contentDragging').get('--table-row-hover-fill')).toBe('transparent');
+  });
+
   it('outlines the whole grid while it is the drop target', () => {
     const root = declarationsOf('.contentRootDropping');
     expect(root.get('outline')).toBe('2px dashed var(--primary)');
