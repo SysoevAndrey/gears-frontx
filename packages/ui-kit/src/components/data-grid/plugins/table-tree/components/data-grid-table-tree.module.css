@@ -6,6 +6,7 @@
 .expand {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   margin-inline-end: var(--space-1);
 }
 
@@ -22,21 +23,30 @@
   transform: rotate(90deg);
 }
 
-/* One level of indentation; the level multiplies it inline. */
+/*
+ * One level of indentation, which the level multiplies inline. It is wider than the toggle and its
+ * margin (a line of text and --space-1, 20px), so what a child starts with, its toggle or its text,
+ * begins after its parent's label and not before it.
+ */
 .indentSpacer {
-  --_data-grid-table-tree-indent: var(--space-8);
+  --_data-grid-table-tree-indent: var(--space-6);
   flex-shrink: 0;
 }
 
 /*
- * A kit cell is a line of text between two --space-3 of padding, 40px with the kit's cell height,
- * and the toggle is a small button, 32px, taller than the line. The cell that holds it gives up
- * the padding down to --space-1, so a row with a toggle is as high as a row without one. The
- * attribute raises the rule over the kit's own `.tableCell` padding, whichever stylesheet reaches
- * the page first.
+ * The toggle takes no more of the cell than a line of text. The kit's cell is one line
+ * (--text-meta-line-height) between its padding, so a toggle taller than that makes every row that
+ * has one taller than the rows that do not, and, in a column that wraps, leaves the lines of a long
+ * label less room above and below than the rows around it have. This is the kit's small ghost icon
+ * Button taken down to a square of the line, the glyph at its own size, which is that line, so the
+ * box that shows on hover is the glyph's. It is set on the toggle itself and not on the cell it is
+ * in, so whichever row renderer draws the cell gets the same row. The two classes outrank the
+ * Button's own size, whichever stylesheet reaches the page first.
  */
-.toggleCell[data-column-id] {
-  padding-block: var(--space-1);
+.expand .toggle {
+  block-size: var(--text-meta-line-height);
+  inline-size: var(--text-meta-line-height);
+  border-radius: var(--radius-sm);
 }
 
 /*

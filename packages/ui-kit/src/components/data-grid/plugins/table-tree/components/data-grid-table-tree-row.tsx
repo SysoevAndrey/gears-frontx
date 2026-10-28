@@ -1,4 +1,3 @@
-import { cx } from 'class-variance-authority';
 import type { KeyboardEvent } from 'react';
 import { TableRow } from '../../../../table/public.js';
 import type { DataGridItem } from '../../../data-grid-types';
@@ -29,7 +28,6 @@ export function DataGridTableTreeRow<TItem extends DataGridItem>({
   const treePlugin = context.plugins.getPlugin<DataGridTableTreePluginApi<TItem>>('tableTree')!;
   const rowClickApi = context.plugins.getPlugin<DataGridRowClickPluginApi<TItem>>('rowClick');
   const isExpanded = treePlugin.useIsExpanded(record.id);
-  const isExpandable = treePlugin.useIsExpandable(record);
   const childRecords = context.storage.getRecordsByParentId(record.id);
 
   const BodyCellContent = tableService.useComponent<{
@@ -62,18 +60,15 @@ export function DataGridTableTreeRow<TItem extends DataGridItem>({
         onKeyDown={onKeyDown}
       >
         <DataGridExtraBodyColumns position="start" />
-        {columns.map((col, index) => {
+        {columns.map((col) => {
           const dynamicClassName = col.getClassName?.(record.item);
           const bodyCellProps = resolveBodyCellProps(col, record.item, tableLayout);
-          // The toggle is a control tall, so the first cell of a row that holds one gives up the
-          // block padding that makes the row a line of text high, and the row stays that high.
-          const holdsToggle = index === 0 && isExpandable;
 
           return (
             <DataGridCell<TItem>
               key={col.id}
               columnId={col.id}
-              className={cx(holdsToggle && styles.toggleCell, dynamicClassName)}
+              className={dynamicClassName}
               {...bodyCellProps}
             >
               <BodyCellContent column={col} item={record.item} />
