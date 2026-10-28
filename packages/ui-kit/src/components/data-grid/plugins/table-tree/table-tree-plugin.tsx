@@ -7,14 +7,17 @@
 
 import type { ReactNode } from 'react';
 import { create } from 'zustand';
-import type { DataGridItem } from '../../data-grid-types';
-import type { LoadInstance } from '../../services/load/load-types';
+// `.js` on each relative type import: they land verbatim in the shipped declaration file, where
+// `moduleResolution: "nodenext"` rejects an extensionless one and every type from it goes untyped
+// (the `expandable` callback's `item` among them).
+import type { DataGridItem } from '../../data-grid-types.js';
+import type { LoadInstance } from '../../services/load/load-types.js';
 import { createDataGridPlugin } from '../../services/plugins/plugins-helpers';
 import type {
   DataGridItemId,
   DataGridRecord,
   DataGridSection,
-} from '../../services/storage/storage-types';
+} from '../../services/storage/storage-types.js';
 import { DataGridTableTreeBodyCellContent } from './components/data-grid-table-tree-body-cell-content';
 import { DataGridTableTreeRow } from './components/data-grid-table-tree-row';
 import { createTreeDataFromFlattenedArray } from './table-tree-helpers';
@@ -24,7 +27,7 @@ import type {
   TableTreeConfigStore,
   TableTreePersistentState,
   TableTreeStore,
-} from './table-tree-types';
+} from './table-tree-types.js';
 
 // Ids from every visited page accumulate in the stored list (a row that is not
 // on screen cannot be collapsed), and rows deleted server-side never come back
