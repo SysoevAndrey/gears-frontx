@@ -105,7 +105,7 @@
  * that is neither pressed nor hovered takes the row's text colour in place of its muted one,
  * which is faint on the accent; a pressed or hovered one keeps the kit's own fill and colour.
  */
-.configurationItem:is(:hover, :focus) [role='switch'] {
+.configurationItem:is(:hover, :focus) [role='switch'][data-checked] {
   box-shadow: 0 0 0 var(--border-width) var(--accent-foreground);
 }
 

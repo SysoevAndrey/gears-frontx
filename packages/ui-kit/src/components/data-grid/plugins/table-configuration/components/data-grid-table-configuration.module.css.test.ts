@@ -95,9 +95,11 @@ describe('data-grid-table-configuration.module.css', () => {
 
     it('keeps a switch that is on visible, which in the light theme is the accent fill itself', () => {
       // The ring is in the row's text colour, the one that reads on the fill in both themes.
-      expect(rule(".configurationItem:is(:hover, :focus) [role='switch']").get('box-shadow')).toBe(
-        '0 0 0 var(--border-width) var(--accent-foreground)',
-      );
+      expect(
+        rule(".configurationItem:is(:hover, :focus) [role='switch'][data-checked]").get('box-shadow'),
+      ).toBe('0 0 0 var(--border-width) var(--accent-foreground)');
+      // An off switch already contrasts with the fill, so it gets no ring.
+      expect(() => rule(".configurationItem:is(:hover, :focus) [role='switch']")).toThrow();
     });
 
     it('keeps the pin icon readable: the row\'s text colour, unless the button has its own fill', () => {
