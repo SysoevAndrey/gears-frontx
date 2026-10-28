@@ -163,6 +163,24 @@ describe('DataGridTableTreePlugin', () => {
       );
     });
 
+    it('holds the cell\'s content in a label of its own, beside the toggle and the indent', async () => {
+      const { user } = render(
+        <DataGrid name="test_tree_label" persistent="memory" load={loadDeepData} columns={columns}>
+          <DataGridTableTreePlugin<TreeItem> parentKey="parent_id" />
+        </DataGrid>,
+      );
+      await screen.findByText('Electronics');
+      await user.click(within(rowOf('Electronics')).getByRole('button'));
+
+      // The label is what ellipsizes, so the text is inside it and the toggle and the spacer are not.
+      for (const name of ['Electronics', 'Phones']) {
+        const label = screen.getByText(name).closest(`.${styles.label}`);
+        expect(label).not.toBeNull();
+        expect(label?.querySelector('button')).toBeNull();
+        expect(label?.parentElement).toHaveClass(styles.treeCellContent);
+      }
+    });
+
     it('turns the chevron to point down while a row is open', async () => {
       const { user } = render(
         <DataGrid name="test_tree_chevron" persistent="memory" load={loadFlatData} columns={columns}>

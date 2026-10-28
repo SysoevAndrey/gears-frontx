@@ -24,6 +24,25 @@
 }
 
 /*
+ * The cell's own content, beside the toggle. In a column that does not wrap, the cell's content
+ * block holds the ellipsis, and a flex container inside that block turns the text into a flex item,
+ * which that ellipsis does not reach: a long label ran on, cut off mid-glyph at the cell's edge with
+ * no ellipsis, and past it in the rows that have a toggle or a level. The label is the item that can
+ * give way (`min-inline-size: 0`, or its text would hold it at its full width) and carries the
+ * ellipsis itself, only where the column does not wrap. The text is nowrap there because the cell's
+ * block says so and the label inherits it.
+ */
+.label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+[data-overflow='nowrap'] .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
  * One level of indentation, which the level multiplies inline. It is wider than the toggle and its
  * margin (a line of text and --space-1, 20px), so what a child starts with, its toggle or its text,
  * begins after its parent's label and not before it.

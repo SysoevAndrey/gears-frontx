@@ -36,7 +36,9 @@ export function DataGridTableTreeBodyCellContent<TItem extends DataGridItem>({
           />
         )}
         {isExpandable && <DataGridTableTreeExpand />}
-        <DataGridBodyCellContent column={column} item={item} />
+        <div className={styles.label}>
+          <DataGridBodyCellContent column={column} item={item} />
+        </div>
       </div>
     );
   }
