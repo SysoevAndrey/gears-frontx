@@ -1,0 +1,83 @@
+.treeCellContent {
+  display: flex;
+  align-items: center;
+}
+
+.expand {
+  display: flex;
+  align-items: center;
+  margin-inline-end: var(--space-1);
+}
+
+.expandIcon {
+  transition: transform var(--duration-micro) var(--ease-standard);
+}
+
+/* The chevron points at where the children are: inline-end while collapsed, down when open. */
+.expandIconCollapsed {
+  transform: rotate(-90deg);
+}
+
+.expandIconCollapsed:dir(rtl) {
+  transform: rotate(90deg);
+}
+
+/* One level of indentation; the level multiplies it inline. */
+.indentSpacer {
+  --_data-grid-table-tree-indent: var(--space-8);
+  flex-shrink: 0;
+}
+
+/*
+ * A kit cell is a line of text between two --space-3 of padding, 40px with the kit's cell height,
+ * and the toggle is a small button, 32px, taller than the line. The cell that holds it gives up
+ * the padding down to --space-1, so a row with a toggle is as high as a row without one. The
+ * attribute raises the rule over the kit's own `.tableCell` padding, whichever stylesheet reaches
+ * the page first.
+ */
+.toggleCell[data-column-id] {
+  padding-block: var(--space-1);
+}
+
+/*
+ * A row is clickable when the row click plugin is registered, and the tree's row, which replaces
+ * the row click plugin's, is drawn the way that one is: a pointer cursor, and the kit's focus ring
+ * on the row's cells and not on the row, because the opaque pinned cells at its edges would cut a
+ * ring drawn on the row. The rules are repeated here and not imported, so each plugin's entry
+ * carries only its own stylesheet. A cell not pinned is positioned for its share of the ring to
+ * sit in it, at zero specificity so a pinned cell keeps its `position: sticky`.
+ */
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:focus-visible {
+  outline: none;
+}
+
+:where(.clickableRow:focus-visible) > td {
+  position: relative;
+}
+
+.clickableRow:focus-visible > *::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-block: var(--border-width-focus) solid var(--ring);
+  pointer-events: none;
+}
+
+.clickableRow:focus-visible > :first-child::after {
+  border-inline-start: var(--border-width-focus) solid var(--ring);
+}
+
+.clickableRow:focus-visible > :last-child::after {
+  border-inline-end: var(--border-width-focus) solid var(--ring);
+}
+
+/* An author colour is flattened in forced-colors mode, so the ring takes the system's. */
+@media (forced-colors: active) {
+  .clickableRow:focus-visible > *::after {
+    border-color: Highlight;
+  }
+}

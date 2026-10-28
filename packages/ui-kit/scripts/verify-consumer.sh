@@ -155,10 +155,11 @@ DATA_GRID_ACTIONS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/actio
 DATA_GRID_ROW_ACTIONS_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/row-actions.js" 'rowActions')"
 DATA_GRID_TABLE_CONFIGURATION_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/table-configuration.js" 'tableConfiguration')"
 DATA_GRID_ROW_SELECT_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/row-select.js" 'rowSelectTop')"
+DATA_GRID_TABLE_TREE_CLASS="$(extract_hashed_class "$UIKIT_DIR/dist/data-grid/table-tree.js" 'treeCellContent')"
 # actions-menu has no stylesheet of its own, so there is no hashed class to probe; the name its
 # entry registers the plugin under stands in for one, and is checked to be in that entry's file.
 DATA_GRID_ACTIONS_MENU_PROBE='"actionsMenu"'
-for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS DATA_GRID_ROW_NUMBER_CLASS DATA_GRID_ROW_CLICK_CLASS DATA_GRID_ACTIONS_CLASS DATA_GRID_ROW_ACTIONS_CLASS DATA_GRID_TABLE_CONFIGURATION_CLASS DATA_GRID_ROW_SELECT_CLASS; do
+for probe_name in BUTTON_CLASS TABLE_CLASS DIALOG_CLASS DATA_GRID_CLASS DATA_GRID_PAGINATION_CLASS DATA_GRID_ORDER_CLASS DATA_GRID_TEXT_SEARCH_CLASS DATA_GRID_FILTERS_CLASS DATA_GRID_ROW_NUMBER_CLASS DATA_GRID_ROW_CLICK_CLASS DATA_GRID_ACTIONS_CLASS DATA_GRID_ROW_ACTIONS_CLASS DATA_GRID_TABLE_CONFIGURATION_CLASS DATA_GRID_ROW_SELECT_CLASS DATA_GRID_TABLE_TREE_CLASS; do
   if [ -z "${!probe_name}" ]; then
     echo "FAIL: could not extract a hashed class probe ($probe_name) from dist/ — did a component's local class names change?"
     exit 1
@@ -651,6 +652,8 @@ assert_absent_from_glob "[esbuild-data-grid] table-configuration styles" "$DATA_
 assert_absent_from_glob "[esbuild-data-grid] table-configuration JS"     "$DATA_GRID_TABLE_CONFIGURATION_CLASS" 'dist/out.js'
 assert_absent_from_glob "[esbuild-data-grid] row-select styles"  "$DATA_GRID_ROW_SELECT_CLASS"  'dist/out.css'
 assert_absent_from_glob "[esbuild-data-grid] row-select JS"      "$DATA_GRID_ROW_SELECT_CLASS"  'dist/out.js'
+assert_absent_from_glob "[esbuild-data-grid] table-tree styles"  "$DATA_GRID_TABLE_TREE_CLASS"  'dist/out.css'
+assert_absent_from_glob "[esbuild-data-grid] table-tree JS"      "$DATA_GRID_TABLE_TREE_CLASS"  'dist/out.js'
 
 echo "==> [esbuild-data-grid] Bundle report (DataGrid core only, react/react-dom external)"
 wc -c dist/out.js dist/out.css
