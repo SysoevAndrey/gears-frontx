@@ -167,10 +167,16 @@
  * in dark. --card-hover is the kit's hover step for a raised surface and
  * differs from both backdrops in both themes; table.test.tsx pins that
  * against theme.css, so a retune of any of the three has to answer to it.
+ *
+ * The tint is a hook, `--table-row-hover-fill`, which the kit reads with that
+ * fallback and declares nowhere itself: a table that tells the user where they
+ * are some other way for a while (a row dragged over the others) sets it to
+ * `transparent` on the table or an ancestor, and no row tints under the
+ * pointer. A pinned cell paints the row's fill too, so it follows.
  */
 .tableBody .tableRow:hover,
 .tableBody .tableRow:has([aria-expanded='true']) {
-  --_table-row-fill: var(--card-hover);
+  --_table-row-fill: var(--table-row-hover-fill, var(--card-hover));
 }
 
 /*
