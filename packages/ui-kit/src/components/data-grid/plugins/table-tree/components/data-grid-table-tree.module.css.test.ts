@@ -17,6 +17,14 @@ function declarationsOf(selector: string) {
   return declarationMap(rule.body);
 }
 
+// The sizes are the theme's invariants, the `:root` block that holds no colour.
+function invariantTokens() {
+  const themeRules = extractRules(
+    readFileSync(join(here, '..', '..', '..', '..', '..', 'styles', 'theme.css'), 'utf-8'),
+  );
+  return declarationMap(themeRules.find((rule) => rule.selector === ':root')?.body ?? '');
+}
+
 describe('data-grid-table-tree.module.css', () => {
   it('turns a collapsed row\'s chevron towards inline-end, which is the other way in right-to-left', () => {
     expect(declarationsOf('.expandIconCollapsed').get('transform')).toBe('rotate(-90deg)');
@@ -34,11 +42,7 @@ describe('data-grid-table-tree.module.css', () => {
     // A parent's label starts after its toggle and the margin behind it; a child, whose toggle or
     // text starts one level in, must start after that and not before it. Resolved from the
     // stylesheet and the theme, since jsdom lays nothing out.
-    // The sizes are the theme's invariants, the `:root` block that holds no colour.
-    const themeRules = extractRules(
-      readFileSync(join(here, '..', '..', '..', '..', '..', 'styles', 'theme.css'), 'utf-8'),
-    );
-    const invariants = declarationMap(themeRules.find((rule) => rule.selector === ':root')?.body ?? '');
+    const invariants = invariantTokens();
     const rem = (value: string | undefined) => {
       const resolved = /^var\((--[a-z0-9-]+)\)$/.exec(value ?? '');
       const token = resolved ? invariants.get(resolved[1]) : undefined;
@@ -73,6 +77,33 @@ describe('data-grid-table-tree.module.css', () => {
     expect(nowrap.get('overflow')).toBe('hidden');
     expect(nowrap.get('text-overflow')).toBe('ellipsis');
     expect(label.has('overflow')).toBe(false);
+  });
+
+  it('gives the toggle a 24px hit area with a pseudo-element, which takes no room', () => {
+    // A box over the toggle, centred on it by equal offsets, that shows nothing and moves nothing.
+    const area = declarationsOf('.expand .toggle::after');
+    expect(area.get('content')).toBe("''");
+    expect(area.get('position')).toBe('absolute');
+    // The offset counts from the padding box, so it carries the 1px border of the Button as well as
+    // the --space-1 the square reaches past the toggle.
+    expect(area.get('inset')).toBe('calc(-1 * (var(--space-1) + var(--border-width)))');
+    expect(area.has('background')).toBe(false);
+
+    // The square is the toggle's line and --space-1 each side: at least 1.5rem, 24px at a 16px root.
+    const rem = (token: string) => {
+      const value = invariantTokens().get(token);
+      if (!value?.endsWith('rem')) throw new Error(`${token} is not a rem token of the theme`);
+      return parseFloat(value);
+    };
+    expect(rem('--text-meta-line-height') + 2 * rem('--space-1')).toBeGreaterThanOrEqual(1.5);
+    // It ends where the label begins and no further: the toggle's margin is the same --space-1.
+    expect(declarationsOf('.expand').get('margin-inline-end')).toBe('var(--space-1)');
+  });
+
+  it('lets the square out of a nowrap cell\'s clipping by as much as the square reaches', () => {
+    const clip = declarationsOf("[data-overflow='nowrap'] > span:has(> .treeCellContent)");
+    expect(clip.get('overflow')).toBe('clip');
+    expect(clip.get('overflow-clip-margin')).toBe('var(--space-1)');
   });
 
   it('draws the toggle\'s focus ring inside its box, where the cell\'s clipping cannot reach it', () => {

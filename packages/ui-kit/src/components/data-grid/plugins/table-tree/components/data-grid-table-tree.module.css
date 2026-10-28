@@ -69,6 +69,36 @@
 }
 
 /*
+ * The toggle is a line high, 16px, which is little to hit. Its hit area is a 24px square, the line
+ * and --space-1 on every side, which a transparent pseudo-element centred on the button makes: it
+ * adds nothing to the layout, to how the toggle looks or to the focus ring, which is the button's
+ * own box. (Offsets of an absolutely positioned box count from the padding box, inside the 1px
+ * border, so the border is added to the offset.) The square reaches the label's edge and no
+ * further, since the toggle's margin is the same --space-1, and it stays in its row, whose
+ * padding is wider. It is inside the element that ignores row clicks, so a click on it is the
+ * toggle's and not the row's.
+ */
+.expand .toggle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--space-1) + var(--border-width)));
+}
+
+/*
+ * In a column that does not wrap, the cell's content block clips with `overflow: hidden`, and a
+ * pointer is not hit through the clip either: the square above was cut to the line the toggle
+ * stands in, and, at the first level, at the cell's start edge. `overflow: clip` clips the same,
+ * and `overflow-clip-margin` moves the edge out by --space-1, which is where the square ends. It is
+ * set on the content block of the cells that hold a tree, found by what is in it, and outranks the
+ * grid's own rule for that block by the element in its selector. A browser that does not know the
+ * margin clips at the block's edge, as before.
+ */
+[data-overflow='nowrap'] > span:has(> .treeCellContent) {
+  overflow: clip;
+  overflow-clip-margin: var(--space-1);
+}
+
+/*
  * The Button draws its keyboard focus ring outside its box, 2px off. In a column that does not wrap,
  * the cell's content clips whatever leaves it, and the toggle, a line high and at the start of
  * that content with its label beside it, has no room around it: an outside ring was cut to a bar on
