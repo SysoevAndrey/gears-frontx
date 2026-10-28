@@ -29,8 +29,9 @@ invariants:
       the `data-state` attribute the caller passes ("selected", "stale" or
       "restricted"), on hover, and while a descendant carries
       aria-expanded="true"; a data-state tint wins over hover. The hover
-      tint is `--card-hover` unless the caller sets `--table-row-hover-fill`
-      on the table or an ancestor (`transparent` turns it off). Rows in
+      tint, and the open-disclosure tint, is `--card-hover` unless the caller
+      sets `--table-row-hover-fill` on the table or an ancestor (`transparent`
+      turns both off). Rows in
       TableHeader and TableFooter take none of these tints.
   - id: row-rule-is-drawn-by-the-cells
     text: >-
