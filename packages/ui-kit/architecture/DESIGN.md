@@ -370,6 +370,7 @@ Nearly every property a consumer depends on is decided at build time and invisib
 - Re-applies the client-boundary directive to the emitted chunk of every source module that declared one, deriving the set from the source rather than from a maintained list.
 - Emits declarations and the re-export shims that make the per-component and per-plugin subpaths resolve under both module-resolution modes.
 - Copies the global stylesheets and the per-component usage documents into the published artifact.
+- Rewrites the emitted import of an external dependency that publishes subpaths as directories without an export map to the files those subpaths resolve to, read from each subpath's own manifest at build time, so a consumer that resolves the package's strict ES modules as fully specified can resolve them.
 
 ##### Responsibility boundaries — Package Build
 
@@ -461,6 +462,7 @@ The properties a consumer depends on most - that styles survive, that unimported
 
 - Packs the artifact and installs it into clean projects, one per bundler and module-resolution mode a consumer may use.
 - Asserts both directions on each: the imported component's code and styles present, every other component's absent, using probes taken from the just-built artifact rather than hardcoded. For a component whose plugins are entries of their own, the same in miniature: its core entry alone carries none of its plugins, and a plugin imported by its subpath brings its own styles and no other plugin's.
+- Asserts that no emitted file imports an optional peer and that each consumer builds with it absent, and that a third-party library one plugin brings is absent from every build that does not import that plugin, using a literal from the library's code as the probe.
 - Asserts that the artifact carries the documentation index and the per-component documents.
 - Asserts the client-boundary classification against the built artifact, including every plugin entry, and fails on a component the classification does not mention.
 
@@ -522,6 +524,8 @@ What the package may depend on, and which members may depend on it, is not yet s
 |-------------------|----------------|---------|
 | Table-model library | Table model, column definitions, row selection, pagination | Supplies the data-table component's model layer, which is why that component's props carry type parameters the contract compiler can only record as slots. It leaves the package with that component once the data-grid component replaces it (`cpt-frontx-ui-kit-adr-data-grid-port`). |
 | State-store library | Store creation and selector hooks | Supplies the data-grid component's per-instance service stores, kept from the grid's source (`cpt-frontx-ui-kit-adr-data-grid-port`). Its types appear in that component's published declarations, which is accepted rather than wrapped. |
+| Drag-and-drop library | Element drag sources, drop targets, monitors, closest-edge hitbox | Supplies the data-grid drag-drop plugin's pointer drag, kept from the grid's source (`cpt-frontx-ui-kit-adr-data-grid-port`). It publishes its subpaths as directories without an export map, so the package build emits imports of the files they resolve to, read from each subpath's own manifest at build time. |
+| Spreadsheet library (optional peer) | Workbook creation and buffer writing | Supplies the data-grid export's Excel format. The kit never imports it: the consumer passes a loader, the kit's types describe only the members the export uses, and without a loader only CSV is offered. It is an optional peer dependency, so it is not installed with the package. |
 | Charting library | Chart primitives | Supplies the chart component's rendering. |
 | Command-palette library | Filterable command list | Supplies the command component's matching and keyboard model. |
 | Date libraries | Calendar rendering and date arithmetic | Supply the calendar and date-picker components. |
@@ -533,7 +537,7 @@ What the package may depend on, and which members may depend on it, is not yet s
 **Dependency Rules** (per project conventions):
 - Each of these belongs to the component that needs it; none becomes a kit-wide concern, and none is re-exported
 - A component's appearance stays on the token vocabulary regardless of what its capability library ships (UIKIT-2)
-- `cpt-frontx-ui-kit-nfr-selective-cost` is about what reaches a consumer's *bundle*, not what reaches its install graph: these are runtime dependencies of the package and are installed whether or not the components needing them are imported. Keeping them out of an unimporting consumer's build is the per-entry emission the package build is responsible for.
+- `cpt-frontx-ui-kit-nfr-selective-cost` is about what reaches a consumer's *bundle*, not what reaches its install graph: these are runtime dependencies of the package and are installed whether or not the components needing them are imported. Keeping them out of an unimporting consumer's build is the per-entry emission the package build is responsible for. An optional peer is the exception: it is not installed with the package, the kit emits no import of it, and the consumer supplies it at run time; its absence must not break any consumer build.
 
 #### Variant authoring
 
