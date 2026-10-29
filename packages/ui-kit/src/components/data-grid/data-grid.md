@@ -882,9 +882,9 @@ A choice applies at once. Which columns are hidden survives a reload only with
 `persistentColumnVisibility` on the grid; pins are not stored. A new `columns` array resets both.
 
 The panel renders in a portal, so set its two size hooks on `:root` or `body`, or on the grid's
-`portalContainer` when it has one, not on the grid (see CSS customization). It keeps inside the
-screen: its width floor gives way to the room there is on a narrow one, and a list longer than the
-room scrolls inside it.
+`portalContainer` when it has one (on `:host` when that is a shadow root), not on the grid (see CSS
+customization). It keeps inside the screen: its width floor gives way to the room there is on a
+narrow one, and a list longer than the room scrolls inside it.
 
 ### `DataGridRowSelectPlugin`
 
@@ -1238,7 +1238,7 @@ Set these on the grid or any ancestor:
 | `--data-grid-table-min-inline-size` | `max-content` | Floor for the table's width. Raise it for a narrow pane that starves flexible columns, set it to `0` for a grid that must fit its wrapper. |
 | `--data-grid-header-background` | `var(--card)` | Fill of the header cells while `stickyHeader` is on |
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
-| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root`, `body` or the grid's `portalContainer` |
+| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root`, `body` or the grid's `portalContainer` (`:host` when that is a shadow root) |
 | `--data-grid-table-configuration-content-max-block-size` | `500px` | Height at which the panel's column list scrolls. Set it where the panel's portal is under the cascade, like the width |
 | `--data-grid-drag-cursor` | `grab` | Cursor over a drag handle at rest. The row being dragged sets it to `grabbing` on itself, so a value set above it applies before and after a drag |
 | `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |
