@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
+import type { PopoverContentProps } from '../popover/public.js';
 import type { CoreService } from './services/core/core-types';
 import type { DataGridHooked } from './services/hooked/hooked-types';
 import type { internalContextKey } from './services/internal/internal-helpers';
@@ -146,6 +147,15 @@ export interface DataGridProps<TItem extends DataGridItem> extends Pick<
    * reads as absent. It is a spoken name, not the storage key `name`, and it is never persisted.
    */
   label?: string;
+  /**
+   * Where the popups the grid and its plugins open are portaled: the filter popovers and their
+   * narrow-screen panel, the all-filters panel, the sort and table configuration popovers, and the
+   * actions menu. Defaults to <body>. Pass a node inside a shadow root when the kit's CSS is
+   * injected only there, or a themed container when the theme is scoped to a subtree, so the
+   * popups get the kit's styles and the theme's tokens. A popup a consumer component opens inside
+   * the grid, such as a row actions menu, takes its own `container`.
+   */
+  portalContainer?: PopoverContentProps['container'];
   children?: ReactNode;
 }
 

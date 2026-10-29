@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../../popover/pub
 import type { DataGridItem } from '../../../data-grid-types';
 import { messages } from '../../../messages';
 import { useDataGrid } from '../../../services/core/data-grid-context';
+import { useDataGridPortalContainer } from '../../../services/core/data-grid-portal-container-context';
 import type { OrderDirection } from '../../../services/plugins/plugins-types';
 import type { DataGridOrderPluginApi } from '../order-types';
 import { getOrderLabels } from '../services/order-labels';
@@ -22,6 +23,7 @@ export function DataGridOrderButton() {
   const grid = useDataGrid<DataGridItem>();
   const orderApi = grid.getPlugin<DataGridOrderPluginApi>('order')!;
   const [open, setOpen] = useState(false);
+  const portalContainer = useDataGridPortalContainer();
 
   const order = orderApi.useOrder();
   const options = orderApi.useOptions();
@@ -74,7 +76,7 @@ export function DataGridOrderButton() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={triggerButton} />
-      <PopoverContent side="bottom" align="end">
+      <PopoverContent side="bottom" align="end" container={portalContainer}>
         {/* The menu parts without a popup of their own: the popover is the popup, and the menu
             only supplies the items, so there is no arrow-key navigation between them. */}
         <DropdownMenu open modal={false}>

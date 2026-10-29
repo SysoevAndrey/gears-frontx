@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Drawer, DrawerContent, DrawerTrigger } from '../../../../drawer/public.js';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../popover/public.js';
+import { useDataGridPortalContainer } from '../../../services/core/data-grid-portal-container-context';
 import { useIsTabletUp } from '../../../utils/use-is-tablet-up';
 import styles from './adaptive-popover.module.css';
 
@@ -29,12 +30,13 @@ export function AdaptivePopover({
   children,
 }: AdaptivePopoverProps) {
   const isTabletUp = useIsTabletUp();
+  const portalContainer = useDataGridPortalContainer();
 
   if (isTabletUp) {
     return (
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger render={trigger} />
-        <PopoverContent className={styles.popover}>
+        <PopoverContent className={styles.popover} container={portalContainer}>
           {minInlineSize != null ? <div style={{ minInlineSize }}>{children}</div> : children}
         </PopoverContent>
       </Popover>
@@ -44,7 +46,7 @@ export function AdaptivePopover({
   return (
     <Drawer open={open} onOpenChange={onOpenChange} side="bottom">
       <DrawerTrigger render={trigger} />
-      <DrawerContent>{children}</DrawerContent>
+      <DrawerContent container={portalContainer}>{children}</DrawerContent>
     </Drawer>
   );
 }

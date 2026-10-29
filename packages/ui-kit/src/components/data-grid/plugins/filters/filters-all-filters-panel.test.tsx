@@ -59,6 +59,14 @@ describe('the All filters panel', () => {
     ).toBeInTheDocument();
   });
 
+  it("opens in the grid's portalContainer", async () => {
+    const container = document.body.appendChild(document.createElement('div'));
+    const { user } = await renderFiltersGrid({ entities: entities(), portalContainer: container });
+
+    expect(container).toContainElement(await openPanel(user));
+    container.remove();
+  });
+
   it('keeps the choices in a draft until Apply, which loads them and closes the panel', async () => {
     const { user, load } = await renderFiltersGrid({ entities: entities() });
     const dialog = await openPanel(user);
@@ -198,6 +206,29 @@ describe('the All filters panel', () => {
       const panel = await screen.findByRole('dialog');
       expect(panel.hasAttribute('data-swipe-axis')).toBe(true);
       expect(within(panel).getByRole('checkbox', { name: 'Published' })).toBeInTheDocument();
+    });
+
+    it("opens a chip's popover in the grid's portalContainer", async () => {
+      const container = document.body.appendChild(document.createElement('div'));
+      const { user } = await renderFiltersGrid({ entities: entities(), portalContainer: container });
+
+      await user.click(screen.getByRole('button', { name: /^Status/ }));
+
+      expect(container).toContainElement(await screen.findByRole('dialog'));
+      container.remove();
+    });
+
+    it("opens a chip's panel on a phone in the grid's portalContainer", async () => {
+      const container = document.body.appendChild(document.createElement('div'));
+      resizeTo(500);
+      const { user } = await renderFiltersGrid({ entities: entities(), portalContainer: container });
+
+      await user.click(screen.getByRole('button', { name: /^Status/ }));
+
+      const panel = await screen.findByRole('dialog');
+      expect(panel.hasAttribute('data-swipe-axis')).toBe(true);
+      expect(container).toContainElement(panel);
+      container.remove();
     });
 
     it('follows the window when it is resized with a chip closed', async () => {

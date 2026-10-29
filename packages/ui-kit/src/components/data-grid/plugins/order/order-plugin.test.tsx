@@ -964,6 +964,21 @@ describe('DataGridOrderPlugin controls', () => {
       await waitFor(() => expect(sentOrder(load)).toEqual([{ column: 'code', direction: 'asc' }]));
     });
 
+    it("opens the popover in the grid's portalContainer", async () => {
+      const container = document.body.appendChild(document.createElement('div'));
+      const { user } = render(
+        <DataGrid name={gridName} load={createLoadFn()} columns={testColumns} portalContainer={container}>
+          <DataGridOrderPlugin options={options} />
+        </DataGrid>,
+      );
+      await screen.findByRole('table');
+
+      await user.click(screen.getByRole('button', { name: messages.order.sort }));
+
+      expect(container).toContainElement(await screen.findByRole('menuitem', { name: 'Name' }));
+      container.remove();
+    });
+
     it('names the directions after the type of the sorted column', async () => {
       const { user } = await renderGrid({
         options: [{ id: 'name', label: 'Name', type: 'date' }],

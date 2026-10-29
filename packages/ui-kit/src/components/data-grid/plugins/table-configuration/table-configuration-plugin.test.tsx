@@ -97,6 +97,24 @@ describe('DataGridTableConfigurationPlugin', () => {
     expect(screen.queryByText(messages.tableConfiguration.header)).not.toBeInTheDocument();
   });
 
+  it("opens the panel in the grid's portalContainer", async () => {
+    const container = document.body.appendChild(document.createElement('div'));
+    const { user } = render(
+      <DataGrid
+        name="table_config_portal"
+        persistent="memory"
+        load={load}
+        columns={columns}
+        portalContainer={container}
+      >
+        <DataGridTableConfigurationPlugin />
+      </DataGrid>,
+    );
+
+    expect(container).toContainElement(await openPanel(user));
+    container.remove();
+  });
+
   it('hides a column from the table when its switch is turned off, and shows it again', async () => {
     const { user } = renderGrid('table_config_visibility');
     await screen.findByText('Ada');
