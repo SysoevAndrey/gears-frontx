@@ -73,6 +73,24 @@ describe('DataGridActionsMenuPlugin', () => {
     expect(labels(menu)).toEqual(['Import', 'Archive']);
   });
 
+  it("opens the menu in the grid's portalContainer", async () => {
+    const container = document.body.appendChild(document.createElement('div'));
+    const { user } = render(
+      <DataGrid
+        name="actions_menu_portal"
+        persistent="memory"
+        load={load}
+        columns={columns}
+        portalContainer={container}
+      >
+        <DataGridActionsMenuPlugin menuItems={[option('Import')]} />
+      </DataGrid>,
+    );
+
+    expect(container).toContainElement(await openMenu(user));
+    container.remove();
+  });
+
   it('lists the items by order; an item without one is ranked by its position, ten apart', async () => {
     const { user } = renderGrid('actions_menu_order', [
       option('C', 30),

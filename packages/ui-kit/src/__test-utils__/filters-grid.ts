@@ -6,6 +6,7 @@ import { DataGrid } from '../components/data-grid/data-grid';
 import type {
   DataGridLoadContext,
   DataGridLoadResult,
+  DataGridProps,
 } from '../components/data-grid/data-grid-types';
 import type { DataGridFilterEntity } from '../components/data-grid/plugins/filters/filters-types';
 import { DataGridFiltersPlugin } from '../components/data-grid/plugins/filters/filters-plugin';
@@ -56,6 +57,8 @@ interface RenderFiltersGridOptions {
   /** The grid's columns, one named Name unless given. */
   columns?: (DataGridTableColumn<FiltersGridItem> | DataGridTableGroup<FiltersGridItem>)[];
   load?: RecordingLoad;
+  /** Where the grid portals its popups; <body> unless given. */
+  portalContainer?: DataGridProps<FiltersGridItem>['portalContainer'];
   /** Rendered inside the grid next to the filters plugin. */
   children?: ReactNode;
 }
@@ -72,12 +75,13 @@ export async function renderFiltersGrid({
   isAllFiltersOptionVisible,
   columns = defaultColumns,
   load = createRecordingLoad(),
+  portalContainer,
   children,
 }: RenderFiltersGridOptions) {
   const grid = (filters: DataGridFilterEntity[]) =>
     createElement(
       DataGrid<FiltersGridItem>,
-      { name, load, columns, persistent },
+      { name, load, columns, persistent, portalContainer },
       createElement(DataGridFiltersPlugin, { entities: filters, isAllFiltersOptionVisible }),
       children,
     );

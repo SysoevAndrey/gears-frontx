@@ -12,6 +12,7 @@ import { createDataGrid } from './create-data-grid';
 import type { DataGridItem, DataGridProps } from './data-grid-types';
 import { DataGridProvider } from './services/core/data-grid-context';
 import { DataGridLabelProvider } from './services/core/data-grid-label-context';
+import { DataGridPortalContainerProvider } from './services/core/data-grid-portal-container-context';
 import { internalContextKey } from './services/internal/internal-helpers';
 import { useLatest } from './utils/use-latest';
 
@@ -29,6 +30,7 @@ export function DataGrid<TItem extends DataGridItem = DataGridItem>({
   loading = false,
   implicitFilterKeys,
   label,
+  portalContainer,
 }: DataGridProps<TItem>) {
   const loadRef = useLatest(load);
   const [grid] = useState(() =>
@@ -76,10 +78,12 @@ export function DataGrid<TItem extends DataGridItem = DataGridItem>({
        * both landmarks fall back to their unlabelled names together and a padded label names
        * them without its padding. */}
       <DataGridLabelProvider value={label?.trim() || undefined}>
-        {children}
-        <Suspense fallback={<DataGridSpinner />}>
-          <DataGridContent />
-        </Suspense>
+        <DataGridPortalContainerProvider value={portalContainer}>
+          {children}
+          <Suspense fallback={<DataGridSpinner />}>
+            <DataGridContent />
+          </Suspense>
+        </DataGridPortalContainerProvider>
       </DataGridLabelProvider>
     </DataGridProvider>
   );

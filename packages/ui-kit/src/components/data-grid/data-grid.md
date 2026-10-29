@@ -290,6 +290,30 @@ sharing one still leave their landmarks indistinguishable. The label is a spoken
 (which identifies a grid's persisted state, and is not readable text), and it
 is never persisted.
 
+### `portalContainer`
+
+The popups the grid and its plugins open render in a portal, on `<body>` by
+default: the filter popovers and their narrow-screen panel, the All filters
+panel, the sort and table configuration popovers, and the actions menu.
+`portalContainer` moves them all to another node, the way `container` does on
+a kit popup.
+
+Pass it when `<body>` is not where the kit's styles or theme reach: a grid in a
+shadow root whose CSS is injected into that root, or a grid under a
+`data-theme` container that is not `<html>` or `<body>`. The node takes a
+shadow root, an element or a ref.
+
+```tsx
+<div data-theme="dark" ref={themedRef}>
+  <DataGrid name="users" load={loadUsers} columns={columns} portalContainer={themedRef}>
+    <DataGridFiltersPlugin entities={filters} />
+  </DataGrid>
+</div>
+```
+
+A popup that your own component opens inside the grid, such as a row actions
+menu, is yours to place: pass it the same node as `container`.
+
 ## Empty state
 
 A grid with no records shows a centered `Empty` instead of the table: "No results
@@ -857,9 +881,10 @@ the last visible column is locked so the table is never empty, and a column's ow
 A choice applies at once. Which columns are hidden survives a reload only with
 `persistentColumnVisibility` on the grid; pins are not stored. A new `columns` array resets both.
 
-The panel renders in a portal, so set its two size hooks on `:root` or `body`, not on the grid
-(see CSS customization). It keeps inside the screen: its width floor gives way to the room there
-is on a narrow one, and a list longer than the room scrolls inside it.
+The panel renders in a portal, so set its two size hooks on `:root` or `body`, or on the grid's
+`portalContainer` when it has one (on `:host` when that is a shadow root), not on the grid (see CSS
+customization). It keeps inside the screen: its width floor gives way to the room there is on a
+narrow one, and a list longer than the room scrolls inside it.
 
 ### `DataGridRowSelectPlugin`
 
@@ -1213,7 +1238,7 @@ Set these on the grid or any ancestor:
 | `--data-grid-table-min-inline-size` | `max-content` | Floor for the table's width. Raise it for a narrow pane that starves flexible columns, set it to `0` for a grid that must fit its wrapper. |
 | `--data-grid-header-background` | `var(--card)` | Fill of the header cells while `stickyHeader` is on |
 | `--data-grid-text-search-inline-size` | `initial` | Width of the search box; a fixed value stops it shifting as the clear button appears |
-| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root` or `body` |
+| `--data-grid-table-configuration-min-inline-size` | `304px` | Minimum width of the table configuration panel. The panel renders in a portal: set it on `:root`, `body` or the grid's `portalContainer` (`:host` when that is a shadow root) |
 | `--data-grid-table-configuration-content-max-block-size` | `500px` | Height at which the panel's column list scrolls. Set it where the panel's portal is under the cascade, like the width |
 | `--data-grid-drag-cursor` | `grab` | Cursor over a drag handle at rest. The row being dragged sets it to `grabbing` on itself, so a value set above it applies before and after a drag |
 | `--data-grid-pinned-background` | `var(--card)` | Fill of a pinned column's cells at rest. A pinned cell is painted with its row's own fill over it, so it follows hover and the other row states. Set `var(--background)` for a grid that sits on the page rather than on a card |

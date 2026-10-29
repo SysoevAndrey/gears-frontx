@@ -3,10 +3,13 @@ import { SettingsIcon } from 'lucide-react';
 import { Button } from '../../../../button/public.js';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../popover/public.js';
 import { messages } from '../../../messages';
+import { useDataGridPortalContainer } from '../../../services/core/data-grid-portal-container-context';
 import styles from './data-grid-table-configuration.module.css';
 import { DataGridTableConfiguration } from './data-grid-table-configuration';
 
 export function DataGridTableConfigurationTrigger() {
+  const portalContainer = useDataGridPortalContainer();
+
   return (
     <Popover>
       <PopoverTrigger
@@ -19,7 +22,13 @@ export function DataGridTableConfigurationTrigger() {
           />
         }
       />
-      <PopoverContent side="bottom" align="end" sideOffset={4} className={styles.popup}>
+      <PopoverContent
+        side="bottom"
+        align="end"
+        sideOffset={4}
+        className={styles.popup}
+        container={portalContainer}
+      >
         <DataGridTableConfiguration />
       </PopoverContent>
     </Popover>
