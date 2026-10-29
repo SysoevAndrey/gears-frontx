@@ -1,7 +1,8 @@
 /*
- * The chip is what the select trigger's `filter` variant looks like (see select.md): a field-like
- * pill at the md control height whose label stays muted. It is not a select, so it carries no
- * chevron, and it has a state of its own, `active`, for a filter that holds a value.
+ * The chip looks like the select trigger's `filter` variant (see select.md): a field-like pill
+ * whose label stays muted. It sits at the lg control height instead, the height of the search
+ * field and the sort button beside it in the DataGrid toolbar. It is not a select, so it carries
+ * no chevron, and it has a state of its own, `active`, for a filter that holds a value.
  */
 .chip {
   box-sizing: border-box;
@@ -10,7 +11,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  height: var(--control-height-md);
+  height: var(--control-height-lg);
   padding-block: 0;
   padding-inline: var(--space-3);
   border: var(--border-width) solid var(--input);
