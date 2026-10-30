@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { declaredIn } from '../../__test-utils__/css-rules';
 import { Switch } from './switch';
 import styles from './switch.module.css';
 
@@ -50,5 +51,21 @@ describe('Switch name', () => {
       </label>,
     );
     expect(screen.getByRole('switch', { name: 'Email notifications' })).toBeDefined();
+  });
+});
+
+// jsdom resolves neither layout nor `:dir()`, so the thumb travel is read from the module source.
+describe('Switch thumb travel', () => {
+  const declaredRule = declaredIn(import.meta.url, 'switch.module.css');
+
+  it('runs the checked travel the other way under a right-to-left direction, at both sizes', () => {
+    expect(declaredRule('.sizeDefault .thumb[data-checked]', 'transform')).toBe('translateX(100%)');
+    expect(declaredRule('.sizeDefault .thumb[data-checked]:dir(rtl)', 'transform')).toBe(
+      'translateX(-100%)',
+    );
+    expect(declaredRule('.thumb[data-checked]', 'transform')).toBe('translateX(calc(100% - 2px))');
+    expect(declaredRule('.thumb[data-checked]:dir(rtl)', 'transform')).toBe(
+      'translateX(calc(2px - 100%))',
+    );
   });
 });

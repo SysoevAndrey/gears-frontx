@@ -71,7 +71,8 @@
       "by": "Base UI's own Switch primitive (role=\"switch\", keyboard toggling, a hidden native input for form submission, data-checked/data-unchecked) plus switch.test.tsx's own role/aria-checked/data-checked assertions"
     },
     "rtl": {
-      "outcome": "unknown"
+      "outcome": "unknown",
+      "by": "switch.module.css reverses the checked thumb's travel with a `:dir(rtl)` rule at each size and switch.test.tsx pins those rules, but jsdom has no layout and does not resolve `:dir()`, so no suite renders the switch right-to-left. `:dir()` follows the `dir` attribute, not CSS `direction`: a page made right-to-left with `direction: rtl` alone still pushes the checked thumb past the track"
     }
   },
   "prop_statements": {

@@ -110,7 +110,7 @@
 
 /* 16px thumb resting 3px inside the drawn track (2px margin + 1px
  * border); checked, it travels exactly its own width (16px) to mirror
- * that inset on the right. */
+ * that inset at the inline end. */
 .sizeDefault .thumb {
   width: 1rem;
   height: 1rem;
@@ -121,6 +121,12 @@
   transform: translateX(100%);
 }
 
+/* translateX is physical: right-to-left, the inline end is on the left,
+ * so the checked travel runs the other way. */
+.sizeDefault .thumb[data-checked]:dir(rtl) {
+  transform: translateX(-100%);
+}
+
 .sizeSm .thumb {
   width: 0.75rem;
   height: 0.75rem;
@@ -128,6 +134,10 @@
 
 .thumb[data-checked] {
   transform: translateX(calc(100% - 2px));
+}
+
+.thumb[data-checked]:dir(rtl) {
+  transform: translateX(calc(2px - 100%));
 }
 
 .thumb[data-unchecked] {
