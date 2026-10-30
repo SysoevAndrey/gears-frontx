@@ -16,8 +16,9 @@ function chipClassName({ active, hover, className }: FilterChipState & { classNa
 export type FilterChipProps = ComponentProps<'button'> & FilterChipState;
 
 /**
- * A quick-filter chip, styled like the select trigger's `filter` variant. It is a plain button
- * that passes every prop and its ref on, so a popover trigger can render it (`render={<FilterChip />}`).
+ * A quick-filter chip, styled like the select trigger's `filter` variant but as tall as the toolbar's
+ * search field. It is a plain button that passes every prop and its ref on, so a popover trigger can
+ * render it (`render={<FilterChip />}`).
  */
 export function FilterChip({
   active,

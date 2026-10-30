@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { declaredIn } from '../../../__test-utils__/css-rules';
 import { render } from '../../../__test-utils__/render-with-user';
 import { Popover, PopoverContent, PopoverTrigger } from '../../popover/public.js';
 import { messages } from '../messages';
@@ -79,6 +80,19 @@ describe('FilterChip', () => {
 
     expect(await screen.findByText('Options')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Status' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  // jsdom has no layout, so this reads the declared heights: the chip sits in the toolbar row
+  // beside the text search field and must not come out shorter than it.
+  it('is as tall as the search field beside it in the toolbar', () => {
+    const chipHeight = declaredIn(import.meta.url, 'filter-chip.module.css')('.chip', 'height');
+    const inputHeight = declaredIn(import.meta.url, '../../input/input.module.css')(
+      '.input',
+      'height',
+    );
+
+    expect(chipHeight).toBe('var(--control-height-lg)');
+    expect(chipHeight).toBe(inputHeight);
   });
 });
 
